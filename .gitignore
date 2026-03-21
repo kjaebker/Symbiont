@@ -1,0 +1,44 @@
+# Environment (contains secrets)
+.env
+
+# Local Apex API notes (contains device IP, serial — use .example template)
+docs/apex-api-notes.md
+docs/apex-api-notes.md.bak
+
+# Test data (contains device-specific responses — may contain IPs, serials, etc.)
+testdata/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Backup directory
+backups/
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
+
+# Compiled binaries
+/poller
+/api
+/mcp
+/symbiont
+
+# Go build cache
+/vendor/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nix
+result
+result-*

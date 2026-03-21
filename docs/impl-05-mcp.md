@@ -65,7 +65,7 @@
 
 - [ ] [code] Register tool with schema:
   - [ ] Name: `get_outlet_states`
-  - [ ] Description: "Get the current state and power draw of all outlets controlled by the Apex. State can be ON, OFF, or AUTO (where xstatus shows the resolved physical state). Includes watts and amps per outlet."
+  - [ ] Description: "Get the current state and power draw of all outlets controlled by the Apex. State values: ON/OFF (manual override), AON/AOF (auto mode, program running), TBL (table program), PF1-PF4 (profile programs). Per-outlet watts and amps included where available (EB832 outlets)."
   - [ ] Input schema: none
 - [ ] [code] Handler:
   - [ ] Calls `GET /api/outlets`

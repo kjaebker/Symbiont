@@ -232,9 +232,10 @@
 ## 6.9 System Health Improvements
 
 - [ ] [code] Add poller health tracking:
-  - [ ] Poller writes a `heartbeat` record to SQLite every 30s with its PID and timestamp
-  - [ ] API server checks this heartbeat to determine true `poll_ok` (not just "last DuckDB row was recent")
+  - [ ] Poller writes a heartbeat file (e.g. `/var/lib/symbiont/poller.heartbeat`) every 30s with PID and timestamp
+  - [ ] API server reads this file to determine true `poll_ok` (not just "last DuckDB row was recent")
   - [ ] If heartbeat is stale (>60s), `poll_ok = false` even if DuckDB has recent data
+  - [ ] Note: Poller must NOT write to SQLite (architectural constraint — SQLite is API-server-only)
 - [ ] [code] Add `GET /api/system/log` endpoint:
   - [ ] Returns last N structured log lines from poller and API (read from journald via exec, or from a log file)
   - [ ] Useful for debugging from the browser without SSH

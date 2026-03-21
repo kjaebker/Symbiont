@@ -147,8 +147,9 @@
   - [ ] `HandleOutletSet(w, r)`:
     - [ ] Extract outlet `id` from URL path
     - [ ] Read and validate request body `{ state: "ON"|"OFF"|"AUTO" }`
-    - [ ] Fetch current state (for `from_state` in event log)
-    - [ ] Call `apex.SetOutlet(ctx, id, state)`
+    - [ ] Map user-facing state to Apex state: "AUTO" → "AON" (returns outlet to program control)
+    - [ ] Fetch current state from `status[0]` (for `from_state` in event log)
+    - [ ] Call `apex.SetOutlet(ctx, did, state)` — sends PUT to `/rest/status/outputs/<did>`
     - [ ] On success: `sqlite.InsertOutletEvent(...)` with `initiated_by = "api"`
     - [ ] Return updated outlet state
     - [ ] On Apex error: return 502 with descriptive error

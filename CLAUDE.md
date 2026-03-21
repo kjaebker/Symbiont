@@ -283,7 +283,7 @@ When a task is complete, mark it `[x]` in the relevant phase file.
 
 > Update this section at the start of each session.
 
-**Active phase:** Phase 1 — Data Collection  
-**Last completed task:** Project initialization  
-**Next task:** 1.1 — Apex API reverse engineering via DevTools  
-**Blockers:** None  
+**Active phase:** Phase 1 — Data Collection
+**Last completed task:** 1.1 — Apex API reverse engineering via DevTools (complete — all endpoints verified, test fixtures saved)
+**Next task:** 1.4 — Apex client (`internal/apex/`)
+**Blockers:** None

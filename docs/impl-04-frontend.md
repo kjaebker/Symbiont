@@ -44,15 +44,15 @@
 ## 4.2 API Client and Types
 
 - [ ] [code] Create `src/api/types.ts`:
-  - [ ] `Probe` interface: `name`, `display_name`, `type`, `value`, `unit`, `ts`, `status`
+  - [ ] `Probe` interface: `name`, `display_name`, `type`, `value`, `ts`, `status` (no `unit` from Apex — derive from type if needed at API layer)
   - [ ] `ProbeHistoryPoint` interface: `ts`, `value`
   - [ ] `ProbeHistory` interface: `probe`, `from`, `to`, `interval`, `data`
-  - [ ] `Outlet` interface: `id`, `name`, `display_name`, `state`, `xstatus`, `watts`, `amps`
+  - [ ] `Outlet` interface: `id`, `did`, `name`, `display_name`, `type`, `state` (from status[0]), `health` (from status[2]), `watts`, `amps` (correlated from input entries)
   - [ ] `OutletEvent` interface: `id`, `ts`, `outlet_id`, `outlet_name`, `from_state`, `to_state`, `initiated_by`
   - [ ] `AlertRule` interface: all fields from SQLite schema
   - [ ] `SystemStatus` interface: controller, poller, db sub-objects
   - [ ] `ProbeStatus` type: `'normal' | 'warning' | 'critical' | 'unknown'`
-  - [ ] `OutletState` type: `'ON' | 'OFF' | 'AUTO'`
+  - [ ] `OutletState` type: `'ON' | 'OFF' | 'AON' | 'AOF' | 'TBL' | 'PF1' | 'PF2' | 'PF3' | 'PF4'` (user-facing toggle uses ON/OFF/AUTO, but display shows actual Apex state)
 - [ ] [code] Create `src/api/client.ts`:
   - [ ] `BASE_URL` constant: `''` (same origin — Vite proxy handles `/api` in dev)
   - [ ] `getToken()` — reads from `localStorage` with key `symbiont_token`
@@ -146,7 +146,7 @@
   - [ ] Click anywhere on card → navigate to `/history?probe=<name>`
 - [ ] [code] Create `src/components/OutletCard.tsx`:
   - [ ] Props: `outlet: Outlet`
-  - [ ] Display: name, state badge, watts, amps
+  - [ ] Display: name, state badge (from status[0]), watts, amps (correlated from input entries by API layer)
   - [ ] Toggle button: cycles through ON → OFF → AUTO (or show as 3-state control)
   - [ ] Optimistic update via `useMutation`: update UI immediately, roll back on error
   - [ ] Loading state while mutation in flight
@@ -206,7 +206,7 @@
 - [ ] [code] Add shadcn/ui components:
   - [ ] `npx shadcn-ui@latest add table select`
 - [ ] [code] Create `src/pages/Outlets.tsx`:
-  - [ ] Full outlet table with columns: NAME, STATE, XSTATUS, WATTS, AMPS, CONTROL
+  - [ ] Full outlet table with columns: NAME, STATE, TYPE, HEALTH, WATTS, AMPS, CONTROL
   - [ ] State badge with color coding
   - [ ] CONTROL column: three-button group (ON / OFF / AUTO)
   - [ ] Active state button highlighted

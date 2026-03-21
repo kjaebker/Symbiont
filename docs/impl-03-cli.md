@@ -69,8 +69,10 @@
   - [ ] `NewOutletsCmd() *cobra.Command` — `symbiont outlets`
   - [ ] Sub-command `list`:
     - [ ] Calls `GET /api/outlets`
-    - [ ] Human output: table with ID, NAME, STATE, XSTATUS, WATTS, AMPS columns
-    - [ ] State column color-coded: ON=green, OFF=red, AUTO=blue
+    - [ ] Human output: table with DID, NAME, STATE, TYPE, HEALTH, WATTS, AMPS columns
+    - [ ] State from `status[0]}`, health from `status[2]` ("OK" or "---")
+    - [ ] WATTS/AMPS correlated from input entries by name convention (may be empty for non-EB832 outlets)
+    - [ ] State column color-coded: ON/AON=green, OFF/AOF=red, AUTO=blue
     - [ ] JSON output: raw API response
   - [ ] Sub-command `set <id> <ON|OFF|AUTO>`:
     - [ ] Validates state arg is one of ON, OFF, AUTO (case-insensitive, normalized to uppercase)
