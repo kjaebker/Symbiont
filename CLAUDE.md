@@ -284,6 +284,6 @@ When a task is complete, mark it `[x]` in the relevant phase file.
 > Update this section at the start of each session.
 
 **Active phase:** Phase 1 — Data Collection
-**Last completed task:** 1.3 — Configuration package (`internal/config`) with tests passing
-**Next task:** 1.1 — Apex API reverse engineering via DevTools (requires real device), then 1.4 — Apex client
-**Blockers:** 1.1 requires physical access to the Apex controller to capture DevTools traffic. `docs/apex-api-notes.md` is pre-filled with community-sourced best guesses but must be verified before implementing the apex client.  
+**Last completed task:** 1.1 — Apex API reverse engineering via DevTools (complete — all endpoints verified, test fixtures saved)
+**Next task:** 1.4 — Apex client (`internal/apex/`)
+**Blockers:** None

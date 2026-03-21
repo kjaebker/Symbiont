@@ -9,32 +9,34 @@
 
 This must be completed before writing a single line of application code. The DevTools capture is ground truth for the AOS firmware version on your unit.
 
-- [ ] [research] Open Chrome DevTools → Network tab → filter by Fetch/XHR
-- [ ] [research] Navigate to Apex local IP in browser and log in normally
-- [ ] [research] Capture the login POST:
-  - [ ] Record exact URL (likely `http://<apex-ip>/rest/login`)
-  - [ ] Record full request body (JSON shape, field names, encoding)
-  - [ ] Record response status code
-  - [ ] Record `Set-Cookie` header value and cookie name (likely `connect.sid`)
-  - [ ] Record response body shape if any
-- [ ] [research] Capture a status GET after login:
-  - [ ] Record exact URL (`/rest/status` or variant)
-  - [ ] Record request headers (Cookie header, any others)
-  - [ ] Save full response JSON to `docs/apex-status-sample.json`
-  - [ ] Note all probe names, types, and value fields present
-  - [ ] Note all outlet fields present (id/DID, name, state, xstatus, watts, amps)
-  - [ ] Note controller/system fields (serial, firmware, power timestamps)
-- [ ] [research] Capture an outlet toggle PUT:
-  - [ ] Record exact URL (`/rest/outlets/<id>` — note ID format)
-  - [ ] Record request body (JSON shape, state field name and value format)
-  - [ ] Record response body
-- [ ] [research] Test session expiry:
-  - [ ] Note how long until a 401 is returned naturally, or force one by clearing cookies
-  - [ ] Confirm the 401 response body/shape
-- [ ] [decision] Does Trident data appear in `/rest/status`? Record Ca, Alk, Mg field locations if present
-- [ ] [decision] Do Vortech/WAV xstatus fields appear? Record their shape
+- [x] [research] Open Chrome DevTools → Network tab → filter by Fetch/XHR
+- [x] [research] Navigate to Apex local IP in browser and log in normally
+- [x] [research] Capture the login POST:
+  - [x] Record exact URL (`POST /rest/login`)
+  - [x] Record full request body (`{"login": "<user>", "password": "<pass>", "remember_me": true}`)
+  - [x] Record response status code (200)
+  - [x] Record `Set-Cookie` header value and cookie name (`connect.sid`)
+  - [x] Record response body shape (`{"connect.sid": "<token>"}`)
+- [x] [research] Capture a status GET after login:
+  - [x] Record exact URL (`GET /rest/status`)
+  - [x] Record request headers (`Cookie: connect.sid=<value>`)
+  - [x] Save full response JSON to `testdata/status-response.json`
+  - [x] Note all probe names, types, and value fields present (did, type, name, value — no unit field)
+  - [x] Note all outlet fields present (did, ID, name, type, gid, status array, intensity)
+  - [x] Note controller/system fields (serial, software, hardware, type, timezone, date)
+  - [x] Note power events are in top-level `power` key (power.failed, power.restored as Unix epochs)
+- [x] [research] Capture an outlet toggle PUT:
+  - [x] Record exact URL (`PUT /rest/status/outputs/<did>`)
+  - [x] Record request body (`{"did": "<did>", "status": ["ON", "", "OK", ""], "type": "outlet"}`)
+  - [x] Record response body
+  - [x] Confirm this is a runtime toggle that preserves outlet programs (vs `/rest/config/oconf/<did>` which overwrites programs)
+- [x] [research] Test session expiry:
+  - [x] Clearing cookies immediately triggers 401
+  - [x] 401 response body: `{"username": ""}`
+- [x] [decision] Trident data: N/A — no Trident connected to this unit
+- [x] [decision] Vortech/WAV xstatus: N/A — no wireless devices connected to this unit
 - [x] [code] Create `docs/apex-api-notes.md` documenting all findings
-- [ ] [code] Save representative sample responses as JSON fixtures in `testdata/`
+- [x] [code] Save representative sample responses as JSON fixtures in `testdata/` (status, config, ilog, link, things)
 
 ---
 
@@ -53,8 +55,8 @@ This must be completed before writing a single line of application code. The Dev
   - [x] `gopls` and `delve` for IDE support
 - [x] [code] Create `.env.example` with all config keys and comments (no real values)
 - [x] [code] Create `.gitignore`: `.env`, `*.db`, `backups/`, `frontend/dist/`, binaries
-- [ ] [config] Create `.env` (not committed) with real Apex IP and credentials
-- [ ] [verify] `nix develop` enters the dev shell with all tools available
+- [x] [config] Create `.env` (not committed) with real Apex IP and credentials
+- [x] [verify] `nix develop` enters the dev shell with all tools available
 - [x] [verify] `go build ./...` compiles (empty packages are fine at this stage)
 
 ---
@@ -82,12 +84,14 @@ This must be completed before writing a single line of application code. The Dev
 ↳ depends on: 1.1 (DevTools capture complete)
 
 - [ ] [code] Create `internal/apex/models.go`:
-  - [ ] `StatusResponse` struct with `System`, `Inputs []Input`, `Outputs []Output`
-  - [ ] `SystemInfo` struct: serial, hostname, firmware, hardware, power_failed, power_restored, date
-  - [ ] `Input` struct: name, value (float64), unit, type
-  - [ ] `Output` struct: DID/id, name, state, xstatus, watts, amps
-  - [ ] `OutletState` type: `ON`, `OFF`, `AUTO` constants
-  - [ ] **Field names must match DevTools capture exactly** — adjust from architecture doc defaults if needed
+  - [ ] `StatusResponse` struct with `System`, `Inputs []Input`, `Outputs []Output`, `Modules []Module`, `Feed FeedStatus`, `Power PowerInfo`, `Link LinkInfo`, `Nstat NetworkStatus`
+  - [ ] `SystemInfo` struct: serial, hostname, software (not firmware), hardware, type, timezone (string), date (Unix epoch int64), extra
+  - [ ] `PowerInfo` struct: failed (int64 Unix epoch), restored (int64 Unix epoch) — top-level, NOT in system
+  - [ ] `Input` struct: did, name, value (float64), type (no unit field — type serves as unit indicator: "Temp", "pH", "Amps", "pwr", "volts", "digital")
+  - [ ] `Output` struct: did (string), ID (int), name, type ("outlet"/"variable"/"alert"/"virtual"/"serial"/"24v"), gid, status ([]string — 4 elements: [state, intensity_or_empty, health, unknown]), intensity (int, optional)
+  - [ ] `OutletState` type: `ON`, `OFF`, `AON`, `AOF` constants (no bare "AUTO" — use AON/AOF to return to auto mode)
+  - [ ] `FeedStatus` struct: name (int), active (int)
+  - [ ] **Field names must match DevTools capture exactly** — see `docs/apex-api-notes.md`
 - [ ] [code] Create `internal/apex/client.go`:
   - [ ] Define `Client` interface with `Status`, `Outlets`, `SetOutlet` methods
   - [ ] Implement `client` struct: baseURL, username, password, `*http.Client`, `sync.Mutex`, cookie
@@ -105,14 +109,15 @@ This must be completed before writing a single line of application code. The Dev
   - [ ] Implement `Status(ctx context.Context) (*StatusResponse, error)`:
     - [ ] Build GET request to `/rest/status`
     - [ ] Call `do()`, decode JSON response into `StatusResponse`
-  - [ ] Implement `SetOutlet(ctx context.Context, id string, state OutletState) (*Output, error)`:
-    - [ ] Build PUT request to `/rest/outlets/<id>` with correct body shape
+  - [ ] Implement `SetOutlet(ctx context.Context, did string, state OutletState) error`:
+    - [ ] Build PUT request to `/rest/status/outputs/<did>` with body `{"did": "<did>", "status": ["<state>", "", "OK", ""], "type": "outlet"}`
     - [ ] Call `do()`, decode response
   - [ ] Set `http.Client` timeout: 10 seconds
   - [ ] Add `go get` for no external deps needed (stdlib only for HTTP)
 - [ ] [code] Create `internal/apex/parser.go`:
-  - [ ] `NormalizeProbeType(input Input) string` — maps Apex type strings to canonical types (`temp`, `pH`, `ORP`, `salinity`)
-  - [ ] `ParsePowerEvents(system SystemInfo) []PowerEvent` — parses power_failed/power_restored timestamps into typed events
+  - [ ] `NormalizeProbeType(input Input) string` — maps Apex type strings to canonical types (`Temp`, `pH`, `Amps`, `pwr`, `volts`, `digital`)
+  - [ ] `ParsePowerEvents(power PowerInfo) []PowerEvent` — parses power.failed/power.restored Unix epoch timestamps into typed events
+  - [ ] `CorrelateOutletPower(inputs []Input, outputs []Output)` — matches per-outlet amp/watt input entries to outlets by name convention (`<Name>A` for amps, `<Name>W` for watts)
 - [ ] [test] Create `testdata/status-response.json` with real sample from DevTools
 - [ ] [test] Create `internal/apex/client_test.go`:
   - [ ] Use `httptest.NewServer` to mock the Apex
@@ -142,7 +147,7 @@ This must be completed before writing a single line of application code. The Dev
   - [ ] `DuckDB` struct wrapping `*sql.DB`
   - [ ] `WriteProbeReadings(ctx, ts time.Time, inputs []apex.Input) error` — batch INSERT
   - [ ] `WriteOutletStates(ctx, ts time.Time, outputs []apex.Output) error` — batch INSERT
-  - [ ] `WritePowerEvents(ctx, ts time.Time, sys apex.SystemInfo) error` — deduplicating INSERT
+  - [ ] `WritePowerEvents(ctx, ts time.Time, power apex.PowerInfo) error` — deduplicating INSERT
   - [ ] `WriteControllerMeta(ctx, ts time.Time, sys apex.SystemInfo) error` — INSERT
   - [ ] `WritePollCycle(ctx, ts time.Time, status *apex.StatusResponse) error` — wraps all writes in single transaction
   - [ ] `Close() error`

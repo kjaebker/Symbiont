@@ -1,7 +1,7 @@
 # Apex API Notes
-> Captured via Chrome DevTools — AOS firmware version: ___________
-> Capture date: ___________
-> Apex serial: ___________
+> Captured via Chrome DevTools — AOS firmware version: AquaController 5.0
+> Capture date: YYYY.MM.DD
+> Apex serial: YOUR_SERIAL_HERE
 
 This document is ground truth for the Apex local API as it behaves on this specific unit and firmware version.
 Community docs and third-party integrations may differ. Always defer to what's captured here.
@@ -9,6 +9,8 @@ Community docs and third-party integrations may differ. Always defer to what's c
 **Status:** The sections below are pre-filled with community-sourced best guesses (from `itchannel/apex-ha`,
 Reef2Reef threads, and the Telegraf Neptune plugin). Fields marked `[VERIFY]` must be confirmed
 against your actual unit using Chrome DevTools before implementing the apex client.
+
+**Setup:** Copy this file to `docs/apex-api-notes.md` (which is gitignored) and fill in your device-specific details.
 
 ---
 
@@ -18,7 +20,7 @@ against your actual unit using Chrome DevTools before implementing the apex clie
 
 ```
 Method:  POST
-URL:     http://<apex-ip>/rest/login     [VERIFY — may include port]
+URL:     http://<APEX_IP>/rest/login     [VERIFY — may include port]
 ```
 
 **Request Headers:**
@@ -65,7 +67,7 @@ Set-Cookie:  connect.sid=<value>; Path=/; HttpOnly    [VERIFY cookie name and fl
 
 ```
 Method:  GET
-URL:     http://<apex-ip>/rest/status    [VERIFY]
+URL:     http://<APEX_IP>/rest/status    [VERIFY]
 ```
 
 **Request Headers:**
@@ -189,7 +191,7 @@ Value when no event has occurred: "none"                 [VERIFY]
 
 ```
 Method:  GET
-URL:     http://<apex-ip>/rest/outlets    [VERIFY if this exists separately from /rest/status]
+URL:     http://<APEX_IP>/rest/outlets    [VERIFY if this exists separately from /rest/status]
 ```
 
 **Does this endpoint exist separately from /rest/status?** [VERIFY]
@@ -207,7 +209,7 @@ URL:     http://<apex-ip>/rest/outlets    [VERIFY if this exists separately from
 
 ```
 Method:  PUT
-URL:     http://<apex-ip>/rest/outlets/<did>    [VERIFY — confirm DID format in URL]
+URL:     http://<APEX_IP>/rest/outlets/<did>    [VERIFY — confirm DID format in URL]
 ```
 
 **Request Headers:**

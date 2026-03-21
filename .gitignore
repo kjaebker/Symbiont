@@ -1,6 +1,13 @@
 # Environment (contains secrets)
 .env
 
+# Local Apex API notes (contains device IP, serial — use .example template)
+docs/apex-api-notes.md
+docs/apex-api-notes.md.bak
+
+# Test data (contains device-specific responses — may contain IPs, serials, etc.)
+testdata/
+
 # Database files
 *.db
 *.db-shm
