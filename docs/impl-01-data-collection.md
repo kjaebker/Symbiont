@@ -33,47 +33,47 @@ This must be completed before writing a single line of application code. The Dev
   - [ ] Confirm the 401 response body/shape
 - [ ] [decision] Does Trident data appear in `/rest/status`? Record Ca, Alk, Mg field locations if present
 - [ ] [decision] Do Vortech/WAV xstatus fields appear? Record their shape
-- [ ] [code] Create `docs/apex-api-notes.md` documenting all findings
+- [x] [code] Create `docs/apex-api-notes.md` documenting all findings
 - [ ] [code] Save representative sample responses as JSON fixtures in `testdata/`
 
 ---
 
 ## 1.2 Repository Bootstrap
 
-- [ ] [code] Initialize Go module: `go mod init github.com/yourname/symbiont`
-- [ ] [code] Create directory structure per architecture doc:
-  - [ ] `cmd/poller/`, `cmd/api/`, `cmd/mcp/`, `cmd/symbiont/`
-  - [ ] `internal/apex/`, `internal/db/`, `internal/poller/`, `internal/api/`
-  - [ ] `internal/config/`, `internal/cli/`, `internal/mcp/`, `internal/alerts/`, `internal/notify/`
-  - [ ] `testdata/`, `docs/`
-- [ ] [code] Create `flake.nix` with Go dev environment:
-  - [ ] Go 1.23+ toolchain
-  - [ ] DuckDB CLI (`duckdb` binary)
-  - [ ] SQLite CLI (`sqlite3` binary)
-  - [ ] `gopls` and `delve` for IDE support
-- [ ] [code] Create `.env.example` with all config keys and comments (no real values)
-- [ ] [code] Create `.gitignore`: `.env`, `*.db`, `backups/`, `frontend/dist/`, binaries
+- [x] [code] Initialize Go module: `go mod init github.com/kjaebker/symbiont`
+- [x] [code] Create directory structure per architecture doc:
+  - [x] `cmd/poller/`, `cmd/api/`, `cmd/mcp/`, `cmd/symbiont/`
+  - [x] `internal/apex/`, `internal/db/`, `internal/poller/`, `internal/api/`
+  - [x] `internal/config/`, `internal/cli/`, `internal/mcp/`, `internal/alerts/`, `internal/notify/`
+  - [x] `testdata/`, `docs/`
+- [x] [code] Create `flake.nix` with Go dev environment:
+  - [x] Go 1.23+ toolchain
+  - [x] DuckDB CLI (`duckdb` binary)
+  - [x] SQLite CLI (`sqlite3` binary)
+  - [x] `gopls` and `delve` for IDE support
+- [x] [code] Create `.env.example` with all config keys and comments (no real values)
+- [x] [code] Create `.gitignore`: `.env`, `*.db`, `backups/`, `frontend/dist/`, binaries
 - [ ] [config] Create `.env` (not committed) with real Apex IP and credentials
 - [ ] [verify] `nix develop` enters the dev shell with all tools available
-- [ ] [verify] `go build ./...` compiles (empty packages are fine at this stage)
+- [x] [verify] `go build ./...` compiles (empty packages are fine at this stage)
 
 ---
 
 ## 1.3 Configuration Package
 
-- [ ] [code] Create `internal/config/config.go`:
-  - [ ] Define `Config` struct with all fields matching architecture doc
-  - [ ] Implement `Load() *Config` using `os.Getenv` + `godotenv` for `.env` file
-  - [ ] Add `go get github.com/joho/godotenv`
-  - [ ] Required fields: `ApexURL`, `ApexUser`, `ApexPass`
-  - [ ] Optional fields with defaults: `DBPath`, `SQLitePath`, `PollInterval`, `APIPort`, `LogLevel`
-  - [ ] Duration parsing for `PollInterval` (`time.ParseDuration`)
-  - [ ] Validate required fields at load time — `log.Fatal` if missing
-- [ ] [test] Write `internal/config/config_test.go`:
-  - [ ] Test defaults are applied for optional fields
-  - [ ] Test required fields cause fatal when missing
-  - [ ] Test duration parsing for poll interval
-- [ ] [verify] `go test ./internal/config/...` passes
+- [x] [code] Create `internal/config/config.go`:
+  - [x] Define `Config` struct with all fields matching architecture doc
+  - [x] Implement `Load() *Config` using `os.Getenv` + `godotenv` for `.env` file
+  - [x] Add `go get github.com/joho/godotenv`
+  - [x] Required fields: `ApexURL`, `ApexUser`, `ApexPass`
+  - [x] Optional fields with defaults: `DBPath`, `SQLitePath`, `PollInterval`, `APIPort`, `LogLevel`
+  - [x] Duration parsing for `PollInterval` (`time.ParseDuration`)
+  - [x] Validate required fields at load time — `log.Fatal` if missing
+- [x] [test] Write `internal/config/config_test.go`:
+  - [x] Test defaults are applied for optional fields
+  - [x] Test required fields cause fatal when missing
+  - [x] Test duration parsing for poll interval
+- [x] [verify] `go test ./internal/config/...` passes
 
 ---
 

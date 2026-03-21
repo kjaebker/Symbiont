@@ -1,0 +1,37 @@
+# Environment (contains secrets)
+.env
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Backup directory
+backups/
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
+
+# Compiled binaries
+/poller
+/api
+/mcp
+/symbiont
+
+# Go build cache
+/vendor/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nix
+result
+result-*
