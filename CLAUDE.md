@@ -284,6 +284,6 @@ When a task is complete, mark it `[x]` in the relevant phase file.
 > Update this section at the start of each session.
 
 **Active phase:** Phase 1 — Data Collection
-**Last completed task:** 1.1 — Apex API reverse engineering via DevTools (complete — all endpoints verified, test fixtures saved)
-**Next task:** 1.4 — Apex client (`internal/apex/`)
+**Last completed task:** 1.6 — Poller binary (verified locally against real Apex, data accumulating in DuckDB)
+**Next task:** 1.7 — Structured logging
 **Blockers:** None
