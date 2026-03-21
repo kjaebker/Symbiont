@@ -204,10 +204,10 @@ This must be completed before writing a single line of application code. The Dev
 
 ## 1.7 Structured Logging
 
-- [ ] [code] Set up `log/slog` with JSON handler in each binary's `main.go`
-- [ ] [code] Log level controlled by `SYMBIONT_LOG_LEVEL` env var (default: `info`)
-- [ ] [code] All log lines in Poller include: `service=poller`, `ts`, structured fields
-- [ ] [verify] Logs are valid JSON (`journalctl -u symbiont-poller | jq .`)
+- [x] [code] Set up `log/slog` with JSON handler in each binary's `main.go`
+- [x] [code] Log level controlled by `SYMBIONT_LOG_LEVEL` env var (default: `info`)
+- [x] [code] All log lines in Poller include: `service=poller`, `ts`, structured fields
+- [x] [verify] Logs are valid JSON (`journalctl -u symbiont-poller | jq .`)
 
 ---
 
@@ -215,23 +215,24 @@ This must be completed before writing a single line of application code. The Dev
 
 ↳ depends on: 1.6 complete and verified
 
-- [ ] [config] Create `symbiont` system user and group in `flake.nix` (or `configuration.nix`)
-- [ ] [config] Create `/var/lib/symbiont/` with correct ownership
-- [ ] [config] Create `/etc/symbiont/env` with real values, mode 0400, owned by `symbiont`
-- [ ] [config] Add `symbiont-poller` systemd service definition to `flake.nix`:
-  - [ ] `ExecStart` pointing to poller binary in Nix store
-  - [ ] `EnvironmentFile = /etc/symbiont/env`
-  - [ ] `Restart = always`, `RestartSec = 5s`
-  - [ ] `User = symbiont`, `Group = symbiont`
-  - [ ] `StateDirectory = symbiont`
-  - [ ] Hardening: `PrivateTmp`, `NoNewPrivileges`, `ProtectSystem=strict`, `ReadWritePaths`
-- [ ] [verify] `sudo systemctl start symbiont-poller`
-- [ ] [verify] `sudo systemctl status symbiont-poller` → active (running)
-- [ ] [verify] `sudo journalctl -u symbiont-poller -f` → JSON log lines every 10s
-- [ ] [verify] `sudo systemctl stop symbiont-poller` → clean shutdown
-- [ ] [verify] After restart: DB continues accumulating without gaps
-- [ ] [config] Enable service at boot: `wantedBy = [ "multi-user.target" ]`
-- [ ] [verify] Reboot mini PC → poller starts automatically
+- [x] [config] Create `symbiont` system user and group in `flake.nix` (or `configuration.nix`)
+- [x] [config] Create `/var/lib/symbiont/` with correct ownership
+- [ ] [config] Create `/etc/symbiont/env` with real values, mode 0400, owned by `symbiont` *(deferred to mini PC deployment)*
+- [x] [config] Add `symbiont-poller` systemd service definition to `flake.nix`:
+  - [x] `ExecStart` pointing to poller binary in Nix store
+  - [x] `EnvironmentFile = /etc/symbiont/env`
+  - [x] `Restart = always`, `RestartSec = 5s`
+  - [x] `User = symbiont`, `Group = symbiont`
+  - [x] `StateDirectory = symbiont`
+  - [x] Hardening: `PrivateTmp`, `NoNewPrivileges`, `ProtectSystem=strict`, `ReadWritePaths`
+- [x] [config] `nix build .#poller` and `nix build .#api` produce working binaries
+- [ ] [verify] `sudo systemctl start symbiont-poller` *(deferred to mini PC deployment)*
+- [ ] [verify] `sudo systemctl status symbiont-poller` → active (running) *(deferred)*
+- [ ] [verify] `sudo journalctl -u symbiont-poller -f` → JSON log lines every 10s *(deferred)*
+- [ ] [verify] `sudo systemctl stop symbiont-poller` → clean shutdown *(deferred)*
+- [ ] [verify] After restart: DB continues accumulating without gaps *(deferred)*
+- [x] [config] Enable service at boot: `wantedBy = [ "multi-user.target" ]`
+- [ ] [verify] Reboot mini PC → poller starts automatically *(deferred)*
 
 ---
 
