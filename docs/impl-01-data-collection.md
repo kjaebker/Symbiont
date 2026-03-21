@@ -238,11 +238,11 @@ This must be completed before writing a single line of application code. The Dev
 
 ## 1.9 Retention and Cleanup (stub)
 
-- [ ] [code] Create stub `internal/db/cleanup.go` with `DeleteOldRows(ctx, retentionDays int) error`
-  - [ ] Deletes rows from all four DuckDB tables older than `retentionDays`
-  - [ ] Returns count of deleted rows per table
-  - [ ] Not wired to a timer yet — that happens in Phase 6
-- [ ] [test] Test that `DeleteOldRows` removes expected rows and leaves recent rows
+- [x] [code] Create stub `internal/db/cleanup.go` with `DeleteOldRows(ctx, retentionDays int) error`
+  - [x] Deletes rows from all four DuckDB tables older than `retentionDays`
+  - [x] Returns count of deleted rows per table
+  - [x] Not wired to a timer yet — that happens in Phase 6
+- [x] [test] Test that `DeleteOldRows` removes expected rows and leaves recent rows
 
 ---
 
