@@ -83,90 +83,90 @@ This must be completed before writing a single line of application code. The Dev
 
 ↳ depends on: 1.1 (DevTools capture complete)
 
-- [ ] [code] Create `internal/apex/models.go`:
-  - [ ] `StatusResponse` struct with `System`, `Inputs []Input`, `Outputs []Output`, `Modules []Module`, `Feed FeedStatus`, `Power PowerInfo`, `Link LinkInfo`, `Nstat NetworkStatus`
-  - [ ] `SystemInfo` struct: serial, hostname, software (not firmware), hardware, type, timezone (string), date (Unix epoch int64), extra
-  - [ ] `PowerInfo` struct: failed (int64 Unix epoch), restored (int64 Unix epoch) — top-level, NOT in system
-  - [ ] `Input` struct: did, name, value (float64), type (no unit field — type serves as unit indicator: "Temp", "pH", "Amps", "pwr", "volts", "digital")
-  - [ ] `Output` struct: did (string), ID (int), name, type ("outlet"/"variable"/"alert"/"virtual"/"serial"/"24v"), gid, status ([]string — 4 elements: [state, intensity_or_empty, health, unknown]), intensity (int, optional)
-  - [ ] `OutletState` type: `ON`, `OFF`, `AON`, `AOF` constants (no bare "AUTO" — use AON/AOF to return to auto mode)
-  - [ ] `FeedStatus` struct: name (int), active (int)
-  - [ ] **Field names must match DevTools capture exactly** — see `docs/apex-api-notes.md`
-- [ ] [code] Create `internal/apex/client.go`:
-  - [ ] Define `Client` interface with `Status`, `Outlets`, `SetOutlet` methods
-  - [ ] Implement `client` struct: baseURL, username, password, `*http.Client`, `sync.Mutex`, cookie
-  - [ ] Implement `NewClient(baseURL, user, pass string) (Client, error)` — creates client and authenticates immediately
-  - [ ] Implement `login(ctx context.Context) error`:
-    - [ ] POST to `/rest/login` with correct body (from DevTools capture)
-    - [ ] Extract `connect.sid` cookie (or whatever cookie name DevTools showed)
-    - [ ] Store cookie on client struct under mutex
-    - [ ] Return error if status is not 200
-  - [ ] Implement `do(ctx context.Context, req *http.Request) (*http.Response, error)`:
-    - [ ] Attach session cookie to request
-    - [ ] Execute request
-    - [ ] If 401 response: call `login()`, retry request once
-    - [ ] Return response or error
-  - [ ] Implement `Status(ctx context.Context) (*StatusResponse, error)`:
-    - [ ] Build GET request to `/rest/status`
-    - [ ] Call `do()`, decode JSON response into `StatusResponse`
-  - [ ] Implement `SetOutlet(ctx context.Context, did string, state OutletState) error`:
-    - [ ] Build PUT request to `/rest/status/outputs/<did>` with body `{"did": "<did>", "status": ["<state>", "", "OK", ""], "type": "outlet"}`
-    - [ ] Call `do()`, decode response
-  - [ ] Set `http.Client` timeout: 10 seconds
-  - [ ] Add `go get` for no external deps needed (stdlib only for HTTP)
-- [ ] [code] Create `internal/apex/parser.go`:
-  - [ ] `NormalizeProbeType(input Input) string` — maps Apex type strings to canonical types (`Temp`, `pH`, `Amps`, `pwr`, `volts`, `digital`)
-  - [ ] `ParsePowerEvents(power PowerInfo) []PowerEvent` — parses power.failed/power.restored Unix epoch timestamps into typed events
-  - [ ] `CorrelateOutletPower(inputs []Input, outputs []Output)` — matches per-outlet amp/watt input entries to outlets by name convention (`<Name>A` for amps, `<Name>W` for watts)
-- [ ] [test] Create `testdata/status-response.json` with real sample from DevTools
-- [ ] [test] Create `internal/apex/client_test.go`:
-  - [ ] Use `httptest.NewServer` to mock the Apex
-  - [ ] Test successful login and status fetch
-  - [ ] Test 401 triggers re-auth and retry
-  - [ ] Test `SetOutlet` sends correct body
-  - [ ] Test timeout behavior
-- [ ] [test] Create `internal/apex/parser_test.go`:
-  - [ ] Test probe type normalization
-  - [ ] Test power event parsing with real sample timestamps
-- [ ] [verify] `go test ./internal/apex/...` passes
+- [x] [code] Create `internal/apex/models.go`:
+  - [x] `StatusResponse` struct with `System`, `Inputs []Input`, `Outputs []Output`, `Modules []Module`, `Feed FeedStatus`, `Power PowerInfo`, `Link LinkInfo`, `Nstat NetworkStatus`
+  - [x] `SystemInfo` struct: serial, hostname, software (not firmware), hardware, type, timezone (string), date (Unix epoch int64), extra
+  - [x] `PowerInfo` struct: failed (int64 Unix epoch), restored (int64 Unix epoch) — top-level, NOT in system
+  - [x] `Input` struct: did, name, value (float64), type (no unit field — type serves as unit indicator: "Temp", "pH", "Amps", "pwr", "volts", "digital")
+  - [x] `Output` struct: did (string), ID (int), name, type ("outlet"/"variable"/"alert"/"virtual"/"serial"/"24v"), gid, status ([]string — 4 elements: [state, intensity_or_empty, health, unknown]), intensity (int, optional)
+  - [x] `OutletState` type: `ON`, `OFF`, `AON`, `AOF` constants (no bare "AUTO" — use AON/AOF to return to auto mode)
+  - [x] `FeedStatus` struct: name (int), active (int)
+  - [x] **Field names must match DevTools capture exactly** — see `docs/apex-api-notes.md`
+- [x] [code] Create `internal/apex/client.go`:
+  - [x] Define `Client` interface with `Status`, `Outlets`, `SetOutlet` methods
+  - [x] Implement `client` struct: baseURL, username, password, `*http.Client`, `sync.Mutex`, cookie
+  - [x] Implement `NewClient(baseURL, user, pass string) (Client, error)` — creates client and authenticates immediately
+  - [x] Implement `login(ctx context.Context) error`:
+    - [x] POST to `/rest/login` with correct body (from DevTools capture)
+    - [x] Extract `connect.sid` cookie (or whatever cookie name DevTools showed)
+    - [x] Store cookie on client struct under mutex
+    - [x] Return error if status is not 200
+  - [x] Implement `do(ctx context.Context, req *http.Request) (*http.Response, error)`:
+    - [x] Attach session cookie to request
+    - [x] Execute request
+    - [x] If 401 response: call `login()`, retry request once
+    - [x] Return response or error
+  - [x] Implement `Status(ctx context.Context) (*StatusResponse, error)`:
+    - [x] Build GET request to `/rest/status`
+    - [x] Call `do()`, decode JSON response into `StatusResponse`
+  - [x] Implement `SetOutlet(ctx context.Context, did string, state OutletState) error`:
+    - [x] Build PUT request to `/rest/status/outputs/<did>` with body `{"did": "<did>", "status": ["<state>", "", "OK", ""], "type": "outlet"}`
+    - [x] Call `do()`, decode response
+  - [x] Set `http.Client` timeout: 10 seconds
+  - [x] Add `go get` for no external deps needed (stdlib only for HTTP)
+- [x] [code] Create `internal/apex/parser.go`:
+  - [x] `NormalizeProbeType(input Input) string` — maps Apex type strings to canonical types (`Temp`, `pH`, `Amps`, `pwr`, `volts`, `digital`)
+  - [x] `ParsePowerEvents(power PowerInfo) []PowerEvent` — parses power.failed/power.restored Unix epoch timestamps into typed events
+  - [x] `CorrelateOutletPower(inputs []Input, outputs []Output)` — matches per-outlet amp/watt input entries to outlets by name convention (`<Name>A` for amps, `<Name>W` for watts)
+- [x] [test] Create `testdata/status-response.json` with real sample from DevTools
+- [x] [test] Create `internal/apex/client_test.go`:
+  - [x] Use `httptest.NewServer` to mock the Apex
+  - [x] Test successful login and status fetch
+  - [x] Test 401 triggers re-auth and retry
+  - [x] Test `SetOutlet` sends correct body
+  - [x] Test timeout behavior
+- [x] [test] Create `internal/apex/parser_test.go`:
+  - [x] Test probe type normalization
+  - [x] Test power event parsing with real sample timestamps
+- [x] [verify] `go test ./internal/apex/...` passes
 
 ---
 
 ## 1.5 DuckDB Package
 
-- [ ] [code] Add dependency: `go get github.com/marcboeker/go-duckdb`
-- [ ] [verify] `go-duckdb` compiles correctly on NixOS (CGO dependency — test early)
-  - [ ] [!] If CGO fails on NixOS: investigate `nix-ld` or pkg-config setup, document fix in `docs/nixos-notes.md`
-- [ ] [code] Create `internal/db/schema.go`:
-  - [ ] `CreateSchema(db *sql.DB) error` — idempotent, uses `CREATE TABLE IF NOT EXISTS`
-  - [ ] All four DuckDB tables from architecture doc: `probe_readings`, `outlet_states`, `power_events`, `controller_meta`
-  - [ ] `MigrateSchema(db *sql.DB) error` — placeholder for future schema migrations (runs after CreateSchema)
-- [ ] [code] Create `internal/db/duckdb.go`:
-  - [ ] `Open(path string) (*DuckDB, error)` — opens read-write connection, runs schema creation
-  - [ ] `OpenReadOnly(path string) (*DuckDB, error)` — opens read-only connection
-  - [ ] `DuckDB` struct wrapping `*sql.DB`
-  - [ ] `WriteProbeReadings(ctx, ts time.Time, inputs []apex.Input) error` — batch INSERT
-  - [ ] `WriteOutletStates(ctx, ts time.Time, outputs []apex.Output) error` — batch INSERT
-  - [ ] `WritePowerEvents(ctx, ts time.Time, power apex.PowerInfo) error` — deduplicating INSERT
-  - [ ] `WriteControllerMeta(ctx, ts time.Time, sys apex.SystemInfo) error` — INSERT
-  - [ ] `WritePollCycle(ctx, ts time.Time, status *apex.StatusResponse) error` — wraps all writes in single transaction
-  - [ ] `Close() error`
-- [ ] [code] Create `internal/db/queries.go` (read queries, used by API server later):
-  - [ ] `CurrentProbeReadings(ctx) ([]ProbeReading, error)` — latest value per probe
-  - [ ] `ProbeHistory(ctx, name string, from, to time.Time, interval string) ([]DataPoint, error)` — bucketed time-series
-  - [ ] `CurrentOutletStates(ctx) ([]OutletState, error)` — latest state per outlet
-  - [ ] `ControllerMeta(ctx) (*ControllerMeta, error)` — most recent controller snapshot
-  - [ ] `LastPollTime(ctx) (time.Time, error)`
-- [ ] [code] Define internal result types in `internal/db/models.go`:
-  - [ ] `ProbeReading`, `OutletState`, `DataPoint`, `ControllerMeta`
-- [ ] [test] Create `internal/db/duckdb_test.go`:
-  - [ ] Use temp file for test DB (cleaned up with `t.Cleanup`)
-  - [ ] Test schema creation is idempotent
-  - [ ] Test `WritePollCycle` with sample data
-  - [ ] Test transaction rollback on partial write failure
-  - [ ] Test `CurrentProbeReadings` returns latest row per probe
-  - [ ] Test `ProbeHistory` bucketing
-- [ ] [verify] `go test ./internal/db/...` passes
+- [x] [code] Add dependency: `go get github.com/marcboeker/go-duckdb`
+- [x] [verify] `go-duckdb` compiles correctly on NixOS (CGO dependency — test early)
+  - [x] [!] If CGO fails on NixOS: investigate `nix-ld` or pkg-config setup, document fix in `docs/nixos-notes.md`
+- [x] [code] Create `internal/db/schema.go`:
+  - [x] `CreateSchema(db *sql.DB) error` — idempotent, uses `CREATE TABLE IF NOT EXISTS`
+  - [x] All four DuckDB tables from architecture doc: `probe_readings`, `outlet_states`, `power_events`, `controller_meta`
+  - [x] `MigrateSchema(db *sql.DB) error` — placeholder for future schema migrations (runs after CreateSchema)
+- [x] [code] Create `internal/db/duckdb.go`:
+  - [x] `Open(path string) (*DuckDB, error)` — opens read-write connection, runs schema creation
+  - [x] `OpenReadOnly(path string) (*DuckDB, error)` — opens read-only connection
+  - [x] `DuckDB` struct wrapping `*sql.DB`
+  - [x] `WriteProbeReadings(ctx, ts time.Time, inputs []apex.Input) error` — batch INSERT
+  - [x] `WriteOutletStates(ctx, ts time.Time, outputs []apex.Output) error` — batch INSERT
+  - [x] `WritePowerEvents(ctx, ts time.Time, power apex.PowerInfo) error` — deduplicating INSERT
+  - [x] `WriteControllerMeta(ctx, ts time.Time, sys apex.SystemInfo) error` — INSERT
+  - [x] `WritePollCycle(ctx, ts time.Time, status *apex.StatusResponse) error` — wraps all writes in single transaction
+  - [x] `Close() error`
+- [x] [code] Create `internal/db/queries.go` (read queries, used by API server later):
+  - [x] `CurrentProbeReadings(ctx) ([]ProbeReading, error)` — latest value per probe
+  - [x] `ProbeHistory(ctx, name string, from, to time.Time, interval string) ([]DataPoint, error)` — bucketed time-series
+  - [x] `CurrentOutletStates(ctx) ([]OutletState, error)` — latest state per outlet
+  - [x] `ControllerMeta(ctx) (*ControllerMeta, error)` — most recent controller snapshot
+  - [x] `LastPollTime(ctx) (time.Time, error)`
+- [x] [code] Define internal result types in `internal/db/models.go`:
+  - [x] `ProbeReading`, `OutletState`, `DataPoint`, `ControllerMeta`
+- [x] [test] Create `internal/db/duckdb_test.go`:
+  - [x] Use temp file for test DB (cleaned up with `t.Cleanup`)
+  - [x] Test schema creation is idempotent
+  - [x] Test `WritePollCycle` with sample data
+  - [x] Test transaction rollback on partial write failure
+  - [x] Test `CurrentProbeReadings` returns latest row per probe
+  - [x] Test `ProbeHistory` bucketing
+- [x] [verify] `go test ./internal/db/...` passes
 
 ---
 
@@ -174,31 +174,31 @@ This must be completed before writing a single line of application code. The Dev
 
 ↳ depends on: 1.3, 1.4, 1.5
 
-- [ ] [code] Create `internal/poller/poller.go`:
-  - [ ] `Poller` struct: apex client, DuckDB, interval, logger
-  - [ ] `New(apex apex.Client, db *db.DuckDB, interval time.Duration, logger *slog.Logger) *Poller`
-  - [ ] `Run(ctx context.Context)` — ticker loop, calls `poll()` immediately then on each tick
-  - [ ] `poll(ctx context.Context)` — calls `apex.Status()`, calls `db.WritePollCycle()`, logs result
-  - [ ] Skip cycle (log + return) on Apex error — no crash
-  - [ ] Skip cycle (log + return) on DuckDB write error — no crash
-  - [ ] Log structured output per cycle: duration_ms, probes count, outlets count
-- [ ] [code] Create `cmd/poller/main.go`:
-  - [ ] Load config
-  - [ ] Set up `slog` JSON logger
-  - [ ] Open DuckDB (read-write)
-  - [ ] Create Apex client (login on startup)
-  - [ ] Create and run Poller
-  - [ ] Handle SIGTERM/SIGINT via `signal.NotifyContext`
-  - [ ] Graceful shutdown: wait for in-flight poll to complete
-- [ ] [verify] `go build ./cmd/poller` compiles
-- [ ] [verify] Run `./poller` locally against real Apex, watch logs
-- [ ] [verify] After 60 seconds, open DuckDB CLI and confirm rows exist:
+- [x] [code] Create `internal/poller/poller.go`:
+  - [x] `Poller` struct: apex client, DuckDB, interval, logger
+  - [x] `New(apex apex.Client, db *db.DuckDB, interval time.Duration, logger *slog.Logger) *Poller`
+  - [x] `Run(ctx context.Context)` — ticker loop, calls `poll()` immediately then on each tick
+  - [x] `poll(ctx context.Context)` — calls `apex.Status()`, calls `db.WritePollCycle()`, logs result
+  - [x] Skip cycle (log + return) on Apex error — no crash
+  - [x] Skip cycle (log + return) on DuckDB write error — no crash
+  - [x] Log structured output per cycle: duration_ms, probes count, outlets count
+- [x] [code] Create `cmd/poller/main.go`:
+  - [x] Load config
+  - [x] Set up `slog` JSON logger
+  - [x] Open DuckDB (read-write)
+  - [x] Create Apex client (login on startup)
+  - [x] Create and run Poller
+  - [x] Handle SIGTERM/SIGINT via `signal.NotifyContext`
+  - [x] Graceful shutdown: wait for in-flight poll to complete
+- [x] [verify] `go build ./cmd/poller` compiles
+- [x] [verify] Run `./poller` locally against real Apex, watch logs
+- [x] [verify] After 60 seconds, open DuckDB CLI and confirm rows exist:
   ```sql
   SELECT COUNT(*), probe_name FROM probe_readings GROUP BY probe_name;
   SELECT COUNT(*), outlet_id  FROM outlet_states  GROUP BY outlet_id;
   ```
-- [ ] [verify] Kill poller with SIGTERM — confirm clean shutdown in logs
-- [ ] [verify] Restart poller — confirm it resumes without errors or schema conflicts
+- [x] [verify] Kill poller with SIGTERM — confirm clean shutdown in logs
+- [x] [verify] Restart poller — confirm it resumes without errors or schema conflicts
 
 ---
 
