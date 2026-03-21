@@ -10,8 +10,30 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        # Shared build config for Go binaries (go-duckdb needs CGO + Arrow C headers)
+        goBuildBase = {
+          version = "0.1.0";
+          src = ./.;
+          vendorHash = "sha256-N61ynzRCwzIexwsKyXvGSPF5B5HsDitaQ9jWMWSoAxM=";
+          proxyVendor = true; # go-duckdb bundles libduckdb.a in deps/ — must preserve non-Go files
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.arrow-cpp ];
+        };
       in
       {
+        packages.poller = pkgs.buildGoModule (goBuildBase // {
+          pname = "symbiont-poller";
+          subPackages = [ "cmd/poller" ];
+          meta.description = "Symbiont Apex poller binary";
+        });
+
+        packages.api = pkgs.buildGoModule (goBuildBase // {
+          pname = "symbiont-api";
+          subPackages = [ "cmd/api" ];
+          meta.description = "Symbiont API server binary";
+        });
+
         devShells.default = pkgs.mkShell {
           name = "symbiont";
 
