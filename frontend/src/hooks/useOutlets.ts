@@ -15,16 +15,17 @@ export function useSetOutlet() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, state }: { id: string; state: 'ON' | 'OFF' }) =>
+    mutationFn: ({ id, state }: { id: string; state: 'ON' | 'OFF' | 'AUTO' }) =>
       setOutletState(id, state),
     onMutate: async ({ id, state }) => {
       await queryClient.cancelQueries({ queryKey: ['outlets'] })
       const previous = queryClient.getQueryData<{ outlets: Outlet[] }>(['outlets'])
 
       if (previous) {
+        const mapped: Record<string, string> = { ON: 'ON', OFF: 'OFF', AUTO: 'AON' }
         queryClient.setQueryData<{ outlets: Outlet[] }>(['outlets'], {
           outlets: previous.outlets.map((o) =>
-            o.id === id ? { ...o, state: state as Outlet['state'] } : o,
+            o.id === id ? { ...o, state: (mapped[state] ?? state) as Outlet['state'] } : o,
           ),
         })
       }

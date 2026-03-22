@@ -98,7 +98,7 @@ export function getOutlets() {
   return apiFetch<{ outlets: Outlet[] }>('/api/outlets')
 }
 
-export function setOutletState(id: string, state: 'ON' | 'OFF') {
+export function setOutletState(id: string, state: 'ON' | 'OFF' | 'AUTO') {
   return apiFetch<{ id: string; name: string; state: string; logged_at: string }>(
     `/api/outlets/${encodeURIComponent(id)}`,
     { method: 'PUT', body: JSON.stringify({ state }) },

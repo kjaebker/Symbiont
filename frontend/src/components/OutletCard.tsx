@@ -30,8 +30,9 @@ interface OutletCardProps {
 export function OutletCard({ outlet }: OutletCardProps) {
   const mutation = useSetOutlet()
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
+  const isAuto = outlet.state === 'AON' || outlet.state === 'AOF' || outlet.state === 'TBL'
 
-  function handleControl(state: 'ON' | 'OFF') {
+  function handleControl(state: 'ON' | 'OFF' | 'AUTO') {
     mutation.mutate({ id: outlet.id, state })
   }
 
@@ -68,10 +69,11 @@ export function OutletCard({ outlet }: OutletCardProps) {
       </div>
 
       <div className="flex gap-1.5">
-        {(['OFF', 'ON'] as const).map((s) => {
+        {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
           const active =
             (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-            (s === 'ON' && (outlet.state === 'ON' || outlet.state === 'AON'))
+            (s === 'ON' && outlet.state === 'ON') ||
+            (s === 'AUTO' && isAuto)
 
           return (
             <button
@@ -81,9 +83,11 @@ export function OutletCard({ outlet }: OutletCardProps) {
               className={cn(
                 'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
                 active
-                  ? s === 'ON'
-                    ? 'bg-secondary text-on-secondary'
-                    : 'bg-surface-container-highest text-on-surface'
+                  ? s === 'AUTO'
+                    ? 'bg-primary text-on-primary'
+                    : s === 'ON'
+                      ? 'bg-secondary text-on-secondary'
+                      : 'bg-surface-container-highest text-on-surface'
                   : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
               )}
             >
