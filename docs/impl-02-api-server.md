@@ -7,47 +7,47 @@
 
 ## 2.1 SQLite Package
 
-- [ ] [code] Add dependency: `go get modernc.org/sqlite`
-  - [ ] Prefer `modernc.org/sqlite` (pure Go, no CGO) over `mattn/go-sqlite3`
-- [ ] [code] Create `internal/db/sqlite_schema.go`:
-  - [ ] `CreateSQLiteSchema(db *sql.DB) error` — idempotent, `CREATE TABLE IF NOT EXISTS`
-  - [ ] All tables from architecture doc: `auth_tokens`, `probe_config`, `outlet_config`, `alert_rules`, `notification_targets`, `alert_events`, `outlet_event_log`, `backup_jobs`
-  - [ ] All indexes from architecture doc
-  - [ ] `PRAGMA journal_mode=WAL` and `PRAGMA foreign_keys=ON` on open
-- [ ] [code] Create `internal/db/sqlite.go`:
-  - [ ] `OpenSQLite(path string) (*SQLiteDB, error)` — opens DB, runs schema, runs PRAGMAs
-  - [ ] `SQLiteDB` struct wrapping `*sql.DB`
-  - [ ] `Close() error`
-- [ ] [code] Create `internal/db/sqlite_queries.go` with typed query functions:
-  - [ ] `ValidateToken(token string) (bool, int64)` — returns valid + token ID
-  - [ ] `TouchToken(id int64) error` — updates `last_used`
-  - [ ] `InsertToken(label string) (string, error)` — generates 32-byte random token, inserts, returns token string
-  - [ ] `ListTokens() ([]AuthToken, error)`
-  - [ ] `DeleteToken(id int64) error`
-  - [ ] `GetProbeConfig(probeName string) (*ProbeConfig, error)`
-  - [ ] `ListProbeConfigs() ([]ProbeConfig, error)`
-  - [ ] `UpsertProbeConfig(cfg ProbeConfig) error`
-  - [ ] `GetOutletConfig(outletID string) (*OutletConfig, error)`
-  - [ ] `ListOutletConfigs() ([]OutletConfig, error)`
-  - [ ] `UpsertOutletConfig(cfg OutletConfig) error`
-  - [ ] `ListEnabledAlertRules() ([]AlertRule, error)`
-  - [ ] `InsertAlertRule(rule AlertRule) (int64, error)`
-  - [ ] `UpdateAlertRule(id int64, rule AlertRule) error`
-  - [ ] `DeleteAlertRule(id int64) error`
-  - [ ] `InsertOutletEvent(e OutletEvent) error`
-  - [ ] `ListOutletEvents(outletID string, limit int) ([]OutletEvent, error)`
-  - [ ] `InsertBackupJob(job BackupJob) (int64, error)`
-  - [ ] `UpdateBackupJob(id int64, status string, err string) error`
-  - [ ] `ListBackupJobs(limit int) ([]BackupJob, error)`
-- [ ] [code] Define SQLite result types in `internal/db/sqlite_models.go`:
-  - [ ] `AuthToken`, `ProbeConfig`, `OutletConfig`, `AlertRule`, `OutletEvent`, `BackupJob`
-- [ ] [test] Create `internal/db/sqlite_test.go`:
-  - [ ] Use `:memory:` for test DB
-  - [ ] Test schema creation idempotency
-  - [ ] Test token insert, validate, touch, delete lifecycle
-  - [ ] Test probe config upsert (insert then update)
-  - [ ] Test outlet event insert and list
-- [ ] [verify] `go test ./internal/db/...` passes (both DuckDB and SQLite tests)
+- [x] [code] Add dependency: `go get modernc.org/sqlite`
+  - [x] Prefer `modernc.org/sqlite` (pure Go, no CGO) over `mattn/go-sqlite3`
+- [x] [code] Create `internal/db/sqlite_schema.go`:
+  - [x] `CreateSQLiteSchema(db *sql.DB) error` — idempotent, `CREATE TABLE IF NOT EXISTS`
+  - [x] All tables from architecture doc: `auth_tokens`, `probe_config`, `outlet_config`, `alert_rules`, `notification_targets`, `alert_events`, `outlet_event_log`, `backup_jobs`
+  - [x] All indexes from architecture doc
+  - [x] `PRAGMA journal_mode=WAL` and `PRAGMA foreign_keys=ON` on open
+- [x] [code] Create `internal/db/sqlite.go`:
+  - [x] `OpenSQLite(path string) (*SQLiteDB, error)` — opens DB, runs schema, runs PRAGMAs
+  - [x] `SQLiteDB` struct wrapping `*sql.DB`
+  - [x] `Close() error`
+- [x] [code] Create `internal/db/sqlite_queries.go` with typed query functions:
+  - [x] `ValidateToken(token string) (bool, int64)` — returns valid + token ID
+  - [x] `TouchToken(id int64) error` — updates `last_used`
+  - [x] `InsertToken(label string) (string, error)` — generates 32-byte random token, inserts, returns token string
+  - [x] `ListTokens() ([]AuthToken, error)`
+  - [x] `DeleteToken(id int64) error`
+  - [x] `GetProbeConfig(probeName string) (*ProbeConfig, error)`
+  - [x] `ListProbeConfigs() ([]ProbeConfig, error)`
+  - [x] `UpsertProbeConfig(cfg ProbeConfig) error`
+  - [x] `GetOutletConfig(outletID string) (*OutletConfig, error)`
+  - [x] `ListOutletConfigs() ([]OutletConfig, error)`
+  - [x] `UpsertOutletConfig(cfg OutletConfig) error`
+  - [x] `ListEnabledAlertRules() ([]AlertRule, error)`
+  - [x] `InsertAlertRule(rule AlertRule) (int64, error)`
+  - [x] `UpdateAlertRule(id int64, rule AlertRule) error`
+  - [x] `DeleteAlertRule(id int64) error`
+  - [x] `InsertOutletEvent(e OutletEvent) error`
+  - [x] `ListOutletEvents(outletID string, limit int) ([]OutletEvent, error)`
+  - [x] `InsertBackupJob(job BackupJob) (int64, error)`
+  - [x] `UpdateBackupJob(id int64, status string, err string) error`
+  - [x] `ListBackupJobs(limit int) ([]BackupJob, error)`
+- [x] [code] Define SQLite result types in `internal/db/sqlite_models.go`:
+  - [x] `AuthToken`, `ProbeConfig`, `OutletConfig`, `AlertRule`, `OutletEvent`, `BackupJob`
+- [x] [test] Create `internal/db/sqlite_test.go`:
+  - [x] Use `:memory:` for test DB
+  - [x] Test schema creation idempotency
+  - [x] Test token insert, validate, touch, delete lifecycle
+  - [x] Test probe config upsert (insert then update)
+  - [x] Test outlet event insert and list
+- [x] [verify] `go test ./internal/db/...` passes (both DuckDB and SQLite tests)
 
 ---
 
