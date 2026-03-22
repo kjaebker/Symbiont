@@ -166,19 +166,19 @@
 
 ## 4.7 Outlets Page
 
-- [ ] [code] Add shadcn/ui components:
-  - [ ] `npx shadcn-ui@latest add table select`
-- [ ] [code] Create `src/pages/Outlets.tsx`:
-  - [ ] Full outlet table with columns: NAME, STATE, TYPE, HEALTH, WATTS, AMPS, CONTROL
-  - [ ] State badge with color coding
-  - [ ] CONTROL column: three-button group (ON / OFF / AUTO)
-  - [ ] Active state button highlighted
-  - [ ] Mutation loading/error state per outlet row
-  - [ ] Outlet event log section below table:
-    - [ ] Shows last 50 events (ts, outlet name, from→to state, initiated_by)
-    - [ ] `initiated_by` badge: UI/CLI/MCP/API
-    - [ ] Auto-refreshes when SSE `outlet_update` event arrives
-  - [ ] "Show all" pagination if >50 events
+- [x] [code] Add shadcn/ui components:
+  - [x] Skipped — hand-built table with Tailwind matching design system (no shadcn/ui needed)
+- [x] [code] Create `src/pages/Outlets.tsx`:
+  - [x] Full outlet table with columns: NAME, STATE, TYPE, CONTROL (HEALTH/WATTS/AMPS omitted — not in API)
+  - [x] State badge with color coding
+  - [x] CONTROL column: three-button group (ON / OFF / AUTO)
+  - [x] Active state button highlighted
+  - [x] Mutation loading/error state per outlet row
+  - [x] Outlet event log section below table:
+    - [x] Shows last 50 events (ts, outlet name, from→to state, initiated_by)
+    - [x] `initiated_by` badge: UI/CLI/MCP/API
+    - [x] Auto-refreshes when SSE `outlet_update` event arrives
+  - [x] "Show more" pagination if >50 events
 - [ ] [verify] All outlets visible with correct states
 - [ ] [verify] Outlet control buttons work
 - [ ] [verify] Event log updates when outlet is toggled
@@ -292,7 +292,7 @@
 - [x] SSE integration driving automatic updates
 - [x] Dashboard: ProbeCard grid + OutletCard grid
 - [x] History: uPlot multi-series chart with time range picker
-- [ ] Outlets: full table with controls + event log
+- [x] Outlets: full table with controls + event log
 - [ ] Alerts: rule management
 - [ ] Settings: all tabs functional
 - [x] Mobile-responsive at all breakpoints
