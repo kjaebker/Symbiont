@@ -15,22 +15,24 @@ import (
 
 // Server is the HTTP API server.
 type Server struct {
-	duck   *db.DuckDB
-	sqlite *db.SQLiteDB
-	apex   apex.Client
-	cfg    *config.Config
-	logger *slog.Logger
-	http   *http.Server
+	duck        *db.DuckDB
+	sqlite      *db.SQLiteDB
+	apex        apex.Client
+	cfg         *config.Config
+	logger      *slog.Logger
+	http        *http.Server
+	broadcaster *Broadcaster
 }
 
 // New creates a new API server.
 func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger) *Server {
 	s := &Server{
-		duck:   duck,
-		sqlite: sqlite,
-		apex:   apexClient,
-		cfg:    cfg,
-		logger: logger,
+		duck:        duck,
+		sqlite:      sqlite,
+		apex:        apexClient,
+		cfg:         cfg,
+		logger:      logger,
+		broadcaster: NewBroadcaster(),
 	}
 
 	mux := http.NewServeMux()
@@ -83,6 +85,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/alerts/{id}", s.HandleAlertUpdate)
 	mux.HandleFunc("DELETE /api/alerts/{id}", s.HandleAlertDelete)
 
+	// SSE stream.
+	mux.HandleFunc("GET /api/stream", s.HandleStream)
+
 	// Auth tokens.
 	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
@@ -91,6 +96,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 // Run starts the HTTP server and blocks until ctx is cancelled, then shuts down gracefully.
 func (s *Server) Run(ctx context.Context) error {
+	// Start background SSE poller.
+	s.StartSSEPoller(ctx)
+
 	// Start server in a goroutine.
 	errCh := make(chan error, 1)
 	go func() {

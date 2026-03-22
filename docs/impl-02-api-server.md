@@ -204,32 +204,32 @@
 
 ↳ depends on: 2.3
 
-- [ ] [code] Create `internal/api/sse.go`:
-  - [ ] `Event` struct: `Type string`, `Data any`
-  - [ ] `Broadcaster` struct: `sync.RWMutex`, `clients map[string]chan Event`
-  - [ ] `NewBroadcaster() *Broadcaster`
-  - [ ] `Subscribe(id string) <-chan Event` — creates buffered channel (buffer 5), registers client
-  - [ ] `Unsubscribe(id string)` — removes client, closes channel
-  - [ ] `Publish(e Event)` — sends to all clients; if channel full (slow client), skip (non-blocking send)
-  - [ ] `HandleStream(w, r)`:
-    - [ ] Validate token from `?token=` query param (same SQLite lookup as middleware)
-    - [ ] Set SSE headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`
-    - [ ] Subscribe to broadcaster with unique client ID (UUID)
-    - [ ] Defer unsubscribe
-    - [ ] Loop: select on client channel or `r.Context().Done()`
-    - [ ] Write events in SSE format: `event: <type>\ndata: <json>\n\n`
-    - [ ] Send heartbeat every 30s if no other events
-- [ ] [code] In `cmd/api/main.go`: create Broadcaster, pass to Server
-- [ ] [code] Integrate Broadcaster with Poller notification:
-  - [ ] After each successful poll, publish `probe_update` and `outlet_update` events
-  - [ ] **Option A (simple):** Poller has a notification channel; API server reads it
-  - [ ] **Option B (clean):** Use a shared in-process pub/sub (single process in Phase 2)
-  - [ ] Decision: since Poller and API are separate processes, SSE initially triggers on API's own polling of DuckDB every 10s, until IPC is needed
-  - [ ] Implement a background goroutine in the API server that polls DuckDB every 10s and publishes to Broadcaster — this is sufficient and removes the need for IPC
-- [ ] [test] `internal/api/sse_test.go`:
-  - [ ] Test Subscribe/Publish/Unsubscribe lifecycle
-  - [ ] Test slow client is skipped (non-blocking publish)
-  - [ ] Test broadcaster publish reaches multiple subscribers
+- [x] [code] Create `internal/api/sse.go`:
+  - [x] `Event` struct: `Type string`, `Data any`
+  - [x] `Broadcaster` struct: `sync.RWMutex`, `clients map[string]chan Event`
+  - [x] `NewBroadcaster() *Broadcaster`
+  - [x] `Subscribe(id string) <-chan Event` — creates buffered channel (buffer 5), registers client
+  - [x] `Unsubscribe(id string)` — removes client, closes channel
+  - [x] `Publish(e Event)` — sends to all clients; if channel full (slow client), skip (non-blocking send)
+  - [x] `HandleStream(w, r)`:
+    - [x] Validate token from `?token=` query param (same SQLite lookup as middleware)
+    - [x] Set SSE headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`
+    - [x] Subscribe to broadcaster with unique client ID (UUID)
+    - [x] Defer unsubscribe
+    - [x] Loop: select on client channel or `r.Context().Done()`
+    - [x] Write events in SSE format: `event: <type>\ndata: <json>\n\n`
+    - [x] Send heartbeat every 30s if no other events
+- [x] [code] In `cmd/api/main.go`: create Broadcaster, pass to Server
+- [x] [code] Integrate Broadcaster with Poller notification:
+  - [x] After each successful poll, publish `probe_update` and `outlet_update` events
+  - [x] **Option A (simple):** Poller has a notification channel; API server reads it
+  - [x] **Option B (clean):** Use a shared in-process pub/sub (single process in Phase 2)
+  - [x] Decision: since Poller and API are separate processes, SSE initially triggers on API's own polling of DuckDB every 10s, until IPC is needed
+  - [x] Implement a background goroutine in the API server that polls DuckDB every 10s and publishes to Broadcaster — this is sufficient and removes the need for IPC
+- [x] [test] `internal/api/sse_test.go`:
+  - [x] Test Subscribe/Publish/Unsubscribe lifecycle
+  - [x] Test slow client is skipped (non-blocking publish)
+  - [x] Test broadcaster publish reaches multiple subscribers
 - [ ] [verify] `curl -N -H "Authorization: Bearer <token>" http://localhost:8420/api/stream` shows events every 10s
 
 ---
