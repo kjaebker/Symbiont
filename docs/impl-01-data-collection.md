@@ -89,7 +89,7 @@ This must be completed before writing a single line of application code. The Dev
   - [x] `PowerInfo` struct: failed (int64 Unix epoch), restored (int64 Unix epoch) — top-level, NOT in system
   - [x] `Input` struct: did, name, value (float64), type (no unit field — type serves as unit indicator: "Temp", "pH", "Amps", "pwr", "volts", "digital")
   - [x] `Output` struct: did (string), ID (int), name, type ("outlet"/"variable"/"alert"/"virtual"/"serial"/"24v"), gid, status ([]string — 4 elements: [state, intensity_or_empty, health, unknown]), intensity (int, optional)
-  - [x] `OutletState` type: `ON`, `OFF`, `AON`, `AOF` constants (no bare "AUTO" — use AON/AOF to return to auto mode)
+  - [x] `OutletState` type: `ON`, `OFF` constants (AON/AOF are read-only status indicators — AUTO not supported by Apex REST API)
   - [x] `FeedStatus` struct: name (int), active (int)
   - [x] **Field names must match DevTools capture exactly** — see `docs/apex-api-notes.md`
 - [x] [code] Create `internal/apex/client.go`:
@@ -248,13 +248,13 @@ This must be completed before writing a single line of application code. The Dev
 
 ## Phase 1 Checklist Summary
 
-- [ ] DevTools capture complete and documented
-- [ ] Repository initialized with correct structure
+- [x] DevTools capture complete and documented
+- [x] Repository initialized with correct structure
 - [ ] Config package loading from env
 - [ ] Apex client with session management and 401 retry
-- [ ] DuckDB schema and write functions
-- [ ] Poller binary running and verified locally
+- [x] DuckDB schema and write functions
+- [x] Poller binary running and verified locally
 - [ ] Poller running as systemd service on NixOS
-- [ ] Data accumulating in DuckDB, verifiable via CLI
+- [x] Data accumulating in DuckDB, verifiable via CLI
 
 **Phase 1 is complete when:** `duckdb /var/lib/symbiont/telemetry.db "SELECT COUNT(*) FROM probe_readings"` returns a growing row count with the service running.

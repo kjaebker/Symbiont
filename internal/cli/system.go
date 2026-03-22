@@ -25,16 +25,18 @@ func newSystemStatusCmd(client *APIClient) *cobra.Command {
 			var resp struct {
 				Controller struct {
 					Serial   string `json:"serial"`
-					Hostname string `json:"hostname"`
-					Software string `json:"software"`
+					Firmware string `json:"firmware"`
 					Hardware string `json:"hardware"`
-					Type     string `json:"type"`
 				} `json:"controller"`
-				PollOK       bool   `json:"poll_ok"`
-				LastPoll     string `json:"last_poll"`
-				PollInterval string `json:"poll_interval"`
-				DuckDBSize   int64  `json:"duckdb_size_bytes"`
-				SQLiteSize   int64  `json:"sqlite_size_bytes"`
+				Poller struct {
+					LastPollTS          string `json:"last_poll_ts"`
+					PollOK              bool   `json:"poll_ok"`
+					PollIntervalSeconds int    `json:"poll_interval_seconds"`
+				} `json:"poller"`
+				DB struct {
+					DuckDBSize int64 `json:"duckdb_size_bytes"`
+					SQLiteSize int64 `json:"sqlite_size_bytes"`
+				} `json:"db"`
 			}
 			if err := client.Get(cmd.Context(), "/api/system", &resp); err != nil {
 				return err
@@ -46,35 +48,35 @@ func newSystemStatusCmd(client *APIClient) *cobra.Command {
 			}
 
 			pollStatus := ColorStatus("OK")
-			if !resp.PollOK {
+			if !resp.Poller.PollOK {
 				pollStatus = colorRed + "STALE" + colorReset
 			}
 
-			lastPoll := formatTimestamp(resp.LastPoll)
-			if resp.LastPoll != "" {
-				if t, err := time.Parse(time.RFC3339, resp.LastPoll); err == nil {
+			lastPoll := formatTimestamp(resp.Poller.LastPollTS)
+			if resp.Poller.LastPollTS != "" {
+				if t, err := time.Parse(time.RFC3339, resp.Poller.LastPollTS); err == nil {
 					lastPoll = formatRelativeTime(t)
 				}
 			}
 
+			interval := fmt.Sprintf("%ds", resp.Poller.PollIntervalSeconds)
+
 			fmt.Println()
 			PrintSection("Controller", []KV{
 				{"Serial", resp.Controller.Serial},
-				{"Hostname", resp.Controller.Hostname},
-				{"Firmware", resp.Controller.Software},
+				{"Firmware", resp.Controller.Firmware},
 				{"Hardware", resp.Controller.Hardware},
-				{"Type", resp.Controller.Type},
 			})
 			fmt.Println()
 			PrintSection("Poller", []KV{
 				{"Last poll", lastPoll},
 				{"Status", pollStatus},
-				{"Interval", resp.PollInterval},
+				{"Interval", interval},
 			})
 			fmt.Println()
 			PrintSection("Database", []KV{
-				{"DuckDB", formatBytes(resp.DuckDBSize)},
-				{"SQLite", formatBytes(resp.SQLiteSize)},
+				{"DuckDB", formatBytes(resp.DB.DuckDBSize)},
+				{"SQLite", formatBytes(resp.DB.SQLiteSize)},
 			})
 			fmt.Println()
 

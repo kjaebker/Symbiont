@@ -20,6 +20,7 @@ func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
 
 	readings, err := s.duck.CurrentProbeReadings(ctx)
 	if err != nil {
+		s.logger.Error("failed to fetch probe readings", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to fetch probe readings", "db_error")
 		return
 	}

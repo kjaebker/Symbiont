@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surface hierarchy — deep ocean layers */
+  --color-surface: #070d1f;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #0c1326;
+  --color-surface-container: #11192e;
+  --color-surface-container-high: #171f36;
+  --color-surface-container-highest: #1c253e;
+  --color-surface-bright: #1e2a4a;
+  --color-surface-variant: #1c253e;
+
+  /* Text colors */
+  --color-on-surface: #dfe4fe;
+  --color-on-surface-dim: #8a90a8;
+  --color-on-surface-faint: #5a6080;
+
+  /* Primary — Bioluminescent Cyan */
+  --color-primary: #3adffa;
+  --color-primary-container: #00cbe6;
+  --color-on-primary: #003544;
+
+  /* Secondary — Kelp Green */
+  --color-secondary: #6dfe9c;
+  --color-secondary-container: #006d36;
+  --color-on-secondary: #003d1e;
+
+  /* Tertiary — Coral Pink */
+  --color-tertiary: #ff8796;
+  --color-tertiary-container: #8c1d2e;
+  --color-on-tertiary: #5c0015;
+
+  /* Outline */
+  --color-outline-variant: #41475b;
+
+  /* Typography */
+  --font-sans: "Manrope", system-ui, sans-serif;
+
+  /* Border radius — organic feel */
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 3rem;
+  --radius-full: 9999px;
+}
+
+/* Ambient shadow utilities */
+@utility shadow-abyss {
+  box-shadow: 0 8px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+@utility shadow-glow-primary {
+  box-shadow: 0 0 20px rgba(58, 223, 250, 0.15);
+}
+
+@utility shadow-glow-secondary {
+  box-shadow: 0 0 20px rgba(109, 254, 156, 0.15);
+}
+
+@utility shadow-glow-tertiary {
+  box-shadow: 0 0 20px rgba(255, 135, 150, 0.15);
+}
+
+/* Glass morphism */
+@utility glass {
+  background: rgba(28, 37, 62, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Bioluminescent pulse animation */
+@keyframes bioluminescent-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@utility animate-bio-pulse {
+  animation: bioluminescent-pulse 2s ease-in-out infinite;
+}
+
+/* Luminous trail for charts */
+@utility text-glow-primary {
+  text-shadow: 0 0 8px rgba(58, 223, 250, 0.3);
+}
+
+/* Smooth transitions — "resistance of water" */
+@utility transition-fluid {
+  transition: all 300ms ease-in-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-container-highest);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline-variant);
+}

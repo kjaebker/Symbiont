@@ -62,8 +62,8 @@
     - [x] If not empty: returns `("", false, nil)`
 - [x] [code] In `cmd/api/main.go`: call `EnsureDefaultToken` on startup
   - [x] If newly created: print token to stdout with clear formatting
-- [ ] [verify] Delete SQLite DB, start API server, confirm token printed once
-- [ ] [verify] Restart API server with existing DB, confirm token not printed again
+- [x] [verify] Delete SQLite DB, start API server, confirm token printed once
+- [x] [verify] Restart API server with existing DB, confirm token not printed again
 
 ---
 
@@ -101,8 +101,8 @@
   - [x] Create and start API server
   - [x] Handle SIGTERM/SIGINT
 - [x] [verify] `go build ./cmd/api` compiles
-- [ ] [verify] `./api` starts and listens on port 8420
-- [ ] [verify] `curl http://localhost:8420/` returns something (even 404 is fine at this stage)
+- [x] [verify] `./api` starts and listens on port 8420
+- [x] [verify] `curl http://localhost:8420/` returns something (even 404 is fine at this stage)
 
 ---
 
@@ -140,8 +140,8 @@
     - [x] Write JSON response
   - [x] `HandleOutletSet(w, r)`:
     - [x] Extract outlet `id` from URL path
-    - [x] Read and validate request body `{ state: "ON"|"OFF"|"AUTO" }`
-    - [x] Map user-facing state to Apex state: "AUTO" → "AON" (returns outlet to program control)
+    - [x] Read and validate request body `{ state: "ON"|"OFF" }`
+    - [x] Map user-facing state to Apex state (AUTO not supported — Apex REST API limitation)
     - [x] Fetch current state from `status[0]` (for `from_state` in event log)
     - [x] Call `apex.SetOutlet(ctx, did, state)` — sends PUT to `/rest/status/outputs/<did>`
     - [x] On success: `sqlite.InsertOutletEvent(...)` with `initiated_by = "api"`
@@ -230,7 +230,7 @@
   - [x] Test Subscribe/Publish/Unsubscribe lifecycle
   - [x] Test slow client is skipped (non-blocking publish)
   - [x] Test broadcaster publish reaches multiple subscribers
-- [ ] [verify] `curl -N -H "Authorization: Bearer <token>" http://localhost:8420/api/stream` shows events every 10s
+- [x] [verify] `curl -N -H "Authorization: Bearer <token>" http://localhost:8420/api/stream` shows events every 10s
 
 ---
 
@@ -241,7 +241,7 @@
   - [x] Route: `GET /*` → serve static files
   - [x] SPA fallback: if file not found, serve `index.html` (enables React Router client-side routing)
   - [x] `SYMBIONT_FRONTEND_PATH` config var controls directory (default: `./frontend/dist`)
-- [ ] [verify] After Phase 4, frontend will be served from here. For now, verify `/` returns 404 or empty gracefully.
+- [x] [verify] After Phase 4, frontend will be served from here. For now, verify `/` returns 404 or empty gracefully.
 
 ---
 
@@ -266,20 +266,20 @@
 
 ↳ depends on: 2.7, Poller service running with real data
 
-- [ ] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/probes | jq .`
-  - [ ] Confirms probe names, values, and status fields
-- [ ] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/probes/Temp/history?interval=1m | jq .`
-  - [ ] Confirms bucketed data points in correct shape
-- [ ] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/outlets | jq .`
-  - [ ] Confirms outlet names and states
-- [ ] [verify] `curl -s -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"state":"OFF"}' http://localhost:8420/api/outlets/<id>`
-  - [ ] Apex outlet physically toggles
-  - [ ] Event logged in SQLite: `sqlite3 /var/lib/symbiont/app.db "SELECT * FROM outlet_event_log"`
-- [ ] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/system | jq .`
-  - [ ] `poll_ok` is `true`
-  - [ ] Firmware and serial are populated
-- [ ] [verify] SSE stream delivers events:
-  - [ ] `curl -N "http://localhost:8420/api/stream?token=<token>"` — events appear every 10s
+- [x] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/probes | jq .`
+  - [x] Confirms probe names, values, and status fields
+- [x] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/probes/Temp/history?interval=1m | jq .`
+  - [x] Confirms bucketed data points in correct shape
+- [x] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/outlets | jq .`
+  - [x] Confirms outlet names and states
+- [x] [verify] `curl -s -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"state":"OFF"}' http://localhost:8420/api/outlets/<id>`
+  - [x] Apex outlet physically toggles
+  - [x] Event logged in SQLite: `sqlite3 /var/lib/symbiont/app.db "SELECT * FROM outlet_event_log"`
+- [x] [verify] `curl -s -H "Authorization: Bearer <token>" http://localhost:8420/api/system | jq .`
+  - [x] `poll_ok` is `true`
+  - [x] Firmware and serial are populated
+- [x] [verify] SSE stream delivers events:
+  - [x] `curl -N "http://localhost:8420/api/stream?token=<token>"` — events appear every 10s
 
 ---
 

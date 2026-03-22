@@ -54,9 +54,9 @@
 - [x] [test] `internal/cli/cli_test.go`:
   - [x] Use `httptest.NewServer` to mock API
   - [x] Test API client methods (Get, Post, error handling, auth header)
-- [ ] [verify] `symbiont probes current` shows real probe values from running API
-- [ ] [verify] `symbiont probes current --json | jq .probes[0].value` returns a number
-- [ ] [verify] `symbiont probes history Temp --interval 5m` returns data table
+- [x] [verify] `symbiont probes current` shows real probe values from running API
+- [x] [verify] `symbiont probes current --json | jq .probes[0].value` returns a number
+- [x] [verify] `symbiont probes history Temp --interval 5m` returns data table
 
 ---
 
@@ -67,10 +67,11 @@
   - [x] Sub-command `list`:
     - [x] Calls `GET /api/outlets`
     - [x] Human output: table with ID, NAME, STATE, TYPE columns
-    - [x] State column color-coded: ON/AON=green, OFF/AOF=red, AUTO=blue
+    - [x] State column color-coded: ON/AON=green, OFF/AOF=red
     - [x] JSON output: raw API response
-  - [x] Sub-command `set <id> <ON|OFF|AUTO>`:
-    - [x] Validates state arg is one of ON, OFF, AUTO (case-insensitive, normalized to uppercase)
+  - [x] Sub-command `set <id> <ON|OFF>`:
+    - [x] Validates state arg is one of ON, OFF (case-insensitive, normalized to uppercase)
+    - [x] Note: AUTO not supported by Apex REST API — must use Apex web UI
     - [x] Calls `PUT /api/outlets/<id>`
     - [x] Human output: single-line confirmation `Outlet "Return Pump" set to OFF`
     - [x] JSON output: updated outlet object
@@ -79,9 +80,9 @@
     - [x] Calls `GET /api/outlets/events`
     - [x] Flags: `--outlet-id`, `--limit`
     - [x] Human output: table with ID, OUTLET, FROM, TO, BY, TIME columns
-- [ ] [verify] `symbiont outlets list`
-- [ ] [verify] `symbiont outlets set <id> OFF` — Apex outlet physically toggles
-- [ ] [verify] `symbiont outlets set <id> AUTO` — returns to AUTO
+- [x] [verify] `symbiont outlets list`
+- [x] [verify] `symbiont outlets set <id> OFF` — Apex outlet physically toggles
+- [x] [verify] `symbiont outlets set <id> ON` — returns to ON
 
 ---
 
@@ -105,10 +106,10 @@
     - [x] Prompts for confirmation unless `--yes` flag provided
     - [x] Calls `DELETE /api/alerts/<id>`
     - [x] Human output: `Alert rule #<id> deleted`
-- [ ] [verify] `symbiont alerts list` (may be empty initially)
-- [ ] [verify] `symbiont alerts create --probe Temp --condition above --high 82 --severity warning`
-- [ ] [verify] `symbiont alerts list` shows new rule
-- [ ] [verify] `symbiont alerts delete <id>` removes rule
+- [x] [verify] `symbiont alerts list` (may be empty initially)
+- [x] [verify] `symbiont alerts create --probe Temp --condition above --high 82 --severity warning`
+- [x] [verify] `symbiont alerts list` shows new rule
+- [x] [verify] `symbiont alerts delete <id>` removes rule
 
 ---
 
@@ -124,7 +125,7 @@
     - [ ] Calls `POST /api/system/backup`
     - [ ] Human output: progress indication, then backup path
     - [ ] Note: backup endpoint not yet implemented in API (Phase 6)
-- [ ] [verify] `symbiont system status`
+- [x] [verify] `symbiont system status`
 
 ---
 
@@ -150,10 +151,10 @@
     - [x] Deletes all tokens, inserts a new default token, prints it
     - [x] Used for recovery when token is lost and API is inaccessible
     - [x] Requires `--yes` flag — destructive
-- [ ] [verify] `symbiont auth tokens list`
-- [ ] [verify] `symbiont auth tokens create --label "test"` → prints new token
-- [ ] [verify] New token works for API requests
-- [ ] [verify] `symbiont auth tokens revoke <id>` → token no longer works
+- [x] [verify] `symbiont auth tokens list`
+- [x] [verify] `symbiont auth tokens create --label "test"` → prints new token
+- [x] [verify] New token works for API requests
+- [x] [verify] `symbiont auth tokens revoke <id>` → token no longer works
 
 ---
 
@@ -167,7 +168,7 @@
     4. Returns error with helpful message if none found
   - [x] `SaveToken(token string) error` — writes to `~/.config/symbiont/token`, creates dirs if needed
 - [x] [code] In `auth tokens create`: offer to save token to config file
-- [ ] [verify] Save token to config file → subsequent commands work without `--token` flag
+- [x] [verify] Save token to config file → subsequent commands work without `--token` flag
 
 ---
 

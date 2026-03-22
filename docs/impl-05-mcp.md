@@ -45,7 +45,7 @@
 
 ### control_outlet
 
-- [x] [code] Register tool with id and state (ON/OFF/AUTO) params
+- [x] [code] Register tool with id and state (ON/OFF) params (AUTO not supported by Apex REST API)
 - [x] [code] Validates state, calls PUT /api/outlets/<id>
 - [x] [test] Successfully sets outlet state
 - [x] [test] Returns error for invalid state

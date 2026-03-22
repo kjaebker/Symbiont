@@ -18,6 +18,8 @@ type Client interface {
 	Status(ctx context.Context) (*StatusResponse, error)
 
 	// SetOutlet changes an outlet's runtime state without modifying its program.
+	// Only ON and OFF are supported — the Apex REST API has no programmatic
+	// way to clear a manual override and return to program control (AUTO).
 	SetOutlet(ctx context.Context, did string, state OutletState) error
 }
 
@@ -216,3 +218,4 @@ func (c *client) SetOutlet(ctx context.Context, did string, state OutletState) e
 
 	return nil
 }
+

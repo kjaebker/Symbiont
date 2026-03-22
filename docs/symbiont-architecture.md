@@ -171,8 +171,7 @@ CREATE TABLE outlet_states (
     ts          TIMESTAMPTZ NOT NULL,
     outlet_id   VARCHAR     NOT NULL,
     outlet_name VARCHAR     NOT NULL,
-    state       VARCHAR     NOT NULL,  -- 'ON' | 'OFF' | 'AUTO'
-    xstatus     VARCHAR,               -- resolved physical state when AUTO
+    state       VARCHAR     NOT NULL,  -- 'ON' | 'OFF' | 'AON' | 'AOF' (Apex-reported states)
     watts       DOUBLE,
     amps        DOUBLE,
     PRIMARY KEY (ts, outlet_id)
@@ -445,9 +444,9 @@ type Output struct {
 
 type OutletState string
 const (
-    OutletOn   OutletState = "ON"
-    OutletOff  OutletState = "OFF"
-    OutletAuto OutletState = "AUTO"
+    OutletOn  OutletState = "ON"
+    OutletOff OutletState = "OFF"
+    // AUTO is not supported by the Apex REST API — must use Apex web UI.
 )
 ```
 
@@ -675,8 +674,7 @@ Auto-interval selection based on range:
       "id":           "1_1",
       "name":         "Return Pump",
       "display_name": "Return Pump",
-      "state":        "AUTO",
-      "xstatus":      "ON",
+      "state":        "AON",
       "watts":        48.2,
       "amps":         0.41
     }
@@ -782,7 +780,7 @@ symbiont
 │
 ├── outlets
 │   ├── list                  List all outlet states
-│   └── set <id> <ON|OFF|AUTO>  Control an outlet
+│   └── set <id> <ON|OFF>       Control an outlet (AUTO via Apex web UI only)
 │
 ├── alerts
 │   ├── list                  List alert rules
@@ -859,8 +857,8 @@ The MCP Server exposes Symbiont's data and control capabilities to AI assistants
   Output: JSON matching GET /api/outlets response
 
 "control_outlet"
-  Description: "Set an outlet to ON, OFF, or AUTO"
-  Input:  { id: string, state: "ON" | "OFF" | "AUTO" }
+  Description: "Set an outlet to ON or OFF (AUTO not supported by Apex REST API)"
+  Input:  { id: string, state: "ON" | "OFF" }
   Output: JSON matching PUT /api/outlets/:id response
 
 "get_outlet_event_log"

@@ -31,6 +31,7 @@ func (m *mockApexClient) SetOutlet(ctx context.Context, did string, state apex.O
 	return nil
 }
 
+
 func sampleStatus() *apex.StatusResponse {
 	intensity := 100
 	return &apex.StatusResponse{

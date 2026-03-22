@@ -12,6 +12,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/poller"
 )
 
 func main() {
@@ -24,8 +25,8 @@ func main() {
 	// Load configuration.
 	cfg := config.Load()
 
-	// Open DuckDB read-only.
-	duckDB, err := db.OpenReadOnly(cfg.DBPath)
+	// Open DuckDB read-write (single process owns the file).
+	duckDB, err := db.Open(cfg.DBPath)
 	if err != nil {
 		logger.Error("failed to open duckdb", "err", err, "path", cfg.DBPath)
 		os.Exit(1)
@@ -60,6 +61,12 @@ func main() {
 	// Set up signal-based context cancellation for graceful shutdown.
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+
+	// Start the poller as a background goroutine. It shares the same DuckDB
+	// connection as the API server — no file lock contention.
+	pollerLogger := logger.With("component", "poller")
+	p := poller.New(apexClient, duckDB, cfg.PollInterval, pollerLogger)
+	go p.Run(sigCtx)
 
 	// Create and run API server — blocks until context is cancelled.
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger)

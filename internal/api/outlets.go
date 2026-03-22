@@ -76,16 +76,17 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Map user-facing state to Apex state.
+	// Note: the Apex REST API only supports manual ON/OFF overrides.
+	// There is no programmatic way to return an outlet to AUTO (program control) —
+	// this must be done via the Apex local web UI or Fusion app.
 	var apexState apex.OutletState
 	switch body.State {
 	case "ON":
 		apexState = apex.OutletOn
 	case "OFF":
 		apexState = apex.OutletOff
-	case "AUTO":
-		apexState = apex.OutletAON // AON returns outlet to program control
 	default:
-		writeError(w, http.StatusBadRequest, "state must be ON, OFF, or AUTO", "invalid_state")
+		writeError(w, http.StatusBadRequest, "state must be ON or OFF (AUTO is not supported by the Apex REST API — use the Apex web UI)", "invalid_state")
 		return
 	}
 

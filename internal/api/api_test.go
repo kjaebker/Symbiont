@@ -31,6 +31,7 @@ func (m *mockApexClient) SetOutlet(ctx context.Context, did string, state apex.O
 	return m.setOutletErr
 }
 
+
 type testEnv struct {
 	server *Server
 	token  string

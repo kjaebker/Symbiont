@@ -49,13 +49,13 @@ Tasks marked `↳ depends on: [X]` must not be started until the referenced task
 
 Before starting Phase 1, the dev environment should be confirmed:
 
-- [ ] [config] NixOS mini PC is the primary workstation
-- [ ] [config] `flake.nix` in repo root provides Go toolchain, DuckDB CLI, SQLite CLI
-- [ ] [config] `.env` file in project root for local dev (not committed)
-- [ ] [config] VS Code or editor with Go plugin configured
-- [ ] [verify] `go version` → 1.23+
-- [ ] [verify] Apex is reachable at its local IP from the mini PC
-- [ ] [verify] Browser DevTools capture plan is understood (see Phase 1)
+- [x] [config] NixOS mini PC is the primary workstation
+- [x] [config] `flake.nix` in repo root provides Go toolchain, DuckDB CLI, SQLite CLI
+- [x] [config] `.env` file in project root for local dev (not committed)
+- [x] [config] VS Code or editor with Go plugin configured
+- [x] [verify] `go version` → 1.23+ (1.25.0 via nix)
+- [x] [verify] Apex is reachable at its local IP from the mini PC
+- [x] [verify] Browser DevTools capture plan is understood (see Phase 1)
 
 ---
 

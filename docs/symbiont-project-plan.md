@@ -59,8 +59,7 @@ reverse-engineering task.
 - Any PM module probes (Ca, Alk, Mg via Trident if present)
 
 **Outputs:**
-- Per-outlet: name, state (OFF/AUTO/ON), current amps, watts
-- xstatus for wireless devices (Vortech, WAV)
+- Per-outlet: name, state (ON/OFF/AON/AOF), type, intensity
 
 **Controller:**
 - Firmware version, serial number
@@ -186,8 +185,7 @@ CREATE TABLE outlet_states (
     ts          TIMESTAMPTZ NOT NULL,
     outlet_id   VARCHAR     NOT NULL,
     outlet_name VARCHAR     NOT NULL,
-    state       VARCHAR     NOT NULL,  -- 'ON', 'OFF', 'AUTO'
-    xstatus     VARCHAR,               -- actual physical state when in AUTO
+    state       VARCHAR     NOT NULL,  -- 'ON', 'OFF', 'AON', 'AOF' (Apex-reported states)
     watts       DOUBLE,
     amps        DOUBLE,
     PRIMARY KEY (ts, outlet_id)
@@ -467,8 +465,9 @@ GET /api/outlets/{id}/events?limit=50
 
 ```
 PUT /api/outlets/{id}
-Body: { "state": "ON" | "OFF" | "AUTO" }
+Body: { "state": "ON" | "OFF" }
 → Sends command to Apex, logs to outlet_event_log, returns updated outlet state
+→ Note: AUTO (return to program control) is not supported by the Apex REST API
 
 POST /api/alerts
 PUT /api/alerts/{id}
@@ -531,7 +530,7 @@ output. `--json` flag available on every command for scripting and agent use.
 symbiont probes current [--json]
 symbiont probes history <name> [--from ISO] [--to ISO] [--interval 1m] [--json]
 symbiont outlets list [--json]
-symbiont outlets set <id> <ON|OFF|AUTO> [--json]
+symbiont outlets set <id> <ON|OFF> [--json]
 symbiont system status [--json]
 symbiont system backup [--path /path/to/backup]
 symbiont alerts list [--json]
@@ -689,7 +688,7 @@ systemd.timers.symbiont-cleanup = {
 - [ ] Vite + React + TypeScript + Tailwind + shadcn/ui scaffold
 - [ ] Dark mode as default theme
 - [ ] Dashboard page: Tremor probe stat cards, outlet state badges
-- [ ] Outlets page: outlet cards with ON/OFF/AUTO toggle, event log
+- [ ] Outlets page: outlet cards with ON/OFF toggle, event log (AUTO not supported by Apex REST API)
 - [ ] History page: uPlot charts, multi-probe overlay, time range picker
 - [ ] Alerts page: rule configuration UI
 - [ ] Settings page: probe/outlet config, token management, notifications, backup status

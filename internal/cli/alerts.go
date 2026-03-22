@@ -26,7 +26,7 @@ func newAlertsListCmd(client *APIClient) *cobra.Command {
 		Short: "List alert rules",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var resp struct {
-				Alerts []struct {
+				Rules []struct {
 					ID        int64    `json:"id"`
 					ProbeName string   `json:"probe_name"`
 					Condition string   `json:"condition"`
@@ -34,8 +34,8 @@ func newAlertsListCmd(client *APIClient) *cobra.Command {
 					High      *float64 `json:"threshold_high"`
 					Severity  string   `json:"severity"`
 					Enabled   bool     `json:"enabled"`
-					Cooldown  string   `json:"cooldown_minutes"`
-				} `json:"alerts"`
+					Cooldown  int      `json:"cooldown_minutes"`
+				} `json:"rules"`
 			}
 			if err := client.Get(cmd.Context(), "/api/alerts", &resp); err != nil {
 				return err
@@ -46,14 +46,14 @@ func newAlertsListCmd(client *APIClient) *cobra.Command {
 				return nil
 			}
 
-			if len(resp.Alerts) == 0 {
+			if len(resp.Rules) == 0 {
 				fmt.Println("No alert rules configured.")
 				return nil
 			}
 
 			headers := []string{"ID", "PROBE", "CONDITION", "THRESHOLD", "SEVERITY", "ENABLED"}
-			rows := make([][]string, 0, len(resp.Alerts))
-			for _, a := range resp.Alerts {
+			rows := make([][]string, 0, len(resp.Rules))
+			for _, a := range resp.Rules {
 				threshold := formatThreshold(a.Low, a.High)
 				enabled := "yes"
 				if !a.Enabled {

@@ -147,8 +147,6 @@ type OutletState string
 const (
 	OutletOn  OutletState = "ON"
 	OutletOff OutletState = "OFF"
-	OutletAON OutletState = "AON"
-	OutletAOF OutletState = "AOF"
 )
 
 // LoginRequest is the body sent to POST /rest/login.
@@ -179,3 +177,4 @@ func NewOutletControlRequest(did string, state OutletState) OutletControlRequest
 		Type:   "outlet",
 	}
 }
+

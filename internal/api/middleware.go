@@ -130,8 +130,8 @@ func CORS(next http.Handler) http.Handler {
 func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth for SSE stream — it uses ?token= query param.
-			if r.URL.Path == "/api/stream" {
+			// Skip auth for SSE stream (uses ?token= query param) and health check.
+			if r.URL.Path == "/api/stream" || r.URL.Path == "/api/health" {
 				next.ServeHTTP(w, r)
 				return
 			}

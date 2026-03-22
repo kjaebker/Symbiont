@@ -16,7 +16,7 @@ type DuckDB struct {
 	db *sql.DB
 }
 
-// DB returns the underlying *sql.DB for use in read queries.
+// DB returns the underlying *sql.DB for use in queries.
 func (d *DuckDB) DB() *sql.DB {
 	return d.db
 }
@@ -42,7 +42,11 @@ func Open(path string) (*DuckDB, error) {
 	return &DuckDB{db: db}, nil
 }
 
-// OpenReadOnly opens a read-only DuckDB connection at the given path.
+// OpenReadOnly creates a DuckDB handle that opens short-lived read-only
+// connections on demand. DuckDB does not support multi-process concurrent
+// access, so the API server cannot hold a persistent connection while the
+// poller is writing. Instead, each query opens and closes its own connection,
+// succeeding in the gaps between poller write transactions.
 func OpenReadOnly(path string) (*DuckDB, error) {
 	dsn := path + "?access_mode=read_only"
 	db, err := sql.Open("duckdb", dsn)
