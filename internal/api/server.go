@@ -54,16 +54,39 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 }
 
 func (s *Server) registerRoutes(mux *http.ServeMux) {
-	// Health check — no auth required, registered before auth middleware applies.
-	// But since auth is applied globally, we'll handle it in the auth middleware skip list
-	// or just let it go through auth. For now, system status is the main endpoint.
-
-	// Placeholder route so the server responds to something.
+	// Health check.
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	// Routes will be added in 2.4, 2.5, etc.
+	// Probes.
+	mux.HandleFunc("GET /api/probes", s.HandleProbeList)
+	mux.HandleFunc("GET /api/probes/{name}/history", s.HandleProbeHistory)
+
+	// Outlets.
+	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
+	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
+	mux.HandleFunc("GET /api/outlets/events", s.HandleOutletEvents)
+
+	// System.
+	mux.HandleFunc("GET /api/system", s.HandleSystemStatus)
+
+	// Config.
+	mux.HandleFunc("GET /api/config/probes", s.HandleProbeConfigList)
+	mux.HandleFunc("PUT /api/config/probes/{name}", s.HandleProbeConfigUpdate)
+	mux.HandleFunc("GET /api/config/outlets", s.HandleOutletConfigList)
+	mux.HandleFunc("PUT /api/config/outlets/{id}", s.HandleOutletConfigUpdate)
+
+	// Alerts.
+	mux.HandleFunc("GET /api/alerts", s.HandleAlertList)
+	mux.HandleFunc("POST /api/alerts", s.HandleAlertCreate)
+	mux.HandleFunc("PUT /api/alerts/{id}", s.HandleAlertUpdate)
+	mux.HandleFunc("DELETE /api/alerts/{id}", s.HandleAlertDelete)
+
+	// Auth tokens.
+	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
+	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
+	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
 }
 
 // Run starts the HTTP server and blocks until ctx is cancelled, then shuts down gracefully.

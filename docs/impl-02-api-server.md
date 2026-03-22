@@ -112,91 +112,91 @@
 
 ### Probe Handlers
 
-- [ ] [code] Create `internal/api/probes.go`:
-  - [ ] `HandleProbeList(w, r)`:
-    - [ ] Call `db.CurrentProbeReadings(ctx)`
-    - [ ] For each probe: load `ProbeConfig` from SQLite (merge display_name, unit_override)
-    - [ ] Compute `status` field: compare value against `min_normal`/`max_normal`/`min_warning`/`max_warning`
-    - [ ] Write JSON response matching architecture spec
-  - [ ] `HandleProbeHistory(w, r)`:
-    - [ ] Extract `name` from URL path
-    - [ ] Parse `from`, `to`, `interval` query params
-    - [ ] Apply auto-interval selection if `interval` not provided (see architecture doc table)
-    - [ ] Call `db.ProbeHistory(ctx, name, from, to, interval)`
-    - [ ] Write JSON response
-- [ ] [test] `internal/api/probes_test.go`:
-  - [ ] Test list returns correctly shaped JSON
-  - [ ] Test status computation: normal, warning, critical, unknown
-  - [ ] Test history with explicit interval
-  - [ ] Test history with auto-interval selection
-  - [ ] Test 404 for unknown probe name
+- [x] [code] Create `internal/api/probes.go`:
+  - [x] `HandleProbeList(w, r)`:
+    - [x] Call `db.CurrentProbeReadings(ctx)`
+    - [x] For each probe: load `ProbeConfig` from SQLite (merge display_name, unit_override)
+    - [x] Compute `status` field: compare value against `min_normal`/`max_normal`/`min_warning`/`max_warning`
+    - [x] Write JSON response matching architecture spec
+  - [x] `HandleProbeHistory(w, r)`:
+    - [x] Extract `name` from URL path
+    - [x] Parse `from`, `to`, `interval` query params
+    - [x] Apply auto-interval selection if `interval` not provided (see architecture doc table)
+    - [x] Call `db.ProbeHistory(ctx, name, from, to, interval)`
+    - [x] Write JSON response
+- [x] [test] `internal/api/probes_test.go`:
+  - [x] Test list returns correctly shaped JSON
+  - [x] Test status computation: normal, warning, critical, unknown
+  - [x] Test history with explicit interval
+  - [x] Test history with auto-interval selection
+  - [x] Test 404 for unknown probe name
 
 ### Outlet Handlers
 
-- [ ] [code] Create `internal/api/outlets.go`:
-  - [ ] `HandleOutletList(w, r)`:
-    - [ ] Call `db.CurrentOutletStates(ctx)`
-    - [ ] Merge `OutletConfig` display names from SQLite
-    - [ ] Write JSON response
-  - [ ] `HandleOutletSet(w, r)`:
-    - [ ] Extract outlet `id` from URL path
-    - [ ] Read and validate request body `{ state: "ON"|"OFF"|"AUTO" }`
-    - [ ] Map user-facing state to Apex state: "AUTO" → "AON" (returns outlet to program control)
-    - [ ] Fetch current state from `status[0]` (for `from_state` in event log)
-    - [ ] Call `apex.SetOutlet(ctx, did, state)` — sends PUT to `/rest/status/outputs/<did>`
-    - [ ] On success: `sqlite.InsertOutletEvent(...)` with `initiated_by = "api"`
-    - [ ] Return updated outlet state
-    - [ ] On Apex error: return 502 with descriptive error
-  - [ ] `HandleOutletEvents(w, r)`:
-    - [ ] Extract outlet `id` from URL path (optional — empty means all outlets)
-    - [ ] Parse `limit` query param (default 50, max 200)
-    - [ ] Call `sqlite.ListOutletEvents(id, limit)`
-    - [ ] Write JSON response
-- [ ] [test] `internal/api/outlets_test.go`:
-  - [ ] Test list returns correct shape
-  - [ ] Test set with mock Apex — verify event logged
-  - [ ] Test set with Apex returning error — verify 502
-  - [ ] Test invalid state value returns 400
-  - [ ] Test events list with and without outlet_id filter
+- [x] [code] Create `internal/api/outlets.go`:
+  - [x] `HandleOutletList(w, r)`:
+    - [x] Call `db.CurrentOutletStates(ctx)`
+    - [x] Merge `OutletConfig` display names from SQLite
+    - [x] Write JSON response
+  - [x] `HandleOutletSet(w, r)`:
+    - [x] Extract outlet `id` from URL path
+    - [x] Read and validate request body `{ state: "ON"|"OFF"|"AUTO" }`
+    - [x] Map user-facing state to Apex state: "AUTO" → "AON" (returns outlet to program control)
+    - [x] Fetch current state from `status[0]` (for `from_state` in event log)
+    - [x] Call `apex.SetOutlet(ctx, did, state)` — sends PUT to `/rest/status/outputs/<did>`
+    - [x] On success: `sqlite.InsertOutletEvent(...)` with `initiated_by = "api"`
+    - [x] Return updated outlet state
+    - [x] On Apex error: return 502 with descriptive error
+  - [x] `HandleOutletEvents(w, r)`:
+    - [x] Extract outlet `id` from URL path (optional — empty means all outlets)
+    - [x] Parse `limit` query param (default 50, max 200)
+    - [x] Call `sqlite.ListOutletEvents(id, limit)`
+    - [x] Write JSON response
+- [x] [test] `internal/api/outlets_test.go`:
+  - [x] Test list returns correct shape
+  - [x] Test set with mock Apex — verify event logged
+  - [x] Test set with Apex returning error — verify 502
+  - [x] Test invalid state value returns 400
+  - [x] Test events list with and without outlet_id filter
 
 ### System Handler
 
-- [ ] [code] Create `internal/api/system.go`:
-  - [ ] `HandleSystemStatus(w, r)`:
-    - [ ] Call `db.ControllerMeta(ctx)` from DuckDB
-    - [ ] Call `db.LastPollTime(ctx)` from DuckDB
-    - [ ] Get DuckDB file size via `os.Stat`
-    - [ ] Get SQLite file size via `os.Stat`
-    - [ ] Determine `poll_ok`: last poll time within 2× poll interval
-    - [ ] Write JSON response
-- [ ] [test] Test system handler returns correct shape and `poll_ok` logic
+- [x] [code] Create `internal/api/system.go`:
+  - [x] `HandleSystemStatus(w, r)`:
+    - [x] Call `db.ControllerMeta(ctx)` from DuckDB
+    - [x] Call `db.LastPollTime(ctx)` from DuckDB
+    - [x] Get DuckDB file size via `os.Stat`
+    - [x] Get SQLite file size via `os.Stat`
+    - [x] Determine `poll_ok`: last poll time within 2× poll interval
+    - [x] Write JSON response
+- [x] [test] Test system handler returns correct shape and `poll_ok` logic
 
 ### Config Handlers
 
-- [ ] [code] Create `internal/api/config.go`:
-  - [ ] `HandleProbeConfigList(w, r)` — list all probe configs
-  - [ ] `HandleProbeConfigUpdate(w, r)` — upsert probe config by name
-  - [ ] `HandleOutletConfigList(w, r)` — list all outlet configs
-  - [ ] `HandleOutletConfigUpdate(w, r)` — upsert outlet config by id
-- [ ] [test] Test config CRUD roundtrip
+- [x] [code] Create `internal/api/config.go`:
+  - [x] `HandleProbeConfigList(w, r)` — list all probe configs
+  - [x] `HandleProbeConfigUpdate(w, r)` — upsert probe config by name
+  - [x] `HandleOutletConfigList(w, r)` — list all outlet configs
+  - [x] `HandleOutletConfigUpdate(w, r)` — upsert outlet config by id
+- [x] [test] Test config CRUD roundtrip
 
 ### Alert Handlers
 
-- [ ] [code] Create `internal/api/alerts.go`:
-  - [ ] `HandleAlertList(w, r)` — list all alert rules
-  - [ ] `HandleAlertCreate(w, r)` — validate and insert rule
-  - [ ] `HandleAlertUpdate(w, r)` — update existing rule
-  - [ ] `HandleAlertDelete(w, r)` — delete rule by id
-- [ ] [test] Test alert CRUD: create, list, update, delete
-- [ ] [test] Test validation: invalid condition type, missing threshold, invalid severity
+- [x] [code] Create `internal/api/alerts.go`:
+  - [x] `HandleAlertList(w, r)` — list all alert rules
+  - [x] `HandleAlertCreate(w, r)` — validate and insert rule
+  - [x] `HandleAlertUpdate(w, r)` — update existing rule
+  - [x] `HandleAlertDelete(w, r)` — delete rule by id
+- [x] [test] Test alert CRUD: create, list, update, delete
+- [x] [test] Test validation: invalid condition type, missing threshold, invalid severity
 
 ### Auth Handlers
 
-- [ ] [code] Create `internal/api/auth.go`:
-  - [ ] `HandleTokenList(w, r)` — list tokens (never return token value, only id/label/created/last_used)
-  - [ ] `HandleTokenCreate(w, r)` — create token with label, return token value once
-  - [ ] `HandleTokenDelete(w, r)` — delete by id
-- [ ] [test] Test token lifecycle via API
+- [x] [code] Create `internal/api/auth.go`:
+  - [x] `HandleTokenList(w, r)` — list tokens (never return token value, only id/label/created/last_used)
+  - [x] `HandleTokenCreate(w, r)` — create token with label, return token value once
+  - [x] `HandleTokenDelete(w, r)` — delete by id
+- [x] [test] Test token lifecycle via API
 
 ---
 

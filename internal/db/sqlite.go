@@ -25,6 +25,10 @@ func OpenSQLite(path string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("opening sqlite at %s: %w", path, err)
 	}
 
+	// SQLite only supports one writer at a time. Limiting to one connection
+	// also ensures :memory: databases share state across goroutines.
+	db.SetMaxOpenConns(1)
+
 	if err := CreateSQLiteSchema(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("creating sqlite schema: %w", err)
