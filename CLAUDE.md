@@ -164,6 +164,17 @@ All tests must pass before considering any task complete. If a test is failing a
 - Tailwind utility classes only — no inline styles, no CSS modules
 - Dark mode via `dark:` prefix — dark is the default (`<html class="dark">`)
 - Never hardcode colors — use Tailwind's semantic palette
+- **Follow the design system in `docs/design/DESIGN.md`** — all frontend work must conform to the "Abyssal Laboratory" creative direction:
+  - Surfaces: use the layered surface hierarchy (`surface` → `surface-container-*`) for depth — no flat layouts
+  - **No 1px borders.** Define boundaries through background color shifts or ghost borders (`outline-variant` at 15% opacity)
+  - **No divider lines.** Use spacing or subtle surface shifts to separate items
+  - Colors: Primary (cyan `#3adffa`), Secondary (green `#6dfe9c`), Tertiary (coral `#ff8796`) — never use pure white (#FFFFFF)
+  - Use glassmorphism (`glass` utility) for floating elements
+  - All transitions must be 300ms ease-in-out minimum (`transition-fluid`)
+  - Roundedness: `rounded-2xl` (2rem) for cards, `rounded-full` for chips/pills
+  - Shadows: use ambient glow (`shadow-glow-*`) not hard drop shadows
+  - Typography: Manrope font, data values are hero elements (display size), labels are small uppercase with wide tracking
+  - Reference the mockups in `docs/design/*.png` for layout guidance on each page
 
 **State:**
 - Server state: TanStack Query
@@ -238,6 +249,7 @@ Error:
 - **Do not use localStorage or sessionStorage in React components.** The only localStorage usage is the auth token in `src/api/client.ts`.
 - **Do not use `useEffect` for data fetching.** Use TanStack Query hooks.
 - **Do not inline SQL in HTTP handlers.** All queries are named functions in the db package.
+- **Do not use 1px solid borders, divider lines, or hard drop shadows in the frontend.** Follow the design system in `docs/design/DESIGN.md`.
 
 ---
 
