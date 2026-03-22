@@ -78,7 +78,7 @@ Before writing any code, answer these questions based on actual usage of the das
 - [ ] [code] Create `src/components/layout/OutletNode.tsx`:
   - [ ] Props: React Flow node props + `data: { outlet_id: string }`
   - [ ] Renders: outlet display name, state badge (ON/OFF/AON/AOF), watts
-  - [ ] Click in view mode: shows outlet control popover (ON/OFF toggle)
+  - [ ] Click in view mode: shows outlet control popover (ON/OFF/AUTO toggle)
   - [ ] Edit mode: shows configuration handle (outlet_id selector)
 
 - [ ] [code] Create `src/components/layout/LabelNode.tsx`:

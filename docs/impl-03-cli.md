@@ -67,11 +67,11 @@
   - [x] Sub-command `list`:
     - [x] Calls `GET /api/outlets`
     - [x] Human output: table with ID, NAME, STATE, TYPE columns
-    - [x] State column color-coded: ON/AON=green, OFF/AOF=red
+    - [x] State column color-coded: ON/AON=green, OFF/AOF=red, AUTO=blue
     - [x] JSON output: raw API response
-  - [x] Sub-command `set <id> <ON|OFF>`:
-    - [x] Validates state arg is one of ON, OFF (case-insensitive, normalized to uppercase)
-    - [x] Note: AUTO not supported by Apex REST API — must use Apex web UI
+  - [x] Sub-command `set <id> <ON|OFF|AUTO>`:
+    - [x] Validates state arg is one of ON, OFF, AUTO (case-insensitive, normalized to uppercase)
+    - [x] AUTO uses legacy CGI endpoint (`/cgi-bin/status.cgi` with state=0)
     - [x] Calls `PUT /api/outlets/<id>`
     - [x] Human output: single-line confirmation `Outlet "Return Pump" set to OFF`
     - [x] JSON output: updated outlet object

@@ -18,9 +18,12 @@ type Client interface {
 	Status(ctx context.Context) (*StatusResponse, error)
 
 	// SetOutlet changes an outlet's runtime state without modifying its program.
-	// Only ON and OFF are supported — the Apex REST API has no programmatic
-	// way to clear a manual override and return to program control (AUTO).
 	SetOutlet(ctx context.Context, did string, state OutletState) error
+
+	// SetOutletAuto returns an outlet to program control (AUTO) using the
+	// legacy CGI endpoint, which supports state=0 for AUTO. The outletName
+	// must be the Apex outlet name (not DID).
+	SetOutletAuto(ctx context.Context, outletName string) error
 }
 
 // client implements Client using the Apex local REST API.
@@ -214,6 +217,76 @@ func (c *client) SetOutlet(ctx context.Context, did string, state OutletState) e
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("outlet control failed: status %d, body %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+// SetOutletAuto returns an outlet to program control using the legacy CGI
+// endpoint: POST /cgi-bin/status.cgi with {name}_state=0. The REST API
+// (AOS 5.x+) has no equivalent — this CGI endpoint is the only known way
+// to programmatically return an outlet to AUTO.
+func (c *client) SetOutletAuto(ctx context.Context, outletName string) error {
+	c.mu.Lock()
+	needsLogin := c.cookie == ""
+	c.mu.Unlock()
+
+	if needsLogin {
+		c.mu.Lock()
+		err := c.login(ctx)
+		c.mu.Unlock()
+		if err != nil {
+			return fmt.Errorf("login for auto: %w", err)
+		}
+	}
+
+	// noResponse=1 tells the Apex to skip sending a response body.
+	// This avoids parsing a full HTML status page, but the Apex sends back
+	// a bare "0" which is not valid HTTP — Go's client returns a transport
+	// error. We treat that as success since the command was accepted.
+	payload := outletName + "_state=0&noResponse=1"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/cgi-bin/status.cgi", strings.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("creating CGI auto request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	c.mu.Lock()
+	cookie := c.cookie
+	c.mu.Unlock()
+	req.Header.Set("Cookie", "connect.sid="+cookie)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		// The Apex with noResponse=1 sends a malformed HTTP response ("0").
+		// Go's HTTP client returns a transport error, but the command succeeded.
+		if strings.Contains(err.Error(), "malformed HTTP response") {
+			return nil
+		}
+		return fmt.Errorf("sending CGI auto request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// If we got a real HTTP response, check the status.
+	if resp.StatusCode == http.StatusUnauthorized {
+		// Retry with basic auth.
+		resp.Body.Close()
+		req2, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/cgi-bin/status.cgi", strings.NewReader(payload))
+		if err != nil {
+			return fmt.Errorf("creating CGI auto retry request: %w", err)
+		}
+		req2.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req2.SetBasicAuth(c.username, c.password)
+
+		resp, err = c.http.Do(req2)
+		if err != nil {
+			if strings.Contains(err.Error(), "malformed HTTP response") {
+				return nil
+			}
+			return fmt.Errorf("sending CGI auto retry request: %w", err)
+		}
+		defer resp.Body.Close()
 	}
 
 	return nil

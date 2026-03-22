@@ -113,7 +113,7 @@
 - [x] [code] Create `src/components/OutletCard.tsx`:
   - [x] Props: `outlet: Outlet`
   - [x] Display: name, state label, icon (Zap when on, Power when off)
-  - [x] Two-button control group: OFF / ON with active state highlighting (AUTO not supported by Apex REST API)
+  - [x] Two-button control group: OFF / ON with active state highlighting
   - [x] Optimistic update via `useSetOutlet()` mutation with rollback
   - [x] Disabled state while mutation in flight
 - [x] [code] Create `src/pages/Dashboard.tsx`:
@@ -171,7 +171,7 @@
 - [ ] [code] Create `src/pages/Outlets.tsx`:
   - [ ] Full outlet table with columns: NAME, STATE, TYPE, HEALTH, WATTS, AMPS, CONTROL
   - [ ] State badge with color coding
-  - [ ] CONTROL column: two-button group (ON / OFF) — AUTO not supported by Apex REST API
+  - [ ] CONTROL column: three-button group (ON / OFF / AUTO)
   - [ ] Active state button highlighted
   - [ ] Mutation loading/error state per outlet row
   - [ ] Outlet event log section below table:

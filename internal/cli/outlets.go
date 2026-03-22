@@ -61,15 +61,15 @@ func newOutletsListCmd(client *APIClient) *cobra.Command {
 
 func newOutletsSetCmd(client *APIClient) *cobra.Command {
 	return &cobra.Command{
-		Use:   "set <id> <ON|OFF>",
-		Short: "Set an outlet state (AUTO must be done via Apex web UI)",
+		Use:   "set <id> <ON|OFF|AUTO>",
+		Short: "Set an outlet state",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id := args[0]
 			state := strings.ToUpper(args[1])
 
-			if state != "ON" && state != "OFF" {
-				return fmt.Errorf("state must be ON or OFF (got %q); AUTO is not supported by the Apex REST API", args[1])
+			if state != "ON" && state != "OFF" && state != "AUTO" {
+				return fmt.Errorf("state must be ON, OFF, or AUTO (got %q)", args[1])
 			}
 
 			var resp struct {

@@ -140,8 +140,8 @@
     - [x] Write JSON response
   - [x] `HandleOutletSet(w, r)`:
     - [x] Extract outlet `id` from URL path
-    - [x] Read and validate request body `{ state: "ON"|"OFF" }`
-    - [x] Map user-facing state to Apex state (AUTO not supported — Apex REST API limitation)
+    - [x] Read and validate request body `{ state: "ON"|"OFF"|"AUTO" }`
+    - [x] Map state to Apex: ON/OFF via REST API, AUTO via legacy CGI endpoint (state=0)
     - [x] Fetch current state from `status[0]` (for `from_state` in event log)
     - [x] Call `apex.SetOutlet(ctx, did, state)` — sends PUT to `/rest/status/outputs/<did>`
     - [x] On success: `sqlite.InsertOutletEvent(...)` with `initiated_by = "api"`

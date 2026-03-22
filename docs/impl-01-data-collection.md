@@ -89,7 +89,7 @@ This must be completed before writing a single line of application code. The Dev
   - [x] `PowerInfo` struct: failed (int64 Unix epoch), restored (int64 Unix epoch) — top-level, NOT in system
   - [x] `Input` struct: did, name, value (float64), type (no unit field — type serves as unit indicator: "Temp", "pH", "Amps", "pwr", "volts", "digital")
   - [x] `Output` struct: did (string), ID (int), name, type ("outlet"/"variable"/"alert"/"virtual"/"serial"/"24v"), gid, status ([]string — 4 elements: [state, intensity_or_empty, health, unknown]), intensity (int, optional)
-  - [x] `OutletState` type: `ON`, `OFF` constants (AON/AOF are read-only status indicators — AUTO not supported by Apex REST API)
+  - [x] `OutletState` type: `ON`, `OFF` constants for REST API; AUTO via legacy CGI endpoint (state=0)
   - [x] `FeedStatus` struct: name (int), active (int)
   - [x] **Field names must match DevTools capture exactly** — see `docs/apex-api-notes.md`
 - [x] [code] Create `internal/apex/client.go`:

@@ -446,7 +446,7 @@ type OutletState string
 const (
     OutletOn  OutletState = "ON"
     OutletOff OutletState = "OFF"
-    // AUTO is not supported by the Apex REST API — must use Apex web UI.
+    // AUTO uses the legacy CGI endpoint (/cgi-bin/status.cgi with state=0).
 )
 ```
 
@@ -780,7 +780,7 @@ symbiont
 │
 ├── outlets
 │   ├── list                  List all outlet states
-│   └── set <id> <ON|OFF>       Control an outlet (AUTO via Apex web UI only)
+│   └── set <id> <ON|OFF|AUTO>  Control an outlet
 │
 ├── alerts
 │   ├── list                  List alert rules
@@ -857,8 +857,8 @@ The MCP Server exposes Symbiont's data and control capabilities to AI assistants
   Output: JSON matching GET /api/outlets response
 
 "control_outlet"
-  Description: "Set an outlet to ON or OFF (AUTO not supported by Apex REST API)"
-  Input:  { id: string, state: "ON" | "OFF" }
+  Description: "Set an outlet to ON, OFF, or AUTO"
+  Input:  { id: string, state: "ON" | "OFF" | "AUTO" }
   Output: JSON matching PUT /api/outlets/:id response
 
 "get_outlet_event_log"

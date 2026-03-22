@@ -31,6 +31,10 @@ func (m *mockApexClient) SetOutlet(ctx context.Context, did string, state apex.O
 	return m.setOutletErr
 }
 
+func (m *mockApexClient) SetOutletAuto(ctx context.Context, outletName string) error {
+	return m.setOutletErr
+}
+
 
 type testEnv struct {
 	server *Server

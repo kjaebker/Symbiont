@@ -229,11 +229,18 @@ Cookie:       connect.sid=<session-value>
 ```
 
 **Returning to AUTO (program control):**
-> The Apex REST API does NOT support returning an outlet to AUTO/program control.
-> AON/AOF are read-only status indicators, not writable states. Re-PUTting the outlet
-> config via `/rest/config/oconf/<did>` also does not clear manual overrides.
-> AUTO must be done via the Apex local web UI or Fusion app.
-> The Home Assistant integration (`itchannel/apex-ha`) also does not implement AUTO for this reason.
+> The REST API (`PUT /rest/status/outputs/<did>`) does NOT support AUTO.
+> AON/AOF are read-only status indicators, not writable states.
+> AUTO is achieved via the **legacy CGI endpoint**:
+> ```
+> POST /cgi-bin/status.cgi
+> Content-Type: application/x-www-form-urlencoded
+> Cookie: connect.sid=<session>
+> Body: {outlet_name}_state=0&noResponse=1
+> ```
+> State values: 0=AUTO, 1=OFF, 2=ON. Uses outlet NAME (not DID).
+> With `noResponse=1`, the Apex sends a bare "0" (not valid HTTP) — treat transport errors as success.
+> Source: `itchannel/apex-ha` toggle_output method (legacy path).
 
 ### Response
 

@@ -75,18 +75,12 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map user-facing state to Apex state.
-	// Note: the Apex REST API only supports manual ON/OFF overrides.
-	// There is no programmatic way to return an outlet to AUTO (program control) —
-	// this must be done via the Apex local web UI or Fusion app.
-	var apexState apex.OutletState
+	// Validate state.
 	switch body.State {
-	case "ON":
-		apexState = apex.OutletOn
-	case "OFF":
-		apexState = apex.OutletOff
+	case "ON", "OFF", "AUTO":
+		// valid
 	default:
-		writeError(w, http.StatusBadRequest, "state must be ON or OFF (AUTO is not supported by the Apex REST API — use the Apex web UI)", "invalid_state")
+		writeError(w, http.StatusBadRequest, "state must be ON, OFF, or AUTO", "invalid_state")
 		return
 	}
 
@@ -109,7 +103,21 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send command to Apex.
-	if err := s.apex.SetOutlet(ctx, did, apexState); err != nil {
+	switch body.State {
+	case "ON":
+		err = s.apex.SetOutlet(ctx, did, apex.OutletOn)
+	case "OFF":
+		err = s.apex.SetOutlet(ctx, did, apex.OutletOff)
+	case "AUTO":
+		// The REST API doesn't support AUTO. Use the legacy CGI endpoint
+		// which accepts state=0 to return an outlet to program control.
+		if outletName == nil {
+			writeError(w, http.StatusNotFound, "outlet not found", "not_found")
+			return
+		}
+		err = s.apex.SetOutletAuto(ctx, *outletName)
+	}
+	if err != nil {
 		writeError(w, http.StatusBadGateway, "failed to set outlet on apex: "+err.Error(), "apex_error")
 		return
 	}

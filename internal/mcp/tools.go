@@ -136,15 +136,15 @@ func getOutletStatesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 
 func controlOutletTool() mcp.Tool {
 	return mcp.NewTool("control_outlet",
-		mcp.WithDescription("Set an outlet to ON or OFF. Use the outlet ID from get_outlet_states. AUTO is not supported by the Apex REST API — use the Apex web UI instead. Use with care — this directly controls aquarium equipment."),
+		mcp.WithDescription("Set an outlet to ON, OFF, or AUTO. Use the outlet ID from get_outlet_states. AUTO returns the outlet to program control. Use with care — this directly controls aquarium equipment."),
 		mcp.WithString("id",
 			mcp.Required(),
 			mcp.Description("Outlet ID from get_outlet_states"),
 		),
 		mcp.WithString("state",
 			mcp.Required(),
-			mcp.Description("Desired state: ON or OFF"),
-			mcp.Enum("ON", "OFF"),
+			mcp.Description("Desired state: ON, OFF, or AUTO"),
+			mcp.Enum("ON", "OFF", "AUTO"),
 		),
 	)
 }
@@ -161,8 +161,8 @@ func controlOutletHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		}
 
 		state = strings.ToUpper(state)
-		if state != "ON" && state != "OFF" {
-			return toolError("Invalid outlet state. Must be ON or OFF (AUTO not supported by Apex REST API)"), nil
+		if state != "ON" && state != "OFF" && state != "AUTO" {
+			return toolError("Invalid outlet state. Must be ON, OFF, or AUTO"), nil
 		}
 
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)

@@ -31,6 +31,10 @@ func (m *mockApexClient) SetOutlet(ctx context.Context, did string, state apex.O
 	return nil
 }
 
+func (m *mockApexClient) SetOutletAuto(ctx context.Context, outletName string) error {
+	return nil
+}
+
 
 func sampleStatus() *apex.StatusResponse {
 	intensity := 100
