@@ -187,20 +187,20 @@
 
 ## 4.8 Alerts Page
 
-- [ ] [code] Add shadcn/ui components:
-  - [ ] `npx shadcn-ui@latest add dialog form input label select switch`
-- [ ] [code] Create `src/components/AlertRuleForm.tsx`:
-  - [ ] shadcn/ui Dialog form
-  - [ ] Fields: probe (select from available probes), condition (above/below/outside_range), threshold low/high, severity, cooldown, enabled
-  - [ ] Validation before submit
-  - [ ] Used for both create and edit (controlled by presence of `rule` prop)
-- [ ] [code] Create `src/pages/Alerts.tsx`:
-  - [ ] Alert rules list as table: PROBE, CONDITION, THRESHOLD, SEVERITY, STATUS, ACTIONS
-  - [ ] Status column: enabled/disabled toggle (switch component)
-  - [ ] ACTIONS: edit (pencil icon), delete (trash icon with confirmation)
-  - [ ] "New Rule" button opens `AlertRuleForm` dialog
-  - [ ] Empty state: "No alert rules configured. Add one to get notified when parameters go out of range."
-  - [ ] Recent alert events section (fires and clears from `alert_events` SQLite table)
+- [x] [code] Add shadcn/ui components:
+  - [x] Skipped — hand-built with Tailwind matching design system (no shadcn/ui needed)
+- [x] [code] Create `src/components/AlertRuleForm.tsx`:
+  - [x] Modal dialog form (hand-built, no shadcn/ui)
+  - [x] Fields: probe (select from available probes), condition (above/below/outside_range), threshold low/high, severity, cooldown, enabled
+  - [x] Validation before submit
+  - [x] Used for both create and edit (controlled by presence of `rule` prop)
+- [x] [code] Create `src/pages/Alerts.tsx`:
+  - [x] Alert rules list as table: PROBE, CONDITION, THRESHOLD, SEVERITY, STATUS, ACTIONS
+  - [x] Status column: enabled/disabled toggle (switch component)
+  - [x] ACTIONS: edit (pencil icon), delete (trash icon with confirmation)
+  - [x] "New Rule" button opens `AlertRuleForm` dialog
+  - [x] Empty state: "No alert rules configured. Add one to get notified when parameters go out of range."
+  - [ ] Recent alert events section (fires and clears from `alert_events` SQLite table) — pending backend API endpoint
 - [ ] [verify] Create, edit, delete alert rules
 - [ ] [verify] Enable/disable toggle works
 
@@ -293,7 +293,7 @@
 - [x] Dashboard: ProbeCard grid + OutletCard grid
 - [x] History: uPlot multi-series chart with time range picker
 - [x] Outlets: full table with controls + event log
-- [ ] Alerts: rule management
+- [x] Alerts: rule management
 - [ ] Settings: all tabs functional
 - [x] Mobile-responsive at all breakpoints
 - [x] Build pipeline integrated with API server static serving
