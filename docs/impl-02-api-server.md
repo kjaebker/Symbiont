@@ -60,10 +60,10 @@
     - [x] Checks if `auth_tokens` is empty
     - [x] If empty: generates token, inserts with label `"default"`, returns `(token, true, nil)` — `true` means "newly created"
     - [x] If not empty: returns `("", false, nil)`
-- [ ] [code] In `cmd/api/main.go`: call `EnsureDefaultToken` on startup *(wired in 2.3)*
-  - [ ] If newly created: print token to stdout with clear formatting
-- [ ] [verify] Delete SQLite DB, start API server, confirm token printed once *(verified in 2.3)*
-- [ ] [verify] Restart API server with existing DB, confirm token not printed again *(verified in 2.3)*
+- [x] [code] In `cmd/api/main.go`: call `EnsureDefaultToken` on startup
+  - [x] If newly created: print token to stdout with clear formatting
+- [ ] [verify] Delete SQLite DB, start API server, confirm token printed once
+- [ ] [verify] Restart API server with existing DB, confirm token not printed again
 
 ---
 
@@ -71,36 +71,36 @@
 
 ↳ depends on: 2.1, 2.2
 
-- [ ] [code] Create `internal/api/server.go`:
-  - [ ] `Server` struct: DuckDB, SQLite, Apex client, Broadcaster, config
-  - [ ] `New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apex apex.Client) *Server`
-  - [ ] `Run(ctx context.Context) error` — starts HTTP server, blocks until ctx cancelled
-  - [ ] Route registration (see 2.4 for handler implementations)
-  - [ ] Graceful shutdown: `http.Server.Shutdown(ctx)` on context cancellation
-- [ ] [code] Create `internal/api/middleware.go`:
-  - [ ] `RequestID` middleware — generates UUID, attaches to context and `X-Request-ID` header
-  - [ ] `Logger` middleware — structured log per request: method, path, status, duration_ms, request_id
-  - [ ] `Recover` middleware — catches panics, logs stack trace, returns 500
-  - [ ] `CORS` middleware — allows `http://localhost:5173` (Vite dev server) and same-origin
-  - [ ] `Auth` middleware — validates Bearer token via SQLite, updates `last_used` async
-    - [ ] Skip auth for `GET /api/stream` path (uses query param token instead)
-  - [ ] Middleware chain applied in order: RequestID → Logger → Recover → CORS → Auth → handler
-- [ ] [code] Create `internal/api/helpers.go`:
-  - [ ] `writeJSON(w, status int, v any)` — sets Content-Type, marshals, writes
-  - [ ] `writeError(w, status int, msg, code string)` — consistent error shape
-  - [ ] `readJSON(r, v any) error` — decodes request body with size limit (1MB)
-  - [ ] `queryParam(r, key, defaultVal string) string`
-  - [ ] `requireParam(r, key string) (string, error)` — returns 400 if missing
-- [ ] [code] Create `cmd/api/main.go`:
-  - [ ] Load config
-  - [ ] Set up slog JSON logger
-  - [ ] Open DuckDB (read-only)
-  - [ ] Open SQLite (read-write)
-  - [ ] Create Apex client
-  - [ ] Bootstrap default token
-  - [ ] Create and start API server
-  - [ ] Handle SIGTERM/SIGINT
-- [ ] [verify] `go build ./cmd/api` compiles
+- [x] [code] Create `internal/api/server.go`:
+  - [x] `Server` struct: DuckDB, SQLite, Apex client, Broadcaster, config
+  - [x] `New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apex apex.Client) *Server`
+  - [x] `Run(ctx context.Context) error` — starts HTTP server, blocks until ctx cancelled
+  - [x] Route registration (see 2.4 for handler implementations)
+  - [x] Graceful shutdown: `http.Server.Shutdown(ctx)` on context cancellation
+- [x] [code] Create `internal/api/middleware.go`:
+  - [x] `RequestID` middleware — generates UUID, attaches to context and `X-Request-ID` header
+  - [x] `Logger` middleware — structured log per request: method, path, status, duration_ms, request_id
+  - [x] `Recover` middleware — catches panics, logs stack trace, returns 500
+  - [x] `CORS` middleware — allows `http://localhost:5173` (Vite dev server) and same-origin
+  - [x] `Auth` middleware — validates Bearer token via SQLite, updates `last_used` async
+    - [x] Skip auth for `GET /api/stream` path (uses query param token instead)
+  - [x] Middleware chain applied in order: RequestID → Logger → Recover → CORS → Auth → handler
+- [x] [code] Create `internal/api/helpers.go`:
+  - [x] `writeJSON(w, status int, v any)` — sets Content-Type, marshals, writes
+  - [x] `writeError(w, status int, msg, code string)` — consistent error shape
+  - [x] `readJSON(r, v any) error` — decodes request body with size limit (1MB)
+  - [x] `queryParam(r, key, defaultVal string) string`
+  - [x] `requireParam(r, key string) (string, error)` — returns 400 if missing
+- [x] [code] Create `cmd/api/main.go`:
+  - [x] Load config
+  - [x] Set up slog JSON logger
+  - [x] Open DuckDB (read-only)
+  - [x] Open SQLite (read-write)
+  - [x] Create Apex client
+  - [x] Bootstrap default token
+  - [x] Create and start API server
+  - [x] Handle SIGTERM/SIGINT
+- [x] [verify] `go build ./cmd/api` compiles
 - [ ] [verify] `./api` starts and listens on port 8420
 - [ ] [verify] `curl http://localhost:8420/` returns something (even 404 is fine at this stage)
 
