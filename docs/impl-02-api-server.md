@@ -236,11 +236,11 @@
 
 ## 2.6 Static Frontend Serving
 
-- [ ] [code] In `internal/api/server.go`:
-  - [ ] Add file server for `frontend/dist/` directory
-  - [ ] Route: `GET /*` → serve static files
-  - [ ] SPA fallback: if file not found, serve `index.html` (enables React Router client-side routing)
-  - [ ] `SYMBIONT_FRONTEND_PATH` config var controls directory (default: `./frontend/dist`)
+- [x] [code] In `internal/api/server.go`:
+  - [x] Add file server for `frontend/dist/` directory
+  - [x] Route: `GET /*` → serve static files
+  - [x] SPA fallback: if file not found, serve `index.html` (enables React Router client-side routing)
+  - [x] `SYMBIONT_FRONTEND_PATH` config var controls directory (default: `./frontend/dist`)
 - [ ] [verify] After Phase 4, frontend will be served from here. For now, verify `/` returns 404 or empty gracefully.
 
 ---
@@ -249,15 +249,16 @@
 
 ↳ depends on: all handlers in 2.4
 
-- [ ] [test] Create `internal/api/integration_test.go`:
-  - [ ] Use `httptest.NewServer` with real (in-memory) DuckDB and SQLite instances
-  - [ ] Seed test data into DuckDB
-  - [ ] Seed token into SQLite
-  - [ ] Test full request/response cycle for each endpoint
-  - [ ] Test auth middleware rejects missing token (401)
-  - [ ] Test auth middleware rejects wrong token (401)
-  - [ ] Test auth middleware accepts valid token
-- [ ] [verify] `go test ./internal/api/...` passes
+- [x] [test] Create `internal/api/integration_test.go`:
+  - [x] Use `httptest.NewServer` with real (in-memory) DuckDB and SQLite instances
+  - [x] Seed test data into DuckDB
+  - [x] Seed token into SQLite
+  - [x] Test full request/response cycle for each endpoint
+  - [x] Test auth middleware rejects missing token (401)
+  - [x] Test auth middleware rejects wrong token (401)
+  - [x] Test auth middleware accepts valid token
+  - Note: Integration tests are in `api_test.go` (same package, all use real DB instances)
+- [x] [verify] `go test ./internal/api/...` passes
 
 ---
 

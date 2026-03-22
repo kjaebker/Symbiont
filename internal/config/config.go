@@ -36,6 +36,9 @@ type Config struct {
 	// Notifications
 	NtfyURL string
 
+	// Frontend
+	FrontendPath string
+
 	// Backup
 	BackupDir string
 }
@@ -56,8 +59,9 @@ func Load() *Config {
 		APIPort:    envOrDefault("SYMBIONT_API_PORT", "8420"),
 		LogLevel:   envOrDefault("SYMBIONT_LOG_LEVEL", "info"),
 		Token:      os.Getenv("SYMBIONT_TOKEN"),
-		NtfyURL:    os.Getenv("SYMBIONT_NTFY_URL"),
-		BackupDir:  envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
+		FrontendPath: envOrDefault("SYMBIONT_FRONTEND_PATH", "./frontend/dist"),
+		NtfyURL:      os.Getenv("SYMBIONT_NTFY_URL"),
+		BackupDir:    envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
 	}
 
 	// Parse poll interval duration.

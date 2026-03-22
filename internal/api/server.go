@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
@@ -92,6 +94,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
+
+	// Static frontend serving with SPA fallback.
+	mux.Handle("GET /", spaHandler(s.cfg.FrontendPath))
 }
 
 // Run starts the HTTP server and blocks until ctx is cancelled, then shuts down gracefully.
@@ -127,4 +132,35 @@ func (s *Server) Run(ctx context.Context) error {
 // Addr returns the server's listener address. Only valid after Run has started.
 func (s *Server) Addr() net.Addr {
 	return nil // Will be useful for tests later if needed.
+}
+
+// spaHandler serves static files from dir. If the requested file doesn't exist,
+// it falls back to index.html to support client-side routing (React Router).
+func spaHandler(dir string) http.Handler {
+	fsys := os.DirFS(dir)
+	fileServer := http.FileServerFS(fsys)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Try to serve the exact file.
+		path := r.URL.Path
+		if path == "/" {
+			path = "index.html"
+		} else if len(path) > 0 && path[0] == '/' {
+			path = path[1:]
+		}
+
+		// Check if the file exists.
+		if _, err := fs.Stat(fsys, path); err == nil {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// SPA fallback: serve index.html for any unmatched route.
+		if _, err := fs.Stat(fsys, "index.html"); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		r.URL.Path = "/"
+		fileServer.ServeHTTP(w, r)
+	})
 }

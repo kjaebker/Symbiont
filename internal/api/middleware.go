@@ -125,12 +125,19 @@ func CORS(next http.Handler) http.Handler {
 }
 
 // Auth validates the Bearer token via SQLite. Skips auth for the SSE stream
-// endpoint (which uses a query param token instead).
+// endpoint (which uses a query param token instead) and for non-API paths
+// (static frontend files).
 func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for SSE stream — it uses ?token= query param.
 			if r.URL.Path == "/api/stream" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Skip auth for non-API paths (static frontend files).
+			if !strings.HasPrefix(r.URL.Path, "/api/") {
 				next.ServeHTTP(w, r)
 				return
 			}
