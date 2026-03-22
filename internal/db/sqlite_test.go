@@ -311,3 +311,32 @@ func TestBackupJobLifecycle(t *testing.T) {
 		t.Errorf("expected status 'failed', got %q", jobs[0].Status)
 	}
 }
+
+func TestEnsureDefaultToken(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	// First call should create a token.
+	token, created, err := db.EnsureDefaultToken(ctx)
+	if err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	if !created {
+		t.Fatal("expected token to be created on first call")
+	}
+	if len(token) != 64 {
+		t.Errorf("expected 64-char token, got %d chars", len(token))
+	}
+
+	// Second call should not create another token.
+	token2, created2, err := db.EnsureDefaultToken(ctx)
+	if err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	if created2 {
+		t.Fatal("expected no token created on second call")
+	}
+	if token2 != "" {
+		t.Errorf("expected empty token on second call, got %q", token2)
+	}
+}

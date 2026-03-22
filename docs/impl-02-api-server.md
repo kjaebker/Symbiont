@@ -55,21 +55,15 @@
 
 ↳ depends on: 2.1
 
-- [ ] [code] Create `internal/db/bootstrap.go`:
-  - [ ] `EnsureDefaultToken(sqlite *SQLiteDB) (string, bool, error)`
-    - [ ] Checks if `auth_tokens` is empty
-    - [ ] If empty: generates token, inserts with label `"default"`, returns `(token, true, nil)` — `true` means "newly created"
-    - [ ] If not empty: returns `("", false, nil)`
-- [ ] [code] In `cmd/api/main.go`: call `EnsureDefaultToken` on startup
-  - [ ] If newly created: print token to stdout with clear formatting:
-    ```
-    ╔══════════════════════════════════════════════════╗
-    ║  Symbiont API token (save this — shown once):   ║
-    ║  a3f8e2c1d7b4...                                ║
-    ╚══════════════════════════════════════════════════╝
-    ```
-- [ ] [verify] Delete SQLite DB, start API server, confirm token printed once
-- [ ] [verify] Restart API server with existing DB, confirm token not printed again
+- [x] [code] Create `internal/db/bootstrap.go`:
+  - [x] `EnsureDefaultToken(sqlite *SQLiteDB) (string, bool, error)`
+    - [x] Checks if `auth_tokens` is empty
+    - [x] If empty: generates token, inserts with label `"default"`, returns `(token, true, nil)` — `true` means "newly created"
+    - [x] If not empty: returns `("", false, nil)`
+- [ ] [code] In `cmd/api/main.go`: call `EnsureDefaultToken` on startup *(wired in 2.3)*
+  - [ ] If newly created: print token to stdout with clear formatting
+- [ ] [verify] Delete SQLite DB, start API server, confirm token printed once *(verified in 2.3)*
+- [ ] [verify] Restart API server with existing DB, confirm token not printed again *(verified in 2.3)*
 
 ---
 
