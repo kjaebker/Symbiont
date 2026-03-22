@@ -261,6 +261,10 @@
   - [x] Refreshes via `useSystemStatus` with 30s refetch interval
 - [x] [code] Favicon: wave SVG icon
 - [ ] [code] Page `<title>` tags: "Symbiont — Dashboard", "Symbiont — History", etc.
+- [ ] [code] Dashboard customization:
+  - [ ] Allow user to show/hide individual probes from the dashboard grid
+  - [ ] Persist visibility preferences (SQLite probe config or localStorage)
+  - [ ] UI control (e.g., edit mode toggle or settings panel) for managing visible probes
 - [ ] [verify] All pages render without console errors
 - [ ] [verify] Pages are usable at 375px width (iPhone SE)
 - [ ] [verify] Pages look correct at 768px (tablet) and 1280px (desktop)

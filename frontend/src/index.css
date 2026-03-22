@@ -84,6 +84,14 @@
   text-shadow: 0 0 8px rgba(58, 223, 250, 0.3);
 }
 
+@utility text-glow-secondary {
+  text-shadow: 0 0 8px rgba(109, 254, 156, 0.3);
+}
+
+@utility text-glow-tertiary {
+  text-shadow: 0 0 8px rgba(255, 135, 150, 0.3);
+}
+
 /* Smooth transitions — "resistance of water" */
 @utility transition-fluid {
   transition: all 300ms ease-in-out;
