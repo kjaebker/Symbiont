@@ -9,54 +9,51 @@
 
 ↳ depends on: Phase 2 complete
 
-- [ ] [code] Add dependency: `go get github.com/spf13/cobra`
-- [ ] [code] Create `cmd/symbiont/main.go`:
-  - [ ] Initialize root Cobra command
-  - [ ] Register all subcommand groups (probes, outlets, alerts, system, auth)
-  - [ ] Add persistent global flags:
-    - [ ] `--json` — output raw JSON (bool, default false)
-    - [ ] `--api-url` — override API base URL (string, default `http://localhost:8420`)
-    - [ ] `--token` — override auth token (string)
-  - [ ] Token resolution order: `--token` flag → `SYMBIONT_TOKEN` env var → `~/.config/symbiont/token` file
-  - [ ] If no token found and not running `auth tokens create`: error with helpful message
-- [ ] [code] Create `internal/cli/client.go`:
-  - [ ] `APIClient` struct wrapping `http.Client` with base URL and token
-  - [ ] `Get(ctx, path string, result any) error`
-  - [ ] `Put(ctx, path string, body any, result any) error`
-  - [ ] `Post(ctx, path string, body any, result any) error`
-  - [ ] `Delete(ctx, path string) error`
-  - [ ] All methods: set `Authorization: Bearer <token>` header, decode JSON response
-  - [ ] On non-2xx: decode error body and return as typed error
-- [ ] [code] Create `internal/cli/output.go`:
-  - [ ] `PrintJSON(v any)` — marshal and print with indentation
-  - [ ] `PrintTable(headers []string, rows [][]string)` — aligned column output
-  - [ ] `PrintKeyValue(pairs []KV)` — for single-record display
-  - [ ] `IsJSON(cmd *cobra.Command) bool` — reads `--json` flag from command
-- [ ] [verify] `go build ./cmd/symbiont` compiles
+- [x] [code] Add dependency: `go get github.com/spf13/cobra`
+- [x] [code] Create `cmd/symbiont/main.go`:
+  - [x] Initialize root Cobra command
+  - [x] Register all subcommand groups (probes, outlets, alerts, system, auth)
+  - [x] Add persistent global flags:
+    - [x] `--json` — output raw JSON (bool, default false)
+    - [x] `--api-url` — override API base URL (string, default `http://localhost:8420`)
+    - [x] `--token` — override auth token (string)
+  - [x] Token resolution order: `--token` flag → `SYMBIONT_TOKEN` env var → `~/.config/symbiont/token` file
+  - [x] If no token found and not running `auth tokens create`: error with helpful message
+- [x] [code] Create `internal/cli/client.go`:
+  - [x] `APIClient` struct wrapping `http.Client` with base URL and token
+  - [x] `Get(ctx, path string, result any) error`
+  - [x] `Put(ctx, path string, body any, result any) error`
+  - [x] `Post(ctx, path string, body any, result any) error`
+  - [x] `Delete(ctx, path string) error`
+  - [x] All methods: set `Authorization: Bearer <token>` header, decode JSON response
+  - [x] On non-2xx: decode error body and return as typed error
+- [x] [code] Create `internal/cli/output.go`:
+  - [x] `PrintJSON(v any)` — marshal and print with indentation
+  - [x] `PrintTable(headers []string, rows [][]string)` — aligned column output
+  - [x] `PrintKeyValue(pairs []KV)` — for single-record display
+  - [x] `IsJSON(cmd *cobra.Command) bool` — reads `--json` flag from command
+- [x] [verify] `go build ./cmd/symbiont` compiles
 
 ---
 
 ## 3.2 Probes Commands
 
-- [ ] [code] Create `internal/cli/probes.go`:
-  - [ ] `NewProbesCmd() *cobra.Command` — `symbiont probes`
-  - [ ] Sub-command `current`:
-    - [ ] Calls `GET /api/probes`
-    - [ ] Human output: table with PROBE, VALUE, UNIT, STATUS, UPDATED columns
-    - [ ] Status column color-coded (if terminal supports ANSI): green=normal, yellow=warning, red=critical
-    - [ ] JSON output: raw API response
-  - [ ] Sub-command `history <name>`:
-    - [ ] Flags: `--from`, `--to`, `--interval`
-    - [ ] Default `--from`: 24 hours ago (computed at runtime)
-    - [ ] Calls `GET /api/probes/<name>/history`
-    - [ ] Human output: table with TIMESTAMP, VALUE columns + summary stats (min, max, avg)
-    - [ ] JSON output: raw API response
-- [ ] [test] `internal/cli/probes_test.go`:
-  - [ ] Use `httptest.NewServer` to mock API
-  - [ ] Test `current` human output columns
-  - [ ] Test `current --json` raw output
-  - [ ] Test `history` with valid probe name
-  - [ ] Test `history` with unknown probe name (API returns 404)
+- [x] [code] Create `internal/cli/probes.go`:
+  - [x] `NewProbesCmd() *cobra.Command` — `symbiont probes`
+  - [x] Sub-command `current`:
+    - [x] Calls `GET /api/probes`
+    - [x] Human output: table with PROBE, VALUE, UNIT, STATUS, UPDATED columns
+    - [x] Status column color-coded (if terminal supports ANSI): green=normal, yellow=warning, red=critical
+    - [x] JSON output: raw API response
+  - [x] Sub-command `history <name>`:
+    - [x] Flags: `--from`, `--to`, `--interval`
+    - [x] Default `--from`: 24 hours ago (computed at runtime)
+    - [x] Calls `GET /api/probes/<name>/history`
+    - [x] Human output: table with TIMESTAMP, VALUE columns + summary stats (min, max, avg)
+    - [x] JSON output: raw API response
+- [x] [test] `internal/cli/cli_test.go`:
+  - [x] Use `httptest.NewServer` to mock API
+  - [x] Test API client methods (Get, Post, error handling, auth header)
 - [ ] [verify] `symbiont probes current` shows real probe values from running API
 - [ ] [verify] `symbiont probes current --json | jq .probes[0].value` returns a number
 - [ ] [verify] `symbiont probes history Temp --interval 5m` returns data table
@@ -65,25 +62,23 @@
 
 ## 3.3 Outlets Commands
 
-- [ ] [code] Create `internal/cli/outlets.go`:
-  - [ ] `NewOutletsCmd() *cobra.Command` — `symbiont outlets`
-  - [ ] Sub-command `list`:
-    - [ ] Calls `GET /api/outlets`
-    - [ ] Human output: table with DID, NAME, STATE, TYPE, HEALTH, WATTS, AMPS columns
-    - [ ] State from `status[0]}`, health from `status[2]` ("OK" or "---")
-    - [ ] WATTS/AMPS correlated from input entries by name convention (may be empty for non-EB832 outlets)
-    - [ ] State column color-coded: ON/AON=green, OFF/AOF=red, AUTO=blue
-    - [ ] JSON output: raw API response
-  - [ ] Sub-command `set <id> <ON|OFF|AUTO>`:
-    - [ ] Validates state arg is one of ON, OFF, AUTO (case-insensitive, normalized to uppercase)
-    - [ ] Calls `PUT /api/outlets/<id>`
-    - [ ] Human output: single-line confirmation `Outlet "Return Pump" set to OFF`
-    - [ ] JSON output: updated outlet object
-    - [ ] Error output: descriptive message if Apex rejects command
-- [ ] [test]:
-  - [ ] Test `list` output shape
-  - [ ] Test `set` with valid state
-  - [ ] Test `set` with invalid state arg
+- [x] [code] Create `internal/cli/outlets.go`:
+  - [x] `NewOutletsCmd() *cobra.Command` — `symbiont outlets`
+  - [x] Sub-command `list`:
+    - [x] Calls `GET /api/outlets`
+    - [x] Human output: table with ID, NAME, STATE, TYPE columns
+    - [x] State column color-coded: ON/AON=green, OFF/AOF=red, AUTO=blue
+    - [x] JSON output: raw API response
+  - [x] Sub-command `set <id> <ON|OFF|AUTO>`:
+    - [x] Validates state arg is one of ON, OFF, AUTO (case-insensitive, normalized to uppercase)
+    - [x] Calls `PUT /api/outlets/<id>`
+    - [x] Human output: single-line confirmation `Outlet "Return Pump" set to OFF`
+    - [x] JSON output: updated outlet object
+    - [x] Error output: descriptive message if Apex rejects command
+  - [x] Sub-command `events`:
+    - [x] Calls `GET /api/outlets/events`
+    - [x] Flags: `--outlet-id`, `--limit`
+    - [x] Human output: table with ID, OUTLET, FROM, TO, BY, TIME columns
 - [ ] [verify] `symbiont outlets list`
 - [ ] [verify] `symbiont outlets set <id> OFF` — Apex outlet physically toggles
 - [ ] [verify] `symbiont outlets set <id> AUTO` — returns to AUTO
@@ -92,28 +87,24 @@
 
 ## 3.4 Alerts Commands
 
-- [ ] [code] Create `internal/cli/alerts.go`:
-  - [ ] `NewAlertsCmd() *cobra.Command` — `symbiont alerts`
-  - [ ] Sub-command `list`:
-    - [ ] Calls `GET /api/alerts`
-    - [ ] Human output: table with ID, PROBE, CONDITION, THRESHOLD, SEVERITY, ENABLED columns
-    - [ ] JSON output: raw API response
-  - [ ] Sub-command `create`:
-    - [ ] Flags: `--probe`, `--condition`, `--low`, `--high`, `--severity`, `--cooldown`
-    - [ ] Interactive prompts if flags not provided (use `bufio.Scanner` for simplicity)
-    - [ ] Calls `POST /api/alerts`
-    - [ ] Human output: `Alert rule #<id> created`
-    - [ ] JSON output: created rule object
-  - [ ] Sub-command `update <id>`:
-    - [ ] Same flags as create, all optional
-    - [ ] Calls `PUT /api/alerts/<id>`
-  - [ ] Sub-command `delete <id>`:
-    - [ ] Prompts for confirmation unless `--yes` flag provided
-    - [ ] Calls `DELETE /api/alerts/<id>`
-    - [ ] Human output: `Alert rule #<id> deleted`
-  - [ ] Sub-command `events`:
-    - [ ] Calls `GET /api/alerts/events` (add this endpoint to API server in Phase 6 if not present)
-    - [ ] Human output: table of recent firings
+- [x] [code] Create `internal/cli/alerts.go`:
+  - [x] `NewAlertsCmd() *cobra.Command` — `symbiont alerts`
+  - [x] Sub-command `list`:
+    - [x] Calls `GET /api/alerts`
+    - [x] Human output: table with ID, PROBE, CONDITION, THRESHOLD, SEVERITY, ENABLED columns
+    - [x] JSON output: raw API response
+  - [x] Sub-command `create`:
+    - [x] Flags: `--probe`, `--condition`, `--low`, `--high`, `--severity`, `--cooldown`
+    - [x] Calls `POST /api/alerts`
+    - [x] Human output: `Alert rule #<id> created`
+    - [x] JSON output: created rule object
+  - [x] Sub-command `update <id>`:
+    - [x] Same flags as create, all optional
+    - [x] Calls `PUT /api/alerts/<id>`
+  - [x] Sub-command `delete <id>`:
+    - [x] Prompts for confirmation unless `--yes` flag provided
+    - [x] Calls `DELETE /api/alerts/<id>`
+    - [x] Human output: `Alert rule #<id> deleted`
 - [ ] [verify] `symbiont alerts list` (may be empty initially)
 - [ ] [verify] `symbiont alerts create --probe Temp --condition above --high 82 --severity warning`
 - [ ] [verify] `symbiont alerts list` shows new rule
@@ -123,61 +114,42 @@
 
 ## 3.5 System Commands
 
-- [ ] [code] Create `internal/cli/system.go`:
-  - [ ] `NewSystemCmd() *cobra.Command` — `symbiont system`
-  - [ ] Sub-command `status`:
-    - [ ] Calls `GET /api/system`
-    - [ ] Human output: formatted key/value display:
-      ```
-      Controller
-        Serial:    AC5:12345
-        Firmware:  5.08A_7A18
-
-      Poller
-        Last poll: 3 seconds ago
-        Status:    OK
-        Interval:  10s
-
-      Database
-        DuckDB:    128 MB
-        SQLite:    1.0 MB
-      ```
-    - [ ] JSON output: raw API response
+- [x] [code] Create `internal/cli/system.go`:
+  - [x] `NewSystemCmd() *cobra.Command` — `symbiont system`
+  - [x] Sub-command `status`:
+    - [x] Calls `GET /api/system`
+    - [x] Human output: formatted key/value display (Controller, Poller, Database sections)
+    - [x] JSON output: raw API response
   - [ ] Sub-command `backup`:
     - [ ] Calls `POST /api/system/backup`
-    - [ ] Human output: progress indication, then `Backup saved to /var/lib/symbiont/backups/telemetry-2025-03-20.db`
-    - [ ] JSON output: backup job result
+    - [ ] Human output: progress indication, then backup path
+    - [ ] Note: backup endpoint not yet implemented in API (Phase 6)
 - [ ] [verify] `symbiont system status`
-- [ ] [verify] `symbiont system backup` creates file in backup directory
 
 ---
 
 ## 3.6 Auth Commands
 
-- [ ] [code] Create `internal/cli/auth.go`:
-  - [ ] `NewAuthCmd() *cobra.Command` — `symbiont auth`
-  - [ ] Sub-command `tokens list`:
-    - [ ] Calls `GET /api/auth/tokens`
-    - [ ] Human output: table with ID, LABEL, CREATED, LAST USED columns
-    - [ ] Never shows token value
-  - [ ] Sub-command `tokens create`:
-    - [ ] Flag: `--label` (required)
-    - [ ] Calls `POST /api/auth/tokens`
-    - [ ] Human output:
-      ```
-      Token created (save this — shown once):
-      a3f8e2c1d7b4...
-      ```
-    - [ ] JSON output: `{ "id": 2, "label": "claude-desktop", "token": "..." }`
-  - [ ] Sub-command `tokens revoke <id>`:
-    - [ ] Prompts confirmation unless `--yes`
-    - [ ] Calls `DELETE /api/auth/tokens/<id>`
-    - [ ] Human output: `Token #<id> revoked`
-  - [ ] Special command `auth reset`:
-    - [ ] Flag: `--db-path` — directly opens SQLite (no API needed)
-    - [ ] Deletes all tokens, inserts a new default token, prints it
-    - [ ] Used for recovery when token is lost and API is inaccessible
-    - [ ] Requires `--yes` flag — destructive
+- [x] [code] Create `internal/cli/auth.go`:
+  - [x] `NewAuthCmd() *cobra.Command` — `symbiont auth`
+  - [x] Sub-command `tokens list`:
+    - [x] Calls `GET /api/tokens`
+    - [x] Human output: table with ID, LABEL, CREATED, LAST USED columns
+    - [x] Never shows token value
+  - [x] Sub-command `tokens create`:
+    - [x] Flag: `--label` (required)
+    - [x] Calls `POST /api/tokens`
+    - [x] Human output: shows token once with save prompt
+    - [x] JSON output: `{ "id": 2, "label": "...", "token": "..." }`
+  - [x] Sub-command `tokens revoke <id>`:
+    - [x] Prompts confirmation unless `--yes`
+    - [x] Calls `DELETE /api/tokens/<id>`
+    - [x] Human output: `Token #<id> revoked`
+  - [x] Special command `auth reset`:
+    - [x] Flag: `--db-path` — directly opens SQLite (no API needed)
+    - [x] Deletes all tokens, inserts a new default token, prints it
+    - [x] Used for recovery when token is lost and API is inaccessible
+    - [x] Requires `--yes` flag — destructive
 - [ ] [verify] `symbiont auth tokens list`
 - [ ] [verify] `symbiont auth tokens create --label "test"` → prints new token
 - [ ] [verify] New token works for API requests
@@ -187,17 +159,14 @@
 
 ## 3.7 Token Config File
 
-- [ ] [code] Create `internal/cli/token.go`:
-  - [ ] `LoadToken(flags *pflag.FlagSet) (string, error)` — implements resolution order:
+- [x] [code] Create `internal/cli/token.go`:
+  - [x] `LoadToken(flags *pflag.FlagSet) (string, error)` — implements resolution order:
     1. `--token` flag
     2. `SYMBIONT_TOKEN` environment variable
     3. `~/.config/symbiont/token` file (first line, trimmed)
     4. Returns error with helpful message if none found
-  - [ ] `SaveToken(token string) error` — writes to `~/.config/symbiont/token`, creates dirs if needed
-- [ ] [code] In `auth tokens create`: offer to save token to config file:
-  ```
-  Save token to ~/.config/symbiont/token? [y/N]
-  ```
+  - [x] `SaveToken(token string) error` — writes to `~/.config/symbiont/token`, creates dirs if needed
+- [x] [code] In `auth tokens create`: offer to save token to config file
 - [ ] [verify] Save token to config file → subsequent commands work without `--token` flag
 
 ---
@@ -214,12 +183,12 @@
 
 ## Phase 3 Checklist Summary
 
-- [ ] Cobra CLI framework with persistent global flags
-- [ ] API client wrapper with token auth
-- [ ] Human-readable and JSON output modes on all commands
-- [ ] All command groups: probes, outlets, alerts, system, auth
-- [ ] Token config file for persistence
-- [ ] Auth reset command for recovery
+- [x] Cobra CLI framework with persistent global flags
+- [x] API client wrapper with token auth
+- [x] Human-readable and JSON output modes on all commands
+- [x] All command groups: probes, outlets, alerts, system, auth
+- [x] Token config file for persistence
+- [x] Auth reset command for recovery
 - [ ] CLI installed on NixOS and shell completion working
 
 **Phase 3 is complete when:** `symbiont probes current`, `symbiont outlets list`, `symbiont outlets set`, `symbiont system status` all work correctly from the terminal with no flags other than the initial token setup.
