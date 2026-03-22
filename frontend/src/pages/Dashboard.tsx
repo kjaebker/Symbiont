@@ -1,9 +1,10 @@
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets, useOutletEvents } from '@/hooks/useOutlets'
 import { useSystemStatus } from '@/hooks/useSystem'
-import { ProbeCard } from '@/components/ProbeCard'
+import { ProbeCard, getCategory, type ProbeCategory } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
 import { cn, relativeTime } from '@/lib/utils'
+import type { Probe } from '@/api/types'
 
 const statusLabel: Record<string, string> = {
   normal: 'Stable',
@@ -32,6 +33,14 @@ function SkeletonCard() {
       <div className="h-10 w-32 bg-surface-container-high rounded mb-3" />
       <div className="h-8 w-full bg-surface-container-high rounded" />
     </div>
+  )
+}
+
+const categoryOrder: ProbeCategory[] = ['temperature', 'chemistry', 'power', 'digital']
+
+function sortProbesByCategory(probes: Probe[]): Probe[] {
+  return [...probes].sort(
+    (a, b) => categoryOrder.indexOf(getCategory(a.type)) - categoryOrder.indexOf(getCategory(b.type)),
   )
 }
 
@@ -95,7 +104,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {probesLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : probes.map((probe) => (
+          : sortProbesByCategory(probes).map((probe) => (
               <ProbeCard key={probe.name} probe={probe} />
             ))}
       </div>
