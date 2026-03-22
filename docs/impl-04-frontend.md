@@ -130,36 +130,36 @@
 
 ## 4.6 History Page
 
-- [ ] [code] Create uPlot wrapper component `src/components/ProbeChart.tsx`:
-  - [ ] Props: `series: Series[]`, `height?: number`
-  - [ ] `Series` type: `{ name, data: DataPoint[], unit, color }`
-  - [ ] Initializes uPlot in `useEffect` on mount
-  - [ ] Destroys and re-creates chart when series count changes (avoids stale refs)
-  - [ ] Updates data without re-creating when only values change: `chartRef.current.setData(data)`
-  - [ ] Dark mode color scheme (background, grid, text from CSS variables)
-  - [ ] Tooltip: shows timestamp + value for each series
-  - [ ] Responsive: listens to container width via `ResizeObserver`, calls `chart.setSize`
-  - [ ] Legend: series names and colored indicators
-  - [ ] Loading state: show skeleton while data fetches
-- [ ] [code] Create `src/components/TimeRangePicker.tsx`:
-  - [ ] Preset buttons: Last 2h, 6h, 24h, 7d, 30d
-  - [ ] Custom range: two datetime inputs
-  - [ ] Returns `{ from: Date, to: Date }`
-- [ ] [code] Create `src/components/ProbeSelector.tsx`:
-  - [ ] Multi-select dropdown of available probe names (from `useProbes`)
-  - [ ] Selected probes list with color assignment
-  - [ ] Max 4 simultaneous series (uPlot performance)
-- [ ] [code] Create `src/pages/History.tsx`:
-  - [ ] `ProbeSelector` component (default: first probe or query param probe)
-  - [ ] `TimeRangePicker` component (default: last 24h)
-  - [ ] Interval selector: Auto, 10s, 1m, 5m, 15m, 1h, 1d
-  - [ ] `useQuery` for each selected probe's history (separate query per probe)
-  - [ ] Pass all series to `ProbeChart`
-  - [ ] Summary stats below chart: min, max, avg for each series
-  - [ ] URL sync: `?probe=Temp,pH&from=...&to=...&interval=5m` so links are shareable
-- [ ] [verify] History loads with single probe
-- [ ] [verify] Multiple probes overlay correctly on same chart
-- [ ] [verify] Time range picker changes data range
+- [x] [code] Create uPlot wrapper component `src/components/ProbeChart.tsx`:
+  - [x] Props: `series: Series[]`, `height?: number`
+  - [x] `Series` type: `{ name, data: DataPoint[], unit, color }`
+  - [x] Initializes uPlot in `useEffect` on mount
+  - [x] Destroys and re-creates chart when series count changes (avoids stale refs)
+  - [x] Updates data without re-creating when only values change: `chartRef.current.setData(data)`
+  - [x] Dark mode color scheme (background, grid, text from CSS variables)
+  - [x] Tooltip: shows timestamp + value for each series
+  - [x] Responsive: listens to container width via `ResizeObserver`, calls `chart.setSize`
+  - [x] Legend: series names and colored indicators
+  - [x] Loading state: show skeleton while data fetches
+- [x] [code] Create `src/components/TimeRangePicker.tsx`:
+  - [x] Preset buttons: Last 2h, 6h, 24h, 7d, 30d
+  - [x] Custom range: two datetime inputs
+  - [x] Returns `{ from: Date, to: Date }`
+- [x] [code] Create `src/components/ProbeSelector.tsx`:
+  - [x] Multi-select dropdown of available probe names (from `useProbes`)
+  - [x] Selected probes list with color assignment
+  - [x] Max 4 simultaneous series (uPlot performance)
+- [x] [code] Create `src/pages/History.tsx`:
+  - [x] `ProbeSelector` component (default: first probe or query param probe)
+  - [x] `TimeRangePicker` component (default: last 24h)
+  - [x] Interval selector: Auto, 10s, 1m, 5m, 15m, 1h, 1d
+  - [x] `useQuery` for each selected probe's history (separate query per probe)
+  - [x] Pass all series to `ProbeChart`
+  - [x] Summary stats below chart: min, max, avg for each series
+  - [x] URL sync: `?probe=Temp,pH&from=...&to=...&interval=5m` so links are shareable
+- [x] [verify] History loads with single probe
+- [x] [verify] Multiple probes overlay correctly on same chart
+- [x] [verify] Time range picker changes data range
 - [ ] [verify] 24h of 10s data (8,640 points) renders without lag
 
 ---
@@ -291,7 +291,7 @@
 - [x] App shell with routing and layout
 - [x] SSE integration driving automatic updates
 - [x] Dashboard: ProbeCard grid + OutletCard grid
-- [ ] History: uPlot multi-series chart with time range picker
+- [x] History: uPlot multi-series chart with time range picker
 - [ ] Outlets: full table with controls + event log
 - [ ] Alerts: rule management
 - [ ] Settings: all tabs functional

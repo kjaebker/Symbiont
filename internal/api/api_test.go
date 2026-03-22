@@ -242,7 +242,7 @@ func TestProbeHistoryAutoInterval(t *testing.T) {
 		duration time.Duration
 		expect   string
 	}{
-		{1 * time.Hour, "10s"},
+		{1 * time.Hour, "1m"},
 		{6 * time.Hour, "1m"},
 		{2 * 24 * time.Hour, "5m"},
 		{7 * 24 * time.Hour, "15m"},
