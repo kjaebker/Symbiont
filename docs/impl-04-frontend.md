@@ -160,7 +160,7 @@
 - [x] [verify] History loads with single probe
 - [x] [verify] Multiple probes overlay correctly on same chart
 - [x] [verify] Time range picker changes data range
-- [ ] [verify] 24h of 10s data (8,640 points) renders without lag
+- [x] [verify] 24h of 10s data (8,640 points) renders without lag
 
 ---
 
@@ -251,23 +251,23 @@
 - [x] [code] Loading states:
   - [x] Skeleton components for ProbeCard, OutletCard
   - [x] Disabled state for mutation buttons in flight
-- [ ] [code] Error states:
-  - [ ] API error boundary for page-level failures
-  - [ ] Inline error messages for mutations
-  - [ ] Toast notifications for SSE alert events
+- [x] [code] Error states:
+  - [x] API error boundary for page-level failures
+  - [x] Inline error messages for mutations
+  - [x] Toast notifications for SSE alert events
 - [x] [code] Empty states for dashboard list views
 - [x] [code] StatusBadge in Layout sidebar:
   - [x] Shows last poll time relative ("5s ago"), green/red dot for `poll_ok`
   - [x] Refreshes via `useSystemStatus` with 30s refetch interval
 - [x] [code] Favicon: wave SVG icon
-- [ ] [code] Page `<title>` tags: "Symbiont — Dashboard", "Symbiont — History", etc.
-- [ ] [code] Dashboard customization:
-  - [ ] Allow user to show/hide individual probes from the dashboard grid
-  - [ ] Persist visibility preferences (SQLite probe config or localStorage)
-  - [ ] UI control (e.g., edit mode toggle or settings panel) for managing visible probes
-- [ ] [verify] All pages render without console errors
-- [ ] [verify] Pages are usable at 375px width (iPhone SE)
-- [ ] [verify] Pages look correct at 768px (tablet) and 1280px (desktop)
+- [x] [code] Page `<title>` tags: "Symbiont — Dashboard", "Symbiont — History", etc.
+- [x] [code] Dashboard customization:
+  - [x] Allow user to show/hide individual probes from the dashboard grid
+  - [x] Persist visibility preferences (SQLite probe config)
+  - [x] UI control (Settings → Dashboard tab with drag-and-drop ordering and visibility toggles)
+- [x] [verify] All pages render without console errors
+- [x] [verify] Pages are usable at 375px width (iPhone SE)
+- [x] [verify] Pages look correct at 768px (tablet) and 1280px (desktop)
 
 ---
 
@@ -275,11 +275,11 @@
 
 - [x] [code] `npm run build` in `frontend/` outputs to `frontend/dist/`
 - [x] [config] `flake.nix` already includes `nodejs_22` for frontend builds
-- [ ] [config] Add build step to NixOS package derivation for `symbiont-api` (or build separately and copy)
-- [ ] [verify] `go build ./cmd/api` + `SYMBIONT_FRONTEND_PATH=./frontend/dist ./api` serves frontend at `http://localhost:8420/`
-- [ ] [verify] React Router routes work (direct navigation to `/history` doesn't 404 — SPA fallback to `index.html`)
-- [ ] [verify] API requests from served frontend work (no CORS errors in production mode)
-- [ ] [config] Update systemd service if frontend path changes
+- [x] [config] Add build step to NixOS package derivation for `symbiont-api` (or build separately and copy)
+- [x] [verify] `go build ./cmd/api` + `SYMBIONT_FRONTEND_PATH=./frontend/dist ./api` serves frontend at `http://localhost:8420/`
+- [x] [verify] React Router routes work (direct navigation to `/history` doesn't 404 — SPA fallback to `index.html`)
+- [x] [verify] API requests from served frontend work (no CORS errors in production mode)
+- [x] [config] Update systemd service if frontend path changes
 
 ---
 

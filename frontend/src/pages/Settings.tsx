@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import {
   DndContext,
   closestCenter,
@@ -7,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DraggableSyntheticListeners,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -67,7 +69,7 @@ function useDragSensors() {
 
 // --- Drag handle ---
 
-function DragHandle({ listeners, attributes }: { listeners?: Record<string, Function>; attributes?: Record<string, unknown> }) {
+function DragHandle({ listeners, attributes }: { listeners?: DraggableSyntheticListeners; attributes?: React.HTMLAttributes<HTMLButtonElement> }) {
   return (
     <button
       className="touch-none p-1 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-grab active:cursor-grabbing"
@@ -1071,6 +1073,7 @@ function EmptyState({ icon, message }: { icon: React.ReactNode; message: string 
 // =============================================================================
 
 export default function Settings() {
+  usePageTitle('Settings')
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
 
   return (
