@@ -1,10 +1,61 @@
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets, useOutletEvents } from '@/hooks/useOutlets'
 import { useSystemStatus } from '@/hooks/useSystem'
-import { ProbeCard, getCategory, type ProbeCategory } from '@/components/ProbeCard'
+import { ProbeCard } from '@/components/ProbeCard'
+import { PowerPairCard } from '@/components/PowerPairCard'
 import { OutletCard } from '@/components/OutletCard'
 import { cn, relativeTime } from '@/lib/utils'
 import type { Probe } from '@/api/types'
+
+/** A probe card or a combined watts+amps power pair card. */
+type ProbeCardItem =
+  | { kind: 'probe'; probe: Probe }
+  | { kind: 'power-pair'; watts: Probe; amps: Probe; label: string }
+
+/**
+ * Detect power probe pairs (FooW + FooA) and group them.
+ * Unpaired power probes and all other probes pass through as-is.
+ */
+function groupPowerPairs(probes: Probe[]): ProbeCardItem[] {
+  const wattsByBase = new Map<string, Probe>()
+  const ampsByBase = new Map<string, Probe>()
+  const pairedBases = new Set<string>()
+
+  for (const p of probes) {
+    if (p.type === 'pwr' && p.name.endsWith('W')) {
+      wattsByBase.set(p.name.slice(0, -1), p)
+    } else if (p.type === 'Amps' && p.name.endsWith('A')) {
+      ampsByBase.set(p.name.slice(0, -1), p)
+    }
+  }
+
+  for (const base of wattsByBase.keys()) {
+    if (ampsByBase.has(base)) pairedBases.add(base)
+  }
+
+  const items: ProbeCardItem[] = []
+  const consumed = new Set<string>()
+
+  for (const p of probes) {
+    if (consumed.has(p.name)) continue
+
+    let base: string | null = null
+    if (p.type === 'pwr' && p.name.endsWith('W')) base = p.name.slice(0, -1)
+    if (p.type === 'Amps' && p.name.endsWith('A')) base = p.name.slice(0, -1)
+
+    if (base && pairedBases.has(base)) {
+      const watts = wattsByBase.get(base)!
+      const amps = ampsByBase.get(base)!
+      consumed.add(watts.name)
+      consumed.add(amps.name)
+      items.push({ kind: 'power-pair', watts, amps, label: watts.display_name || base })
+    } else {
+      items.push({ kind: 'probe', probe: p })
+    }
+  }
+
+  return items
+}
 
 const statusLabel: Record<string, string> = {
   normal: 'Stable',
@@ -36,22 +87,15 @@ function SkeletonCard() {
   )
 }
 
-const categoryOrder: ProbeCategory[] = ['temperature', 'chemistry', 'power', 'digital']
-
-function sortProbesByCategory(probes: Probe[]): Probe[] {
-  return [...probes].sort(
-    (a, b) => categoryOrder.indexOf(getCategory(a.type)) - categoryOrder.indexOf(getCategory(b.type)),
-  )
-}
-
 export default function Dashboard() {
   const { data: probeData, isLoading: probesLoading } = useProbes()
   const { data: outletData, isLoading: outletsLoading } = useOutlets()
   const { data: eventsData } = useOutletEvents({ limit: 8 })
   const { data: systemData } = useSystemStatus()
 
-  const probes = probeData?.probes ?? []
-  const outlets = outletData?.outlets.filter((o) => o.type === 'outlet') ?? []
+  // Backend returns items sorted by display_order. Filter hidden items.
+  const probes = (probeData?.probes ?? []).filter((p) => !p.hidden)
+  const outlets = (outletData?.outlets ?? []).filter((o) => (o.type === 'outlet' || o.type === 'virtual') && !o.hidden)
   const events = eventsData?.events ?? []
 
   // Overall status — worst of all probes
@@ -104,9 +148,18 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {probesLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : sortProbesByCategory(probes).map((probe) => (
-              <ProbeCard key={probe.name} probe={probe} />
-            ))}
+          : groupPowerPairs(probes).map((item) =>
+              item.kind === 'power-pair' ? (
+                <PowerPairCard
+                  key={item.label}
+                  watts={item.watts}
+                  amps={item.amps}
+                  label={item.label}
+                />
+              ) : (
+                <ProbeCard key={item.probe.name} probe={item.probe} />
+              ),
+            )}
       </div>
 
       {/* Power management + System events */}
@@ -114,7 +167,7 @@ export default function Dashboard() {
         {/* Outlets */}
         <div className="lg:col-span-3 space-y-4">
           <h2 className="text-lg font-semibold text-on-surface">
-            Power Management
+            Controls
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {outletsLoading

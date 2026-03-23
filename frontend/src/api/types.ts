@@ -8,6 +8,8 @@ export interface Probe {
   unit: string
   ts: string
   status: ProbeStatus
+  display_order: number
+  hidden: boolean
 }
 
 export interface ProbeHistoryPoint {
@@ -32,6 +34,8 @@ export interface Outlet {
   state: OutletState
   type: string
   intensity: number
+  display_order: number
+  hidden: boolean
 }
 
 export interface OutletEvent {

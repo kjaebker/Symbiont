@@ -69,6 +69,9 @@ export function ProbeSelector({
                 className="w-full text-left px-3 py-2 text-sm text-on-surface rounded-xl transition-fluid hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {p.display_name}
+                {p.unit && (
+                  <span className="text-on-surface-faint ml-1">({p.unit})</span>
+                )}
               </button>
             ))
           )}
@@ -90,6 +93,9 @@ export function ProbeSelector({
                   style={{ backgroundColor: color }}
                 />
                 {probe?.display_name ?? name}
+                {probe?.unit && (
+                  <span className="text-on-surface-faint">({probe.unit})</span>
+                )}
                 <button
                   onClick={() => onChange(selected.filter((s) => s !== name))}
                   className="text-on-surface-faint hover:text-on-surface transition-fluid"

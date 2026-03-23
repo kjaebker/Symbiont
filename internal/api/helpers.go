@@ -71,3 +71,24 @@ func discardBody(r *http.Request) {
 	_, _ = io.Copy(io.Discard, r.Body)
 	r.Body.Close()
 }
+
+// splitCamelCase inserts spaces before uppercase letters in a CamelCase string.
+// "SumpFlow" → "Sump Flow", "ReturnPump" → "Return Pump", "pH" → "pH".
+func splitCamelCase(s string) string {
+	if len(s) <= 1 {
+		return s
+	}
+	var result []byte
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if i > 0 && ch >= 'A' && ch <= 'Z' {
+			// Don't insert space if previous char is also uppercase (acronym).
+			prevUpper := s[i-1] >= 'A' && s[i-1] <= 'Z'
+			if !prevUpper {
+				result = append(result, ' ')
+			}
+		}
+		result = append(result, ch)
+	}
+	return string(result)
+}
