@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Pencil, Trash2, Bell } from 'lucide-react'
 import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert } from '@/hooks/useAlerts'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { AlertRuleForm } from '@/components/AlertRuleForm'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ function formatThreshold(rule: AlertRule): string {
 }
 
 export default function Alerts() {
+  usePageTitle('Alerts')
   const { data, isLoading } = useAlerts()
   const createMutation = useCreateAlert()
   const updateMutation = useUpdateAlert()
@@ -210,6 +212,16 @@ export default function Alerts() {
           </div>
         )}
       </div>
+
+      {/* Mutation errors */}
+      {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
+        <div className="bg-tertiary/10 rounded-xl p-3 text-sm text-tertiary">
+          {createMutation.isError && 'Failed to create alert rule. '}
+          {updateMutation.isError && 'Failed to update alert rule. '}
+          {deleteMutation.isError && 'Failed to delete alert rule. '}
+          Please try again.
+        </div>
+      )}
 
       {/* Dialogs */}
       {formOpen && (

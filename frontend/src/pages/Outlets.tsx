@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Power, Zap } from 'lucide-react'
 import { useOutlets, useSetOutlet, useOutletEvents } from '@/hooks/useOutlets'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
 import { relativeTime } from '@/lib/utils'
 import type { Outlet } from '@/api/types'
@@ -122,6 +123,7 @@ function OutletRow({ outlet }: { outlet: Outlet }) {
 }
 
 export default function Outlets() {
+  usePageTitle('Outlets')
   const { data, isLoading } = useOutlets()
   const [eventLimit, setEventLimit] = useState(50)
   const { data: eventsData } = useOutletEvents({ limit: eventLimit })

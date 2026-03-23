@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { setToken } from '@/api/client'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export default function Login() {
+  usePageTitle('Login')
   const [tokenInput, setTokenInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)

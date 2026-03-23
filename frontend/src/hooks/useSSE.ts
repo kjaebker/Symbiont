@@ -1,10 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getToken } from '@/api/client'
+import { useToast } from '@/components/Toast'
 
 export function useSSE() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
   const retryDelay = useRef(1000)
+  const addToastRef = useRef(addToast)
+  addToastRef.current = addToast
 
   useEffect(() => {
     let es: EventSource | null = null
@@ -24,8 +28,14 @@ export function useSSE() {
         queryClient.invalidateQueries({ queryKey: ['outlets'] })
       })
 
-      es.addEventListener('alert_fired', () => {
+      es.addEventListener('alert_fired', (e) => {
         queryClient.invalidateQueries({ queryKey: ['alerts'] })
+        try {
+          const data = JSON.parse(e.data)
+          addToastRef.current('alert', `Alert: ${data.probe ?? 'probe'} ${data.condition ?? 'triggered'} (${data.severity ?? 'warning'})`)
+        } catch {
+          addToastRef.current('alert', 'An alert has been triggered')
+        }
       })
 
       es.onopen = () => {

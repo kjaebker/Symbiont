@@ -1,6 +1,7 @@
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets, useOutletEvents } from '@/hooks/useOutlets'
 import { useSystemStatus } from '@/hooks/useSystem'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { ProbeCard } from '@/components/ProbeCard'
 import { PowerPairCard } from '@/components/PowerPairCard'
 import { OutletCard } from '@/components/OutletCard'
@@ -88,6 +89,7 @@ function SkeletonCard() {
 }
 
 export default function Dashboard() {
+  usePageTitle('Dashboard')
   const { data: probeData, isLoading: probesLoading } = useProbes()
   const { data: outletData, isLoading: outletsLoading } = useOutlets()
   const { data: eventsData } = useOutletEvents({ limit: 8 })

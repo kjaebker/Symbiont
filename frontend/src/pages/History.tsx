@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useProbes, useProbeHistory } from '@/hooks/useProbes'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, SERIES_COLORS } from '@/components/ProbeSelector'
@@ -30,6 +31,7 @@ function parseRange(searchParams: URLSearchParams): {
 }
 
 export default function History() {
+  usePageTitle('History')
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Parse URL state

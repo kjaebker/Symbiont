@@ -96,6 +96,11 @@ export function OutletCard({ outlet }: OutletCardProps) {
           )
         })}
       </div>
+      {mutation.isError && (
+        <p className="text-xs text-tertiary mt-2">
+          Failed to set state. Try again.
+        </p>
+      )}
     </div>
   )
 }
