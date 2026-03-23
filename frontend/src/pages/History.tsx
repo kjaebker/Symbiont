@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useProbeHistory } from '@/hooks/useProbes'
+import { useProbes, useProbeHistory } from '@/hooks/useProbes'
 import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, SERIES_COLORS } from '@/components/ProbeSelector'
@@ -68,6 +68,16 @@ export default function History() {
     [range, interval],
   )
 
+  // Probe metadata for display names and units
+  const { data: probesData } = useProbes()
+  const probeMap = useMemo(() => {
+    const map = new Map<string, { display_name: string; unit: string }>()
+    for (const p of probesData?.probes ?? []) {
+      map.set(p.name, { display_name: p.display_name, unit: p.unit })
+    }
+    return map
+  }, [probesData])
+
   // Fetch history for each selected probe
   const probe0 = useProbeHistory(selectedProbes[0] ?? null, historyParams)
   const probe1 = useProbeHistory(selectedProbes[1] ?? null, historyParams)
@@ -80,26 +90,29 @@ export default function History() {
       .map((_name, i) => {
         const q = queries[i]
         if (!q?.data) return null
+        const meta = probeMap.get(q.data.probe)
+        const label = meta?.display_name ?? q.data.probe
+        const unit = meta?.unit ?? ''
         return {
-          name: q.data.probe,
+          name: unit ? `${label} (${unit})` : label,
           data: q.data.data,
-          unit: '',
+          unit,
           color: SERIES_COLORS[i % SERIES_COLORS.length],
         }
       })
       .filter((s): s is NonNullable<typeof s> => s !== null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProbes, probe0.data, probe1.data, probe2.data, probe3.data])
+  }, [selectedProbes, probe0.data, probe1.data, probe2.data, probe3.data, probeMap])
 
   // Summary stats per series
   const stats = useMemo(() => {
     return chartSeries.map((s) => {
       const vals = s.data.map((d) => d.value)
-      if (vals.length === 0) return { name: s.name, color: s.color, min: null, max: null, avg: null }
+      if (vals.length === 0) return { name: s.name, color: s.color, unit: s.unit, min: null, max: null, avg: null }
       const min = Math.min(...vals)
       const max = Math.max(...vals)
       const avg = vals.reduce((a, b) => a + b, 0) / vals.length
-      return { name: s.name, color: s.color, min, max, avg }
+      return { name: s.name, color: s.color, unit: s.unit, min, max, avg }
     })
   }, [chartSeries])
 
@@ -184,6 +197,7 @@ export default function History() {
                   </span>
                   <span className="text-lg font-bold text-on-surface">
                     {s.min?.toFixed(2) ?? '--'}
+                    {s.min != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
                 <div>
@@ -192,6 +206,7 @@ export default function History() {
                   </span>
                   <span className="text-lg font-bold text-on-surface">
                     {s.avg?.toFixed(2) ?? '--'}
+                    {s.avg != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
                 <div>
@@ -200,6 +215,7 @@ export default function History() {
                   </span>
                   <span className="text-lg font-bold text-on-surface">
                     {s.max?.toFixed(2) ?? '--'}
+                    {s.max != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
               </div>

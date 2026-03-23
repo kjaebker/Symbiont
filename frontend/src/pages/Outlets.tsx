@@ -126,7 +126,7 @@ export default function Outlets() {
   const [eventLimit, setEventLimit] = useState(50)
   const { data: eventsData } = useOutletEvents({ limit: eventLimit })
 
-  const outlets = data?.outlets ?? []
+  const outlets = (data?.outlets ?? []).filter((o) => !o.hidden)
   const events = eventsData?.events ?? []
 
   return (

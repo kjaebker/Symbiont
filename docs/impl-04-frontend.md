@@ -179,9 +179,9 @@
     - [x] `initiated_by` badge: UI/CLI/MCP/API
     - [x] Auto-refreshes when SSE `outlet_update` event arrives
   - [x] "Show more" pagination if >50 events
-- [ ] [verify] All outlets visible with correct states
-- [ ] [verify] Outlet control buttons work
-- [ ] [verify] Event log updates when outlet is toggled
+- [x] [verify] All outlets visible with correct states
+- [x] [verify] Outlet control buttons work
+- [x] [verify] Event log updates when outlet is toggled
 
 ---
 
@@ -201,44 +201,44 @@
   - [x] "New Rule" button opens `AlertRuleForm` dialog
   - [x] Empty state: "No alert rules configured. Add one to get notified when parameters go out of range."
   - [ ] Recent alert events section (fires and clears from `alert_events` SQLite table) — pending backend API endpoint
-- [ ] [verify] Create, edit, delete alert rules
-- [ ] [verify] Enable/disable toggle works
+- [x] [verify] Create, edit, delete alert rules
+- [x] [verify] Enable/disable toggle works
 
 ---
 
 ## 4.9 Settings Page
 
-- [ ] [code] Add shadcn/ui components:
-  - [ ] `npx shadcn-ui@latest add tabs input`
-- [ ] [code] Create `src/pages/Settings.tsx` with tabbed layout:
+- [x] [code] Add shadcn/ui components:
+  - [x] Skipped — hand-built tabs with Tailwind matching design system (no shadcn/ui needed)
+- [x] [code] Create `src/pages/Settings.tsx` with tabbed layout:
 
   **Tab: Probes**
-  - [ ] Table of probe configs: PROBE, DISPLAY NAME, UNIT OVERRIDE, ORDER, MIN NORMAL, MAX NORMAL, MIN WARNING, MAX WARNING
-  - [ ] Inline editing (click cell to edit)
-  - [ ] Auto-save on blur
+  - [x] Table of probe configs: PROBE, DISPLAY NAME, UNIT OVERRIDE, ORDER, MIN NORMAL, MAX NORMAL, MIN WARNING, MAX WARNING
+  - [x] Inline editing (click cell to edit)
+  - [x] Auto-save on blur
 
   **Tab: Outlets**
-  - [ ] Table of outlet configs: OUTLET ID, DISPLAY NAME, ORDER, HIDDEN
-  - [ ] Inline editing
+  - [x] Table of outlet configs: OUTLET ID, DISPLAY NAME, ORDER, HIDDEN
+  - [x] Inline editing
 
   **Tab: Tokens**
-  - [ ] Token list table: ID, LABEL, CREATED, LAST USED
-  - [ ] "Create Token" button: label input → creates token → shows token value once in a dismissible alert
-  - [ ] Revoke button per row with confirmation
+  - [x] Token list table: ID, LABEL, CREATED, LAST USED
+  - [x] "Create Token" button: label input → creates token → shows token value once in a dismissible alert
+  - [x] Revoke button per row with confirmation
 
   **Tab: Notifications**
-  - [ ] ntfy.sh topic URL input
-  - [ ] Test notification button
-  - [ ] Enabled/disabled toggle
+  - [ ] ntfy.sh topic URL input — pending backend API endpoint
+  - [ ] Test notification button — pending backend API endpoint
+  - [ ] Enabled/disabled toggle — pending backend API endpoint
 
   **Tab: Backup**
-  - [ ] Recent backup jobs table: DATE, STATUS, SIZE, PATH
-  - [ ] "Run Backup Now" button
-  - [ ] Success/failure feedback
+  - [x] Recent backup jobs table: DATE, STATUS, SIZE, PATH
+  - [x] "Run Backup Now" button
+  - [x] Success/failure feedback
 
-- [ ] [verify] All tabs render without errors
-- [ ] [verify] Probe config edits persist (reflect in Dashboard ProbeCard display names)
-- [ ] [verify] Token creation and revocation work
+- [x] [verify] All tabs render without errors
+- [x] [verify] Probe config edits persist (reflect in Dashboard ProbeCard display names)
+- [x] [verify] Token creation and revocation work
 
 ---
 
@@ -294,7 +294,7 @@
 - [x] History: uPlot multi-series chart with time range picker
 - [x] Outlets: full table with controls + event log
 - [x] Alerts: rule management
-- [ ] Settings: all tabs functional
+- [x] Settings: all tabs functional (except Notifications — pending backend API)
 - [x] Mobile-responsive at all breakpoints
 - [x] Build pipeline integrated with API server static serving
 

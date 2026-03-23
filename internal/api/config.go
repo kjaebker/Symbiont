@@ -1,6 +1,9 @@
 package api
 
 import (
+	"database/sql"
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/kjaebker/symbiont/internal/db"
@@ -16,25 +19,87 @@ func (s *Server) HandleProbeConfigList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleProbeConfigUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	name := pathValue(r, "name")
 	if name == "" {
 		writeError(w, http.StatusBadRequest, "probe name is required", "missing_param")
 		return
 	}
 
-	var cfg db.ProbeConfig
-	if err := readJSON(r, &cfg); err != nil {
+	// Decode into a generic map so we know which fields were actually sent.
+	var patch map[string]json.RawMessage
+	if err := readJSON(r, &patch); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 		return
 	}
-	cfg.ProbeName = name
 
-	if err := s.sqlite.UpsertProbeConfig(r.Context(), cfg); err != nil {
+	// Load existing config (or start from defaults).
+	existing, err := s.sqlite.GetProbeConfig(ctx, name)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusInternalServerError, "failed to fetch existing config", "db_error")
+		return
+	}
+	cfg := db.ProbeConfig{ProbeName: name}
+	if existing != nil {
+		cfg = *existing
+	}
+
+	// Merge only the provided fields.
+	if v, ok := patch["display_name"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.DisplayName = &s
+		}
+	}
+	if v, ok := patch["unit_override"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.UnitOverride = &s
+		}
+	}
+	if v, ok := patch["display_order"]; ok {
+		var n int
+		if json.Unmarshal(v, &n) == nil {
+			cfg.DisplayOrder = n
+		}
+	}
+	if v, ok := patch["hidden"]; ok {
+		var b bool
+		if json.Unmarshal(v, &b) == nil {
+			cfg.Hidden = b
+		}
+	}
+	if v, ok := patch["min_normal"]; ok {
+		cfg.MinNormal = unmarshalOptionalFloat(v)
+	}
+	if v, ok := patch["max_normal"]; ok {
+		cfg.MaxNormal = unmarshalOptionalFloat(v)
+	}
+	if v, ok := patch["min_warning"]; ok {
+		cfg.MinWarning = unmarshalOptionalFloat(v)
+	}
+	if v, ok := patch["max_warning"]; ok {
+		cfg.MaxWarning = unmarshalOptionalFloat(v)
+	}
+
+	if err := s.sqlite.UpsertProbeConfig(ctx, cfg); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update probe config", "db_error")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, cfg)
+}
+
+// unmarshalOptionalFloat handles both null and numeric JSON values for nullable float fields.
+func unmarshalOptionalFloat(raw json.RawMessage) *float64 {
+	if string(raw) == "null" {
+		return nil
+	}
+	var f float64
+	if json.Unmarshal(raw, &f) == nil {
+		return &f
+	}
+	return nil
 }
 
 func (s *Server) HandleOutletConfigList(w http.ResponseWriter, r *http.Request) {
@@ -47,20 +112,55 @@ func (s *Server) HandleOutletConfigList(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) HandleOutletConfigUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := pathValue(r, "id")
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "outlet id is required", "missing_param")
 		return
 	}
 
-	var cfg db.OutletConfig
-	if err := readJSON(r, &cfg); err != nil {
+	var patch map[string]json.RawMessage
+	if err := readJSON(r, &patch); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 		return
 	}
-	cfg.OutletID = id
 
-	if err := s.sqlite.UpsertOutletConfig(r.Context(), cfg); err != nil {
+	existing, err := s.sqlite.GetOutletConfig(ctx, id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusInternalServerError, "failed to fetch existing config", "db_error")
+		return
+	}
+	cfg := db.OutletConfig{OutletID: id}
+	if existing != nil {
+		cfg = *existing
+	}
+
+	if v, ok := patch["display_name"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.DisplayName = &s
+		}
+	}
+	if v, ok := patch["display_order"]; ok {
+		var n int
+		if json.Unmarshal(v, &n) == nil {
+			cfg.DisplayOrder = n
+		}
+	}
+	if v, ok := patch["icon"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.Icon = &s
+		}
+	}
+	if v, ok := patch["hidden"]; ok {
+		var b bool
+		if json.Unmarshal(v, &b) == nil {
+			cfg.Hidden = b
+		}
+	}
+
+	if err := s.sqlite.UpsertOutletConfig(ctx, cfg); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update outlet config", "db_error")
 		return
 	}

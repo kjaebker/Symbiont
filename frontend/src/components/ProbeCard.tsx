@@ -117,14 +117,17 @@ export function ProbeCard({ probe }: ProbeCardProps) {
         />
       </div>
 
-      <div className="flex items-baseline gap-1.5 mb-3">
+      <div className="flex items-baseline gap-1.5 mb-1">
         <span className={cn('text-4xl font-bold text-on-surface tracking-tight', config.glowClass)}>
           {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
         </span>
         <span className="text-lg text-on-surface-dim font-light">
-          {probe.unit === 'F' ? '\u00B0F' : probe.unit}
+          {probe.unit}
         </span>
       </div>
+
+      {/* Spacer to match PowerPairCard's secondary metric line */}
+      <div className="h-[28px] mb-3" />
 
       <div className="h-10">
         <Sparkline data={sparklineData} color={config.sparklineColor} />
