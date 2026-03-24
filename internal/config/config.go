@@ -39,8 +39,9 @@ type Config struct {
 	// Frontend
 	FrontendPath string
 
-	// Backup
-	BackupDir string
+	// System
+	HeartbeatPath string
+	BackupDir     string
 }
 
 // Load reads configuration from the environment, loading .env if present.
@@ -60,8 +61,9 @@ func Load() *Config {
 		LogLevel:   envOrDefault("SYMBIONT_LOG_LEVEL", "info"),
 		Token:      os.Getenv("SYMBIONT_TOKEN"),
 		FrontendPath: envOrDefault("SYMBIONT_FRONTEND_PATH", "./frontend/dist"),
-		NtfyURL:      os.Getenv("SYMBIONT_NTFY_URL"),
-		BackupDir:    envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
+		NtfyURL:       os.Getenv("SYMBIONT_NTFY_URL"),
+		HeartbeatPath: envOrDefault("SYMBIONT_HEARTBEAT_PATH", "/var/lib/symbiont/poller.heartbeat"),
+		BackupDir:     envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
 	}
 
 	// Parse poll interval duration.

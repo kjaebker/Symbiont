@@ -14,6 +14,8 @@ func NewSystemCmd(client *APIClient) *cobra.Command {
 		Short: "View system status",
 	}
 	cmd.AddCommand(newSystemStatusCmd(client))
+	cmd.AddCommand(newSystemBackupCmd(client))
+	cmd.AddCommand(newSystemCleanupCmd(client))
 	return cmd
 }
 
@@ -80,6 +82,69 @@ func newSystemStatusCmd(client *APIClient) *cobra.Command {
 			})
 			fmt.Println()
 
+			return nil
+		},
+	}
+}
+
+func newSystemBackupCmd(client *APIClient) *cobra.Command {
+	return &cobra.Command{
+		Use:   "backup",
+		Short: "Trigger a database backup",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var resp struct {
+				Status    string   `json:"status"`
+				Paths     []string `json:"paths"`
+				SizeBytes int64    `json:"size_bytes"`
+				Error     string   `json:"error,omitempty"`
+			}
+			if err := client.Post(cmd.Context(), "/api/system/backup", nil, &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			fmt.Printf("Backup %s\n", ColorStatus(resp.Status))
+			for _, p := range resp.Paths {
+				fmt.Printf("  %s\n", p)
+			}
+			fmt.Printf("  Total size: %s\n", formatBytes(resp.SizeBytes))
+			return nil
+		},
+	}
+}
+
+func newSystemCleanupCmd(client *APIClient) *cobra.Command {
+	return &cobra.Command{
+		Use:   "cleanup",
+		Short: "Run data retention cleanup",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var resp struct {
+				Deleted struct {
+					ProbeReadings  int64 `json:"probe_readings"`
+					OutletStates   int64 `json:"outlet_states"`
+					PowerEvents    int64 `json:"power_events"`
+					ControllerMeta int64 `json:"controller_meta"`
+				} `json:"deleted"`
+				RetentionDays int `json:"retention_days"`
+			}
+			if err := client.Post(cmd.Context(), "/api/system/cleanup", nil, &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			fmt.Printf("Cleanup complete (retention: %d days)\n", resp.RetentionDays)
+			fmt.Printf("  Probe readings:  %d deleted\n", resp.Deleted.ProbeReadings)
+			fmt.Printf("  Outlet states:   %d deleted\n", resp.Deleted.OutletStates)
+			fmt.Printf("  Power events:    %d deleted\n", resp.Deleted.PowerEvents)
+			fmt.Printf("  Controller meta: %d deleted\n", resp.Deleted.ControllerMeta)
 			return nil
 		},
 	}

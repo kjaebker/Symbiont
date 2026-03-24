@@ -131,7 +131,8 @@ func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for SSE stream (uses ?token= query param) and health check.
-			if r.URL.Path == "/api/stream" || r.URL.Path == "/api/health" {
+			// Skip auth for endpoints that use query param tokens or don't need auth.
+			if r.URL.Path == "/api/stream" || r.URL.Path == "/api/health" || r.URL.Path == "/api/healthz" {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -143,6 +144,10 @@ func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 			}
 
 			token := extractBearerToken(r)
+			// Fall back to ?token= query param for browser downloads (export, etc.)
+			if token == "" {
+				token = r.URL.Query().Get("token")
+			}
 			if token == "" {
 				writeError(w, http.StatusUnauthorized, "missing authorization token", "unauthorized")
 				return

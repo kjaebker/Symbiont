@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Download } from 'lucide-react'
 import { useProbes, useProbeHistory } from '@/hooks/useProbes'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, SERIES_COLORS } from '@/components/ProbeSelector'
+import { getToken } from '@/api/client'
 import { cn } from '@/lib/utils'
 
 const INTERVALS = [
@@ -175,6 +177,33 @@ export default function History() {
         <ProbeChart series={isLoading ? [] : chartSeries} />
       )}
 
+      {/* Export */}
+      {selectedProbes.length > 0 && (
+        <div className="flex items-center gap-2">
+          {selectedProbes.map((name) => (
+            <a
+              key={name}
+              href={buildExportUrl(name, range)}
+              download
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-on-surface-dim bg-surface-container hover:bg-surface-container-high transition-fluid"
+            >
+              <Download size={12} />
+              Export {probeMap.get(name)?.display_name ?? name}
+            </a>
+          ))}
+          {selectedProbes.length > 1 && (
+            <a
+              href={buildBulkExportUrl(range)}
+              download
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-fluid"
+            >
+              <Download size={12} />
+              Export All (ZIP)
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       {stats.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -227,4 +256,22 @@ export default function History() {
       )}
     </div>
   )
+}
+
+function buildExportUrl(name: string, range: { from: Date; to: Date }): string {
+  const params = new URLSearchParams()
+  params.set('from', range.from.toISOString())
+  params.set('to', range.to.toISOString())
+  const token = getToken()
+  if (token) params.set('token', token)
+  return `/api/probes/${encodeURIComponent(name)}/export?${params}`
+}
+
+function buildBulkExportUrl(range: { from: Date; to: Date }): string {
+  const params = new URLSearchParams()
+  params.set('from', range.from.toISOString())
+  params.set('to', range.to.toISOString())
+  const token = getToken()
+  if (token) params.set('token', token)
+  return `/api/export?${params}`
 }

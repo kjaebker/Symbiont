@@ -58,8 +58,11 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 }
 
 func (s *Server) registerRoutes(mux *http.ServeMux) {
-	// Health check.
+	// Health checks (unauthenticated).
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
@@ -86,6 +89,22 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/alerts", s.HandleAlertCreate)
 	mux.HandleFunc("PUT /api/alerts/{id}", s.HandleAlertUpdate)
 	mux.HandleFunc("DELETE /api/alerts/{id}", s.HandleAlertDelete)
+	mux.HandleFunc("GET /api/alerts/events", s.HandleAlertEvents)
+
+	// Notifications.
+	mux.HandleFunc("GET /api/notifications/targets", s.HandleNotificationTargetList)
+	mux.HandleFunc("POST /api/notifications/targets", s.HandleNotificationTargetUpsert)
+	mux.HandleFunc("DELETE /api/notifications/targets/{id}", s.HandleNotificationTargetDelete)
+	mux.HandleFunc("POST /api/notifications/test", s.HandleNotificationTest)
+
+	// System management.
+	mux.HandleFunc("GET /api/system/backups", s.HandleBackupList)
+	mux.HandleFunc("POST /api/system/backup", s.HandleBackupTrigger)
+	mux.HandleFunc("POST /api/system/cleanup", s.HandleCleanup)
+
+	// Export.
+	mux.HandleFunc("GET /api/probes/{name}/export", s.HandleProbeExport)
+	mux.HandleFunc("GET /api/export", s.HandleBulkExport)
 
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
@@ -127,6 +146,11 @@ func (s *Server) Run(ctx context.Context) error {
 	case err := <-errCh:
 		return err
 	}
+}
+
+// Broadcaster returns the server's SSE broadcaster.
+func (s *Server) Broadcaster() *Broadcaster {
+	return s.broadcaster
 }
 
 // Addr returns the server's listener address. Only valid after Run has started.

@@ -157,7 +157,7 @@ func TestOutletEventInsertAndList(t *testing.T) {
 	}
 
 	// List all events.
-	events, err := db.ListOutletEvents(ctx, "", 50)
+	events, err := db.ListOutletEvents(ctx, "", "", 50)
 	if err != nil {
 		t.Fatalf("listing all outlet events: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestOutletEventInsertAndList(t *testing.T) {
 	}
 
 	// List filtered by outlet.
-	events, err = db.ListOutletEvents(ctx, "base_Var1", 50)
+	events, err = db.ListOutletEvents(ctx, "base_Var1", "", 50)
 	if err != nil {
 		t.Fatalf("listing filtered events: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestOutletEventInsertAndList(t *testing.T) {
 	}
 
 	// List filtered by non-existent outlet.
-	events, err = db.ListOutletEvents(ctx, "nonexistent", 50)
+	events, err = db.ListOutletEvents(ctx, "nonexistent", "", 50)
 	if err != nil {
 		t.Fatalf("listing events for nonexistent outlet: %v", err)
 	}

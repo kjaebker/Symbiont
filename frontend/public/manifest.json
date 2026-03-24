@@ -1,0 +1,16 @@
+{
+  "name": "Symbiont",
+  "short_name": "Symbiont",
+  "description": "Neptune Apex aquarium controller dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e14",
+  "theme_color": "#3adffa",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

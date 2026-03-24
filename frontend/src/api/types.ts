@@ -113,6 +113,31 @@ export interface AuthToken {
   last_used: string | null
 }
 
+export interface AlertEvent {
+  id: number
+  rule_id: number
+  fired_at: string
+  cleared_at: string | null
+  peak_value: number
+  notified: boolean
+  probe_name: string | null
+  severity: string | null
+}
+
+export interface NotificationTarget {
+  id: number
+  type: string
+  config: string
+  label: string
+  enabled: boolean
+}
+
+export interface NotificationTestResult {
+  label: string
+  success: boolean
+  error?: string
+}
+
 export interface APIError {
   error: string
   code: string

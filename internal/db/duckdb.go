@@ -13,12 +13,18 @@ import (
 
 // DuckDB wraps a *sql.DB connection to a DuckDB database.
 type DuckDB struct {
-	db *sql.DB
+	db   *sql.DB
+	path string
 }
 
 // DB returns the underlying *sql.DB for use in queries.
 func (d *DuckDB) DB() *sql.DB {
 	return d.db
+}
+
+// Path returns the database file path.
+func (d *DuckDB) Path() string {
+	return d.path
 }
 
 // Open opens a read-write DuckDB connection at the given path and creates
@@ -39,7 +45,7 @@ func Open(path string) (*DuckDB, error) {
 		return nil, fmt.Errorf("migrating duckdb schema: %w", err)
 	}
 
-	return &DuckDB{db: db}, nil
+	return &DuckDB{db: db, path: path}, nil
 }
 
 // OpenReadOnly creates a DuckDB handle that opens short-lived read-only
@@ -53,7 +59,7 @@ func OpenReadOnly(path string) (*DuckDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening duckdb read-only at %s: %w", path, err)
 	}
-	return &DuckDB{db: db}, nil
+	return &DuckDB{db: db, path: path}, nil
 }
 
 // Close closes the underlying database connection.

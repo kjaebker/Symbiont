@@ -5,10 +5,13 @@ import type {
   OutletEvent,
   SystemStatus,
   AlertRule,
+  AlertEvent,
   ProbeConfig,
   OutletConfig,
   AuthToken,
   BackupJob,
+  NotificationTarget,
+  NotificationTestResult,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -105,9 +108,10 @@ export function setOutletState(id: string, state: 'ON' | 'OFF' | 'AUTO') {
   )
 }
 
-export function getOutletEvents(params?: { outlet_id?: string; limit?: number }) {
+export function getOutletEvents(params?: { outlet_id?: string; initiated_by?: string; limit?: number }) {
   const search = new URLSearchParams()
   if (params?.outlet_id) search.set('outlet_id', params.outlet_id)
+  if (params?.initiated_by) search.set('initiated_by', params.initiated_by)
   if (params?.limit) search.set('limit', String(params.limit))
   const qs = search.toString()
   return apiFetch<{ events: OutletEvent[] }>(`/api/outlets/events${qs ? `?${qs}` : ''}`)
@@ -180,11 +184,41 @@ export function revokeToken(id: number) {
   return apiFetch<void>(`/api/tokens/${id}`, { method: 'DELETE' })
 }
 
+// Alert Events
+export function getAlertEvents(params?: { rule_id?: number; active_only?: boolean; limit?: number }) {
+  const search = new URLSearchParams()
+  if (params?.rule_id) search.set('rule_id', String(params.rule_id))
+  if (params?.active_only) search.set('active_only', 'true')
+  if (params?.limit) search.set('limit', String(params.limit))
+  const qs = search.toString()
+  return apiFetch<{ events: AlertEvent[] }>(`/api/alerts/events${qs ? `?${qs}` : ''}`)
+}
+
+// Notification Targets
+export function getNotificationTargets() {
+  return apiFetch<{ targets: NotificationTarget[] }>('/api/notifications/targets')
+}
+
+export function upsertNotificationTarget(target: Omit<NotificationTarget, 'id'> & { id?: number }) {
+  return apiFetch<NotificationTarget>('/api/notifications/targets', {
+    method: 'POST',
+    body: JSON.stringify(target),
+  })
+}
+
+export function deleteNotificationTarget(id: number) {
+  return apiFetch<void>(`/api/notifications/targets/${id}`, { method: 'DELETE' })
+}
+
+export function testNotifications() {
+  return apiFetch<{ results: NotificationTestResult[] }>('/api/notifications/test', { method: 'POST' })
+}
+
 // Backup
 export function getBackups() {
-  return apiFetch<{ backups: BackupJob[] }>('/api/backups')
+  return apiFetch<{ backups: BackupJob[] }>('/api/system/backups')
 }
 
 export function triggerBackup() {
-  return apiFetch<BackupJob>('/api/backups', { method: 'POST' })
+  return apiFetch<BackupJob>('/api/system/backups', { method: 'POST' })
 }

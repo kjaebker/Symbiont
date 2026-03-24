@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAlerts, createAlert, updateAlert, deleteAlert } from '@/api/client'
+import { getAlerts, createAlert, updateAlert, deleteAlert, getAlertEvents } from '@/api/client'
 import type { AlertRule } from '@/api/types'
+
+export function useAlertEvents(params?: { rule_id?: number; active_only?: boolean; limit?: number }) {
+  return useQuery({
+    queryKey: ['alerts', 'events', params],
+    queryFn: () => getAlertEvents(params),
+    staleTime: 10_000,
+  })
+}
 
 export function useAlerts() {
   return useQuery({

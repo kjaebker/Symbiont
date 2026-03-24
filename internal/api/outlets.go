@@ -170,6 +170,7 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleOutletEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	outletID := r.URL.Query().Get("outlet_id")
+	initiatedBy := r.URL.Query().Get("initiated_by")
 
 	limitStr := queryParam(r, "limit", "50")
 	limit, err := strconv.Atoi(limitStr)
@@ -180,7 +181,7 @@ func (s *Server) HandleOutletEvents(w http.ResponseWriter, r *http.Request) {
 		limit = 200
 	}
 
-	events, err := s.sqlite.ListOutletEvents(ctx, outletID, limit)
+	events, err := s.sqlite.ListOutletEvents(ctx, outletID, initiatedBy, limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch outlet events", "db_error")
 		return

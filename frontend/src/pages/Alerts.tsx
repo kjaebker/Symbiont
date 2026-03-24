@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Bell } from 'lucide-react'
-import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert } from '@/hooks/useAlerts'
+import { Plus, Pencil, Trash2, Bell, Activity } from 'lucide-react'
+import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert, useAlertEvents } from '@/hooks/useAlerts'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { AlertRuleForm } from '@/components/AlertRuleForm'
 import type { AlertRule } from '@/api/types'
@@ -223,6 +223,9 @@ export default function Alerts() {
         </div>
       )}
 
+      {/* Alert Event Log */}
+      <AlertEventLog />
+
       {/* Dialogs */}
       {formOpen && (
         <AlertRuleForm
@@ -237,6 +240,117 @@ export default function Alerts() {
           onClose={() => setEditingRule(undefined)}
         />
       )}
+    </div>
+  )
+}
+
+function AlertEventLog() {
+  const { data, isLoading } = useAlertEvents({ limit: 25 })
+  const events = data?.events ?? []
+
+  function formatTime(ts: string) {
+    return new Date(ts).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Activity size={16} className="text-primary" />
+        <h2 className="text-sm font-semibold text-on-surface uppercase tracking-widest">
+          Recent Events
+        </h2>
+      </div>
+
+      <div className="bg-surface-container rounded-2xl overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 flex items-center justify-center">
+            <div className="h-6 w-6 rounded-full bg-primary/20 animate-bio-pulse" />
+          </div>
+        ) : events.length === 0 ? (
+          <div className="p-8 flex flex-col items-center justify-center gap-2">
+            <Activity size={24} className="text-on-surface-faint" />
+            <span className="text-on-surface-dim text-sm">
+              No alert events yet.
+            </span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-surface-container-high/50">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Probe
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Severity
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Peak
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Fired
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Cleared
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr
+                    key={event.id}
+                    className="transition-fluid hover:bg-surface-container-high/50"
+                  >
+                    <td className="py-3 px-4 text-sm font-medium text-on-surface">
+                      {event.probe_name ?? '--'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={cn(
+                          'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
+                          event.severity === 'critical'
+                            ? 'bg-tertiary/15 text-tertiary'
+                            : 'bg-amber-400/15 text-amber-400',
+                        )}
+                      >
+                        {event.severity ?? '--'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface font-mono">
+                      {event.peak_value.toFixed(2)}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim">
+                      {formatTime(event.fired_at)}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim">
+                      {event.cleared_at ? formatTime(event.cleared_at) : '--'}
+                    </td>
+                    <td className="py-3 px-4">
+                      {event.cleared_at ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-secondary/15 text-secondary">
+                          Cleared
+                        </span>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-tertiary/15 text-tertiary animate-bio-pulse">
+                          Active
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
