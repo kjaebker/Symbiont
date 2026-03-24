@@ -237,10 +237,10 @@
   - [x] API server reads this file to determine true `poll_ok` (not just "last DuckDB row was recent")
   - [x] If heartbeat is stale (>60s), `poll_ok = false` even if DuckDB has recent data
   - [x] Note: Poller must NOT write to SQLite (architectural constraint — SQLite is API-server-only)
-- [ ] [code] Add `GET /api/system/log` endpoint:
-  - [ ] Returns last N structured log lines from poller and API (read from journald via exec, or from a log file)
-  - [ ] Useful for debugging from the browser without SSH
-- [ ] [code] Frontend Settings: add "System Log" tab showing recent log lines
+- [x] [code] Add `GET /api/system/log` endpoint:
+  - [x] Returns last N structured log lines from poller and API (read from journald via exec)
+  - [x] Useful for debugging from the browser without SSH
+- [x] [code] Frontend Settings: add "System Log" tab showing recent log lines
 
 ---
 

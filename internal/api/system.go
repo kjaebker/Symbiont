@@ -1,9 +1,14 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/backup"
@@ -133,6 +138,144 @@ func (s *Server) HandleBackupList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"backups": jobs})
+}
+
+// HandleSystemLog returns recent structured log lines from the systemd journal.
+// If journalctl is unavailable (dev mode), returns an empty list.
+func (s *Server) HandleSystemLog(w http.ResponseWriter, r *http.Request) {
+	limit := 200
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 500 {
+			limit = n
+		}
+	}
+
+	args := []string{
+		"-u", "symbiont-api",
+		"-u", "symbiont-poller",
+		"--no-pager", "-o", "json",
+		"-n", strconv.Itoa(limit),
+	}
+	switch r.URL.Query().Get("service") {
+	case "api":
+		args = []string{"-u", "symbiont-api", "--no-pager", "-o", "json", "-n", strconv.Itoa(limit)}
+	case "poller":
+		args = []string{"-u", "symbiont-poller", "--no-pager", "-o", "json", "-n", strconv.Itoa(limit)}
+	}
+
+	out, err := exec.CommandContext(r.Context(), "journalctl", args...).Output()
+	if err != nil {
+		// journalctl unavailable or units not found — return empty list gracefully.
+		writeJSON(w, http.StatusOK, map[string]any{"lines": []any{}})
+		return
+	}
+
+	type logLine struct {
+		TS      string         `json:"ts"`
+		Service string         `json:"service"`
+		Level   string         `json:"level"`
+		Msg     string         `json:"msg"`
+		Fields  map[string]any `json:"fields,omitempty"`
+	}
+
+	var lines []logLine
+	for _, raw := range bytes.Split(out, []byte("\n")) {
+		if len(bytes.TrimSpace(raw)) == 0 {
+			continue
+		}
+		var entry map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &entry); err != nil {
+			continue
+		}
+
+		// Timestamp from __REALTIME_TIMESTAMP (microseconds since epoch, as a string).
+		tsStr := ""
+		if v, ok := entry["__REALTIME_TIMESTAMP"]; ok {
+			var s string
+			if json.Unmarshal(v, &s) == nil {
+				if micros, err := strconv.ParseInt(s, 10, 64); err == nil {
+					tsStr = time.UnixMicro(micros).UTC().Format(time.RFC3339)
+				}
+			}
+		}
+
+		// Service from _SYSTEMD_UNIT.
+		service := "api"
+		if v, ok := entry["_SYSTEMD_UNIT"]; ok {
+			var u string
+			if json.Unmarshal(v, &u) == nil && strings.Contains(u, "poller") {
+				service = "poller"
+			}
+		}
+
+		// MESSAGE may be structured slog JSON — parse it if so.
+		msgStr := ""
+		level := "INFO"
+		var fields map[string]any
+
+		if v, ok := entry["MESSAGE"]; ok {
+			var msg string
+			if json.Unmarshal(v, &msg) == nil {
+				var structured map[string]any
+				if json.Unmarshal([]byte(msg), &structured) == nil {
+					if m, ok := structured["msg"].(string); ok {
+						msgStr = m
+					}
+					if l, ok := structured["level"].(string); ok {
+						level = strings.ToUpper(l)
+					}
+					if t, ok := structured["time"].(string); ok && tsStr == "" {
+						tsStr = t
+					}
+					fields = make(map[string]any)
+					for k, v := range structured {
+						if k != "msg" && k != "level" && k != "time" && k != "service" {
+							fields[k] = v
+						}
+					}
+					if len(fields) == 0 {
+						fields = nil
+					}
+				} else {
+					msgStr = msg
+				}
+			}
+		}
+
+		// Fallback level from syslog PRIORITY field.
+		if level == "INFO" {
+			if v, ok := entry["PRIORITY"]; ok {
+				var p string
+				if json.Unmarshal(v, &p) == nil {
+					switch p {
+					case "0", "1", "2", "3":
+						level = "ERROR"
+					case "4":
+						level = "WARN"
+					case "7":
+						level = "DEBUG"
+					}
+				}
+			}
+		}
+
+		if msgStr == "" {
+			continue
+		}
+
+		lines = append(lines, logLine{
+			TS:      tsStr,
+			Service: service,
+			Level:   level,
+			Msg:     msgStr,
+			Fields:  fields,
+		})
+	}
+
+	if lines == nil {
+		lines = []logLine{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"lines": lines})
 }
 
 func fileSize(path string) int64 {

@@ -138,6 +138,14 @@ export interface NotificationTestResult {
   error?: string
 }
 
+export interface SystemLogLine {
+  ts: string
+  service: string
+  level: string
+  msg: string
+  fields?: Record<string, unknown>
+}
+
 export interface APIError {
   error: string
   code: string

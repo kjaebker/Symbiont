@@ -12,6 +12,7 @@ import type {
   BackupJob,
   NotificationTarget,
   NotificationTestResult,
+  SystemLogLine,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -221,4 +222,13 @@ export function getBackups() {
 
 export function triggerBackup() {
   return apiFetch<BackupJob>('/api/system/backups', { method: 'POST' })
+}
+
+// System log
+export function getSystemLog(params?: { limit?: number; service?: string }) {
+  const search = new URLSearchParams()
+  if (params?.limit) search.set('limit', String(params.limit))
+  if (params?.service) search.set('service', params.service)
+  const qs = search.toString()
+  return apiFetch<{ lines: SystemLogLine[] }>(`/api/system/log${qs ? `?${qs}` : ''}`)
 }

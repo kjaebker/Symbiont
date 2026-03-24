@@ -98,6 +98,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/notifications/test", s.HandleNotificationTest)
 
 	// System management.
+	mux.HandleFunc("GET /api/system/log", s.HandleSystemLog)
 	mux.HandleFunc("GET /api/system/backups", s.HandleBackupList)
 	mux.HandleFunc("POST /api/system/backup", s.HandleBackupTrigger)
 	mux.HandleFunc("POST /api/system/cleanup", s.HandleCleanup)
