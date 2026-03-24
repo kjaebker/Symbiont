@@ -71,6 +71,14 @@
             hash = "sha256-ufKv5+uK60l81z7QV5zu42Tarefs75os8JPqUgiu/f0="; # <── update on upgrade
           };
           sourceRoot = ".";
+          # Patch the binary's interpreter and rpath to use Nix store paths.
+          # The binary is dynamically linked (CGO/DuckDB) so it won't run on
+          # NixOS without this.
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          buildInputs = [
+            pkgs.stdenv.cc.cc.lib  # libstdc++
+            pkgs.zlib
+          ];
           installPhase = ''
             runHook preInstall
             install -Dm755 symbiont $out/bin/symbiont
