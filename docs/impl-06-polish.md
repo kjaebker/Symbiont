@@ -116,7 +116,7 @@
   - [x] `GET /api/notifications/targets`
   - [x] `POST /api/notifications/targets`
   - [x] `DELETE /api/notifications/targets/{id}`
-- [ ] [code] Wire up in Settings UI `Notifications` tab (already has "Test" button from Phase 4)
+- [x] [code] Wire up in Settings UI `Notifications` tab
 - [ ] [verify] "Test" button in Settings sends real notification to phone
 
 ---

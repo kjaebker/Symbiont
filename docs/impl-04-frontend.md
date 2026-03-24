@@ -227,9 +227,9 @@
   - [x] Revoke button per row with confirmation
 
   **Tab: Notifications**
-  - [ ] ntfy.sh topic URL input — pending backend API endpoint
-  - [ ] Test notification button — pending backend API endpoint
-  - [ ] Enabled/disabled toggle — pending backend API endpoint
+  - [x] ntfy.sh topic URL input
+  - [x] Test notification button
+  - [x] Enabled/disabled toggle
 
   **Tab: Backup**
   - [x] Recent backup jobs table: DATE, STATUS, SIZE, PATH
