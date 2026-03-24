@@ -57,39 +57,36 @@
 
         # ── Path B: pre-built binary from GitHub Releases ───────────────────
         # Faster for production installs — no local compilation needed.
-        # To upgrade: update version + hash after tagging a new release.
+        # To upgrade: bump version + hash after tagging a new release.
         #
-        # Get the hash with:
-        #   nix-prefetch-url --unpack \
-        #     https://github.com/kjaebker/Symbiont/releases/download/vX.Y.Z/symbiont-linux-amd64.tar.gz
-        #
-        # Uncomment and fill in after the first GitHub release is published:
-        #
-        # symbiont-bin = pkgs.stdenv.mkDerivation {
-        #   pname = "symbiont-bin";
-        #   version = "0.1.0"; # <── bump this
-        #   src = pkgs.fetchurl {
-        #     url = "https://github.com/kjaebker/Symbiont/releases/download/v0.1.0/symbiont-linux-amd64.tar.gz";
-        #     hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # <── fill in
-        #   };
-        #   sourceRoot = ".";
-        #   installPhase = ''
-        #     runHook preInstall
-        #     install -Dm755 symbiont $out/bin/symbiont
-        #     runHook postInstall
-        #   '';
-        #   meta = {
-        #     description = "Symbiont Neptune Apex dashboard (pre-built)";
-        #     mainProgram = "symbiont";
-        #   };
-        # };
+        # Get the new hash with:
+        #   gh release download vX.Y.Z --pattern "symbiont-linux-amd64.tar.gz" --dir /tmp
+        #   nix-prefetch-url --unpack file:///tmp/symbiont-linux-amd64.tar.gz
+        #   nix hash convert --hash-algo sha256 --to sri <base32-hash>
+        symbiont-bin = pkgs.stdenv.mkDerivation {
+          pname = "symbiont-bin";
+          version = "0.1.0"; # <── bump on upgrade
+          src = pkgs.fetchurl {
+            url = "https://github.com/kjaebker/Symbiont/releases/download/v0.1.0/symbiont-linux-amd64.tar.gz";
+            hash = "sha256-/AAG+AzEDvluerP6/LprwP9gGKTRrO7AGXc6Tv7agqQ="; # <── update on upgrade
+          };
+          sourceRoot = ".";
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 symbiont $out/bin/symbiont
+            runHook postInstall
+          '';
+          meta = {
+            description = "Symbiont Neptune Apex dashboard (pre-built)";
+            mainProgram = "symbiont";
+          };
+        };
 
       in
       {
         # ── Packages ─────────────────────────────────────────────────────────
         packages = {
-          inherit symbiont frontend;
-          # inherit symbiont-bin; # uncomment after first release
+          inherit symbiont symbiont-bin frontend;
           default = symbiont;
         };
 
