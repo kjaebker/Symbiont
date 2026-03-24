@@ -62,7 +62,7 @@ func Load() *Config {
 		Token:      os.Getenv("SYMBIONT_TOKEN"),
 		FrontendPath: envOrDefault("SYMBIONT_FRONTEND_PATH", "./frontend/dist"),
 		NtfyURL:       os.Getenv("SYMBIONT_NTFY_URL"),
-		HeartbeatPath: envOrDefault("SYMBIONT_HEARTBEAT_PATH", "/var/lib/symbiont/poller.heartbeat"),
+		HeartbeatPath: os.Getenv("SYMBIONT_HEARTBEAT_PATH"),
 		BackupDir:     envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
 	}
 
