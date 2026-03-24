@@ -2,23 +2,21 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 
+	symbiontfrontend "github.com/kjaebker/symbiont/frontend"
 	"github.com/kjaebker/symbiont/internal/cli"
 	"github.com/spf13/cobra"
 )
 
 func main() {
+	// Build frontend FS: embedded in release builds, nil in dev (falls back to SYMBIONT_FRONTEND_PATH).
+	var frontendFS fs.FS = symbiontfrontend.Assets()
+
 	rootCmd := &cobra.Command{
 		Use:   "symbiont",
 		Short: "Symbiont — Neptune Apex aquarium controller CLI",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// auth reset doesn't need a token or API connection.
-			if cmd.Name() == "reset" {
-				return nil
-			}
-			return nil
-		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
@@ -52,8 +50,8 @@ func main() {
 	sharedClient := &cli.APIClient{}
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// auth reset doesn't need a token or API connection.
-		if cmd.Name() == "reset" {
+		// serve and auth reset manage their own dependencies — skip client setup.
+		if cmd.Name() == "reset" || cmd.Name() == "serve" {
 			return nil
 		}
 		c, err := getClient(cmd)
@@ -65,6 +63,7 @@ func main() {
 	}
 
 	// Register command groups.
+	rootCmd.AddCommand(newServeCmd(frontendFS))
 	rootCmd.AddCommand(cli.NewProbesCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewOutletsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewAlertsCmd(sharedClient))

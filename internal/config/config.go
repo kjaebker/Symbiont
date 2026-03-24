@@ -63,7 +63,7 @@ func Load() *Config {
 		FrontendPath: envOrDefault("SYMBIONT_FRONTEND_PATH", "./frontend/dist"),
 		NtfyURL:       os.Getenv("SYMBIONT_NTFY_URL"),
 		HeartbeatPath: os.Getenv("SYMBIONT_HEARTBEAT_PATH"),
-		BackupDir:     envOrDefault("SYMBIONT_BACKUP_DIR", "/var/lib/symbiont/backups"),
+		BackupDir:     envOrDefault("SYMBIONT_BACKUP_DIR", "./backups"),
 	}
 
 	// Parse poll interval duration.

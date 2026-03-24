@@ -15,6 +15,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/db"
 )
 
+
 // Server is the HTTP API server.
 type Server struct {
 	duck        *db.DuckDB
@@ -24,10 +25,15 @@ type Server struct {
 	logger      *slog.Logger
 	http        *http.Server
 	broadcaster *Broadcaster
+	frontendFS  fs.FS
 }
 
-// New creates a new API server.
-func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger) *Server {
+// New creates a new API server. frontendFS is the filesystem to serve the
+// frontend from; if nil, falls back to os.DirFS(cfg.FrontendPath).
+func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger, frontendFS fs.FS) *Server {
+	if frontendFS == nil {
+		frontendFS = os.DirFS(cfg.FrontendPath)
+	}
 	s := &Server{
 		duck:        duck,
 		sqlite:      sqlite,
@@ -35,6 +41,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		cfg:         cfg,
 		logger:      logger,
 		broadcaster: NewBroadcaster(),
+		frontendFS:  frontendFS,
 	}
 
 	mux := http.NewServeMux()
@@ -116,7 +123,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
 
 	// Static frontend serving with SPA fallback.
-	mux.Handle("GET /", spaHandler(s.cfg.FrontendPath))
+	mux.Handle("GET /", spaHandler(s.frontendFS))
 }
 
 // Run starts the HTTP server and blocks until ctx is cancelled, then shuts down gracefully.
@@ -159,14 +166,12 @@ func (s *Server) Addr() net.Addr {
 	return nil // Will be useful for tests later if needed.
 }
 
-// spaHandler serves static files from dir. If the requested file doesn't exist,
-// it falls back to index.html to support client-side routing (React Router).
-func spaHandler(dir string) http.Handler {
-	fsys := os.DirFS(dir)
+// spaHandler serves static files from fsys. If the requested file doesn't
+// exist, it falls back to index.html to support client-side routing.
+func spaHandler(fsys fs.FS) http.Handler {
 	fileServer := http.FileServerFS(fsys)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try to serve the exact file.
 		path := r.URL.Path
 		if path == "/" {
 			path = "index.html"
@@ -174,7 +179,6 @@ func spaHandler(dir string) http.Handler {
 			path = path[1:]
 		}
 
-		// Check if the file exists.
 		if _, err := fs.Stat(fsys, path); err == nil {
 			fileServer.ServeHTTP(w, r)
 			return
