@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,40 +16,50 @@ import (
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/notify"
 	"github.com/kjaebker/symbiont/internal/poller"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	// Set up structured JSON logger.
+func newServeCmd(frontendFS fs.FS) *cobra.Command {
+	return &cobra.Command{
+		Use:   "serve",
+		Short: "Start the Symbiont server (API + poller)",
+		Long: `Starts the API server and poller in a single process.
+
+Configure via environment variables or a .env file in the working directory.
+Copy .env.example to .env and fill in your Apex credentials to get started.
+
+The dashboard will be available at http://localhost:8420 (or SYMBIONT_API_PORT).`,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(frontendFS)
+		},
+	}
+}
+
+func runServe(frontendFS fs.FS) error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLogLevel(os.Getenv("SYMBIONT_LOG_LEVEL")),
-	})).With("service", "api")
+	})).With("service", "symbiont")
 	slog.SetDefault(logger)
 
-	// Load configuration.
 	cfg := config.Load()
 
-	// Open DuckDB read-write (single process owns the file).
 	duckDB, err := db.Open(cfg.DBPath)
 	if err != nil {
-		logger.Error("failed to open duckdb", "err", err, "path", cfg.DBPath)
-		os.Exit(1)
+		return fmt.Errorf("opening duckdb: %w", err)
 	}
 	defer duckDB.Close()
 
-	// Open SQLite read-write.
 	sqliteDB, err := db.OpenSQLite(cfg.SQLitePath)
 	if err != nil {
-		logger.Error("failed to open sqlite", "err", err, "path", cfg.SQLitePath)
-		os.Exit(1)
+		return fmt.Errorf("opening sqlite: %w", err)
 	}
 	defer sqliteDB.Close()
 
-	// Bootstrap default token on first run.
 	ctx := context.Background()
 	token, created, err := sqliteDB.EnsureDefaultToken(ctx)
 	if err != nil {
-		logger.Error("failed to bootstrap token", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("bootstrapping token: %w", err)
 	}
 	if created {
 		fmt.Println("╔══════════════════════════════════════════════════════════════════════╗")
@@ -57,15 +68,11 @@ func main() {
 		fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 	}
 
-	// Create Apex client.
 	apexClient := apex.NewClient(cfg.ApexURL, cfg.ApexUser, cfg.ApexPass)
 
-	// Set up signal-based context cancellation for graceful shutdown.
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	// Start the poller as a background goroutine. It shares the same DuckDB
-	// connection as the API server — no file lock contention.
 	pollerLogger := logger.With("component", "poller")
 	p := poller.New(apexClient, duckDB, cfg.PollInterval, pollerLogger)
 	if cfg.HeartbeatPath != "" {
@@ -73,15 +80,13 @@ func main() {
 	}
 	go p.Run(sigCtx)
 
-	// Create API server (nil FS falls back to cfg.FrontendPath).
-	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil)
+	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS)
 
-	// Build notification system from enabled targets.
-	var notifier notify.Notifier
 	targets, err := sqliteDB.ListEnabledNotificationTargets(ctx, "ntfy")
 	if err != nil {
 		logger.Warn("failed to load notification targets", "err", err)
 	}
+	var notifier notify.Notifier
 	if len(targets) > 0 {
 		var notifiers []notify.Notifier
 		for _, t := range targets {
@@ -91,18 +96,17 @@ func main() {
 		logger.Info("notification targets loaded", "count", len(targets))
 	}
 
-	// Start alert engine.
 	alertLogger := logger.With("component", "alerts")
 	alertEngine := alerts.New(sqliteDB, duckDB, notifier, server.Broadcaster(), alertLogger)
 	go alertEngine.Start(sigCtx)
 
-	// Run API server — blocks until context is cancelled.
+	logger.Info("symbiont starting", "port", cfg.APIPort, "url", "http://localhost:"+cfg.APIPort)
 	if err := server.Run(sigCtx); err != nil {
-		logger.Error("api server error", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("server error: %w", err)
 	}
 
-	logger.Info("api server shut down cleanly")
+	logger.Info("symbiont shut down cleanly")
+	return nil
 }
 
 func parseLogLevel(s string) slog.Level {

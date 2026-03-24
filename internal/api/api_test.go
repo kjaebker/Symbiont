@@ -77,7 +77,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 		SQLitePath:   ":memory:",
 	}
 
-	server := New(cfg, duckDB, sqliteDB, mock, logger)
+	server := New(cfg, duckDB, sqliteDB, mock, logger, nil)
 
 	return &testEnv{
 		server: server,
