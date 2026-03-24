@@ -1,5 +1,5 @@
 {
-  description = "Symbiont — Neptune Apex local dashboard dev environment";
+  description = "Symbiont — Neptune Apex local dashboard";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -11,75 +11,132 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        # Shared build config for Go binaries (go-duckdb needs CGO + Arrow C headers)
+        # ── Frontend (React/Vite) ────────────────────────────────────────────
+        # Builds frontend/dist/. Used as an input to the source build below.
+        frontend = pkgs.buildNpmPackage {
+          pname = "symbiont-frontend";
+          version = "0.1.0";
+          src = ./frontend;
+          npmDepsHash = "sha256-xD/jLzxc5ALkq3y/Eila4uADtqBqN3/VX58PPBXJcx8=";
+          installPhase = ''
+            runHook preInstall
+            cp -r dist $out
+            runHook postInstall
+          '';
+        };
+
+        # ── Go build base (shared between source packages) ───────────────────
+        # go-duckdb needs CGO + Apache Arrow C headers.
         goBuildBase = {
           version = "0.1.0";
           src = ./.;
-          vendorHash = "sha256-N61ynzRCwzIexwsKyXvGSPF5B5HsDitaQ9jWMWSoAxM=";
-          proxyVendor = true; # go-duckdb bundles libduckdb.a in deps/ — must preserve non-Go files
+          vendorHash = "sha256-SLaRU9M6NwnoYowyojtOYml0i+XNVhkt22uvqBrYFi4=";
+          proxyVendor = true; # go-duckdb bundles libduckdb.a in deps/ — preserve non-Go files
           nativeBuildInputs = [ pkgs.pkg-config ];
           buildInputs = [ pkgs.arrow-cpp ];
         };
+
+        # ── Path A: build from source ────────────────────────────────────────
+        # Single binary with embedded frontend. Built with -tags release.
+        # Update vendorHash if go.sum changes; update frontend npmDepsHash if
+        # package-lock.json changes.
+        symbiont = pkgs.buildGoModule (goBuildBase // {
+          pname = "symbiont";
+          subPackages = [ "cmd/symbiont" ];
+          tags = [ "release" ];
+          # Copy the compiled frontend assets into the source tree before the
+          # Go build so //go:embed all:dist can find them.
+          preBuild = ''
+            cp -r ${frontend} frontend/dist
+          '';
+          meta = {
+            description = "Symbiont Neptune Apex dashboard — single binary";
+            mainProgram = "symbiont";
+          };
+        });
+
+        # ── Path B: pre-built binary from GitHub Releases ───────────────────
+        # Faster for production installs — no local compilation needed.
+        # To upgrade: update version + hash after tagging a new release.
+        #
+        # Get the hash with:
+        #   nix-prefetch-url --unpack \
+        #     https://github.com/kjaebker/Symbiont/releases/download/vX.Y.Z/symbiont-linux-amd64.tar.gz
+        #
+        # Uncomment and fill in after the first GitHub release is published:
+        #
+        # symbiont-bin = pkgs.stdenv.mkDerivation {
+        #   pname = "symbiont-bin";
+        #   version = "0.1.0"; # <── bump this
+        #   src = pkgs.fetchurl {
+        #     url = "https://github.com/kjaebker/Symbiont/releases/download/v0.1.0/symbiont-linux-amd64.tar.gz";
+        #     hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # <── fill in
+        #   };
+        #   sourceRoot = ".";
+        #   installPhase = ''
+        #     runHook preInstall
+        #     install -Dm755 symbiont $out/bin/symbiont
+        #     runHook postInstall
+        #   '';
+        #   meta = {
+        #     description = "Symbiont Neptune Apex dashboard (pre-built)";
+        #     mainProgram = "symbiont";
+        #   };
+        # };
+
       in
       {
-        packages.poller = pkgs.buildGoModule (goBuildBase // {
-          pname = "symbiont-poller";
-          subPackages = [ "cmd/poller" ];
-          meta.description = "Symbiont Apex poller binary";
-        });
+        # ── Packages ─────────────────────────────────────────────────────────
+        packages = {
+          inherit symbiont frontend;
+          # inherit symbiont-bin; # uncomment after first release
+          default = symbiont;
+        };
 
-        packages.api = pkgs.buildGoModule (goBuildBase // {
-          pname = "symbiont-api";
-          subPackages = [ "cmd/api" ];
-          meta.description = "Symbiont API server binary";
-        });
-
+        # ── Dev shell ────────────────────────────────────────────────────────
         devShells.default = pkgs.mkShell {
           name = "symbiont";
 
           buildInputs = with pkgs; [
-            # Go toolchain (1.23+)
             go_1_24
-
-            # Database CLIs
             duckdb
             sqlite
-
-            # Go IDE support
             gopls
             delve
             golangci-lint
-
-            # Frontend
             nodejs_22
             nodePackages.typescript
-
-            # Dev utilities
-            gotools        # goimports, etc.
-            go-task        # Taskfile runner (optional)
-            jq             # JSON pretty-print for log inspection
-            curl           # API testing
-
-            # Load .env files for running binaries
-            # Use: godotenv -f .env ./poller
-            # (godotenv binary from the go package)
+            gotools
+            jq
+            curl
           ];
 
           shellHook = ''
             echo "Symbiont dev shell ready."
             echo "Go: $(go version)"
             echo "DuckDB: $(duckdb --version 2>/dev/null || echo 'not found')"
-            echo "SQLite: $(sqlite3 --version 2>/dev/null || echo 'not found')"
+            echo "Node: $(node --version 2>/dev/null || echo 'not found')"
             echo ""
-            echo "Quick commands:"
-            echo "  go build ./...         Build all binaries"
-            echo "  go test ./...          Run all tests"
-            echo "  go run ./cmd/poller    Run poller (requires .env)"
-            echo "  go run ./cmd/api       Run API server (requires .env)"
+            echo "Dev:     go run ./cmd/api (requires .env)"
+            echo "Release: make build  →  ./symbiont serve"
           '';
         };
 
-        # NixOS module for systemd services (used in configuration.nix)
+        # ── NixOS module ─────────────────────────────────────────────────────
+        # Single systemd service running `symbiont serve`.
+        # Works with either the source-built or pre-built package.
+        #
+        # In configuration.nix:
+        #
+        #   inputs.symbiont.url = "github:kjaebker/Symbiont";
+        #
+        #   { inputs, pkgs, ... }: {
+        #     imports = [ inputs.symbiont.nixosModules.${pkgs.system}.default ];
+        #     services.symbiont = {
+        #       enable = true;
+        #       # package = inputs.symbiont.packages.${pkgs.system}.symbiont-bin; # pre-built
+        #     };
+        #   }
         nixosModules.default = { config, lib, pkgs, ... }:
           let
             cfg = config.services.symbiont;
@@ -88,20 +145,16 @@
             options.services.symbiont = {
               enable = lib.mkEnableOption "Symbiont Neptune Apex dashboard";
 
-              pollerPackage = lib.mkOption {
+              package = lib.mkOption {
                 type = lib.types.package;
-                description = "The symbiont-poller binary package.";
-              };
-
-              apiPackage = lib.mkOption {
-                type = lib.types.package;
-                description = "The symbiont-api binary package.";
+                default = symbiont;
+                description = "The symbiont binary package (source-built or pre-built).";
               };
 
               envFile = lib.mkOption {
                 type = lib.types.str;
                 default = "/etc/symbiont/env";
-                description = "Path to environment file with secrets.";
+                description = "Path to environment file containing secrets (SYMBIONT_APEX_URL, etc.).";
               };
 
               dataDir = lib.mkOption {
@@ -122,36 +175,15 @@
 
               users.groups.symbiont = {};
 
-              systemd.services.symbiont-poller = {
-                description = "Symbiont Apex Poller";
+              systemd.services.symbiont = {
+                description = "Symbiont Neptune Apex Dashboard";
                 after = [ "network.target" ];
                 wantedBy = [ "multi-user.target" ];
 
                 serviceConfig = {
-                  ExecStart = "${cfg.pollerPackage}/bin/poller";
+                  ExecStart = "${cfg.package}/bin/symbiont serve";
                   EnvironmentFile = cfg.envFile;
-                  User = "symbiont";
-                  Group = "symbiont";
-                  StateDirectory = "symbiont";
-                  Restart = "always";
-                  RestartSec = "5s";
-
-                  # Hardening
-                  PrivateTmp = true;
-                  NoNewPrivileges = true;
-                  ProtectSystem = "strict";
-                  ReadWritePaths = [ cfg.dataDir ];
-                };
-              };
-
-              systemd.services.symbiont-api = {
-                description = "Symbiont API Server";
-                after = [ "network.target" "symbiont-poller.service" ];
-                wantedBy = [ "multi-user.target" ];
-
-                serviceConfig = {
-                  ExecStart = "${cfg.apiPackage}/bin/api";
-                  EnvironmentFile = cfg.envFile;
+                  WorkingDirectory = cfg.dataDir;
                   User = "symbiont";
                   Group = "symbiont";
                   StateDirectory = "symbiont";
