@@ -61,14 +61,14 @@
         #
         # Get the new hash with:
         #   gh release download vX.Y.Z --pattern "symbiont-linux-amd64.tar.gz" --dir /tmp
-        #   nix-prefetch-url --unpack file:///tmp/symbiont-linux-amd64.tar.gz
+        #   nix-prefetch-url file:///tmp/symbiont-linux-amd64.tar.gz
         #   nix hash convert --hash-algo sha256 --to sri <base32-hash>
         symbiont-bin = pkgs.stdenv.mkDerivation {
           pname = "symbiont-bin";
           version = "0.1.0"; # <── bump on upgrade
           src = pkgs.fetchurl {
             url = "https://github.com/kjaebker/Symbiont/releases/download/v0.1.0/symbiont-linux-amd64.tar.gz";
-            hash = "sha256-/AAG+AzEDvluerP6/LprwP9gGKTRrO7AGXc6Tv7agqQ="; # <── update on upgrade
+            hash = "sha256-ufKv5+uK60l81z7QV5zu42Tarefs75os8JPqUgiu/f0="; # <── update on upgrade
           };
           sourceRoot = ".";
           installPhase = ''
