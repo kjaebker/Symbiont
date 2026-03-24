@@ -265,6 +265,183 @@ func (s *SQLiteDB) DeleteAlertRule(ctx context.Context, id int64) error {
 	return nil
 }
 
+// --- Alert Events ---
+
+// InsertAlertEvent inserts a new alert event and returns its ID.
+func (s *SQLiteDB) InsertAlertEvent(ctx context.Context, ruleID int64, peakValue float64) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO alert_events (rule_id, peak_value, notified) VALUES (?, ?, 0)`,
+		ruleID, peakValue,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting alert event: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// ClearAlertEvent sets the cleared_at timestamp on an alert event.
+func (s *SQLiteDB) ClearAlertEvent(ctx context.Context, eventID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE alert_events SET cleared_at = CURRENT_TIMESTAMP WHERE id = ?",
+		eventID,
+	)
+	if err != nil {
+		return fmt.Errorf("clearing alert event %d: %w", eventID, err)
+	}
+	return nil
+}
+
+// UpdateAlertEventPeak updates the peak value and marks as notified.
+func (s *SQLiteDB) UpdateAlertEventPeak(ctx context.Context, eventID int64, peakValue float64) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE alert_events SET peak_value = ?, notified = 1 WHERE id = ?",
+		peakValue, eventID,
+	)
+	if err != nil {
+		return fmt.Errorf("updating alert event peak %d: %w", eventID, err)
+	}
+	return nil
+}
+
+// MarkAlertEventNotified marks an alert event as having sent a notification.
+func (s *SQLiteDB) MarkAlertEventNotified(ctx context.Context, eventID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE alert_events SET notified = 1 WHERE id = ?",
+		eventID,
+	)
+	if err != nil {
+		return fmt.Errorf("marking alert event notified %d: %w", eventID, err)
+	}
+	return nil
+}
+
+// ListAlertEvents returns recent alert events, optionally filtered.
+func (s *SQLiteDB) ListAlertEvents(ctx context.Context, ruleID *int64, activeOnly bool, limit int) ([]AlertEvent, error) {
+	query := `SELECT e.id, e.rule_id, e.fired_at, e.cleared_at, e.peak_value, e.notified, r.probe_name, r.severity
+		FROM alert_events e
+		LEFT JOIN alert_rules r ON e.rule_id = r.id`
+
+	var conditions []string
+	var args []any
+
+	if ruleID != nil {
+		conditions = append(conditions, "e.rule_id = ?")
+		args = append(args, *ruleID)
+	}
+	if activeOnly {
+		conditions = append(conditions, "e.cleared_at IS NULL")
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE "
+		for i, c := range conditions {
+			if i > 0 {
+				query += " AND "
+			}
+			query += c
+		}
+	}
+
+	query += " ORDER BY e.fired_at DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing alert events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []AlertEvent
+	for rows.Next() {
+		var e AlertEvent
+		if err := rows.Scan(&e.ID, &e.RuleID, &e.FiredAt, &e.ClearedAt, &e.PeakValue, &e.Notified, &e.ProbeName, &e.Severity); err != nil {
+			return nil, fmt.Errorf("scanning alert event: %w", err)
+		}
+		events = append(events, e)
+	}
+	return events, rows.Err()
+}
+
+// --- Notification Targets ---
+
+// ListNotificationTargets returns all notification targets.
+func (s *SQLiteDB) ListNotificationTargets(ctx context.Context) ([]NotificationTarget, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT id, type, config, label, enabled FROM notification_targets ORDER BY id",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing notification targets: %w", err)
+	}
+	defer rows.Close()
+
+	var targets []NotificationTarget
+	for rows.Next() {
+		var t NotificationTarget
+		if err := rows.Scan(&t.ID, &t.Type, &t.Config, &t.Label, &t.Enabled); err != nil {
+			return nil, fmt.Errorf("scanning notification target: %w", err)
+		}
+		targets = append(targets, t)
+	}
+	return targets, rows.Err()
+}
+
+// ListEnabledNotificationTargets returns enabled notification targets of a given type.
+func (s *SQLiteDB) ListEnabledNotificationTargets(ctx context.Context, targetType string) ([]NotificationTarget, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT id, type, config, label, enabled FROM notification_targets WHERE enabled = 1 AND type = ? ORDER BY id",
+		targetType,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing enabled notification targets: %w", err)
+	}
+	defer rows.Close()
+
+	var targets []NotificationTarget
+	for rows.Next() {
+		var t NotificationTarget
+		if err := rows.Scan(&t.ID, &t.Type, &t.Config, &t.Label, &t.Enabled); err != nil {
+			return nil, fmt.Errorf("scanning notification target: %w", err)
+		}
+		targets = append(targets, t)
+	}
+	return targets, rows.Err()
+}
+
+// UpsertNotificationTarget inserts or updates a notification target.
+func (s *SQLiteDB) UpsertNotificationTarget(ctx context.Context, t NotificationTarget) (int64, error) {
+	if t.ID > 0 {
+		_, err := s.db.ExecContext(ctx,
+			"UPDATE notification_targets SET type = ?, config = ?, label = ?, enabled = ? WHERE id = ?",
+			t.Type, t.Config, t.Label, t.Enabled, t.ID,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("updating notification target %d: %w", t.ID, err)
+		}
+		return t.ID, nil
+	}
+	res, err := s.db.ExecContext(ctx,
+		"INSERT INTO notification_targets (type, config, label, enabled) VALUES (?, ?, ?, ?)",
+		t.Type, t.Config, t.Label, t.Enabled,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting notification target: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// DeleteNotificationTarget removes a notification target by ID.
+func (s *SQLiteDB) DeleteNotificationTarget(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM notification_targets WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("deleting notification target %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("notification target %d not found", id)
+	}
+	return nil
+}
+
 // --- Outlet Event Log ---
 
 // InsertOutletEvent inserts an outlet state change event.
@@ -280,18 +457,33 @@ func (s *SQLiteDB) InsertOutletEvent(ctx context.Context, e OutletEvent) error {
 	return nil
 }
 
-// ListOutletEvents returns recent outlet events, optionally filtered by outlet ID.
-func (s *SQLiteDB) ListOutletEvents(ctx context.Context, outletID string, limit int) ([]OutletEvent, error) {
-	var query string
+// ListOutletEvents returns recent outlet events, optionally filtered by outlet ID and initiated_by.
+func (s *SQLiteDB) ListOutletEvents(ctx context.Context, outletID string, initiatedBy string, limit int) ([]OutletEvent, error) {
+	query := "SELECT id, ts, outlet_id, outlet_name, from_state, to_state, initiated_by FROM outlet_event_log"
+	var conditions []string
 	var args []any
 
 	if outletID != "" {
-		query = "SELECT id, ts, outlet_id, outlet_name, from_state, to_state, initiated_by FROM outlet_event_log WHERE outlet_id = ? ORDER BY ts DESC LIMIT ?"
-		args = []any{outletID, limit}
-	} else {
-		query = "SELECT id, ts, outlet_id, outlet_name, from_state, to_state, initiated_by FROM outlet_event_log ORDER BY ts DESC LIMIT ?"
-		args = []any{limit}
+		conditions = append(conditions, "outlet_id = ?")
+		args = append(args, outletID)
 	}
+	if initiatedBy != "" {
+		conditions = append(conditions, "initiated_by = ?")
+		args = append(args, initiatedBy)
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE "
+		for i, c := range conditions {
+			if i > 0 {
+				query += " AND "
+			}
+			query += c
+		}
+	}
+
+	query += " ORDER BY ts DESC LIMIT ?"
+	args = append(args, limit)
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {

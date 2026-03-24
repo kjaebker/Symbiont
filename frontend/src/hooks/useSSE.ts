@@ -32,10 +32,14 @@ export function useSSE() {
         queryClient.invalidateQueries({ queryKey: ['alerts'] })
         try {
           const data = JSON.parse(e.data)
-          addToastRef.current('alert', `Alert: ${data.probe ?? 'probe'} ${data.condition ?? 'triggered'} (${data.severity ?? 'warning'})`)
+          addToastRef.current('alert', `Alert: ${data.probe_name ?? 'probe'} ${data.condition ?? 'triggered'} (${data.severity ?? 'warning'})`)
         } catch {
           addToastRef.current('alert', 'An alert has been triggered')
         }
+      })
+
+      es.addEventListener('alert_cleared', () => {
+        queryClient.invalidateQueries({ queryKey: ['alerts'] })
       })
 
       es.onopen = () => {

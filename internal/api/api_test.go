@@ -287,7 +287,7 @@ func TestOutletSetSuccess(t *testing.T) {
 	}
 
 	// Verify event was logged.
-	events, err := env.sqlite.ListOutletEvents(context.Background(), "base_Var1", 10)
+	events, err := env.sqlite.ListOutletEvents(context.Background(), "base_Var1", "", 10)
 	if err != nil {
 		t.Fatalf("listing events: %v", err)
 	}

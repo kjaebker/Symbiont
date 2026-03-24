@@ -40,6 +40,9 @@ func main() {
 
 	// Create and run poller — blocks until context is cancelled.
 	p := poller.New(apexClient, duckDB, cfg.PollInterval, logger)
+	if cfg.HeartbeatPath != "" {
+		p.SetHeartbeatPath(cfg.HeartbeatPath)
+	}
 	p.Run(ctx)
 
 	logger.Info("poller shut down cleanly")

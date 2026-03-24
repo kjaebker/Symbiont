@@ -78,7 +78,7 @@ export function useSetOutlet() {
   })
 }
 
-export function useOutletEvents(params?: { outlet_id?: string; limit?: number }) {
+export function useOutletEvents(params?: { outlet_id?: string; initiated_by?: string; limit?: number }) {
   return useQuery({
     queryKey: ['outletEvents', params],
     queryFn: () => getOutletEvents(params),

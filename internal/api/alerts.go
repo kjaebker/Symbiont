@@ -82,6 +82,31 @@ func (s *Server) HandleAlertDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) HandleAlertEvents(w http.ResponseWriter, r *http.Request) {
+	limitStr := queryParam(r, "limit", "50")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 50
+	}
+
+	var ruleID *int64
+	if idStr := r.URL.Query().Get("rule_id"); idStr != "" {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err == nil {
+			ruleID = &id
+		}
+	}
+
+	activeOnly := r.URL.Query().Get("active_only") == "true"
+
+	events, err := s.sqlite.ListAlertEvents(r.Context(), ruleID, activeOnly, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to fetch alert events", "db_error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": events})
+}
+
 // validateAlertRule returns an error message if the rule is invalid, or empty string if valid.
 func validateAlertRule(rule db.AlertRule) string {
 	if rule.ProbeName == "" {

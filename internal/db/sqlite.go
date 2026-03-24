@@ -9,12 +9,18 @@ import (
 
 // SQLiteDB wraps a *sql.DB connection to a SQLite database.
 type SQLiteDB struct {
-	db *sql.DB
+	db   *sql.DB
+	path string
 }
 
 // DB returns the underlying *sql.DB.
 func (s *SQLiteDB) DB() *sql.DB {
 	return s.db
+}
+
+// Path returns the database file path.
+func (s *SQLiteDB) Path() string {
+	return s.path
 }
 
 // OpenSQLite opens a SQLite database at the given path, runs PRAGMAs, and creates
@@ -34,7 +40,7 @@ func OpenSQLite(path string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("creating sqlite schema: %w", err)
 	}
 
-	return &SQLiteDB{db: db}, nil
+	return &SQLiteDB{db: db, path: path}, nil
 }
 
 // Close closes the underlying database connection.

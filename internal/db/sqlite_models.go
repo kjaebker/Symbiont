@@ -57,6 +57,28 @@ type OutletEvent struct {
 	InitiatedBy string   `json:"initiated_by"`
 }
 
+// AlertEvent represents a row in the alert_events table.
+type AlertEvent struct {
+	ID        int64      `json:"id"`
+	RuleID    int64      `json:"rule_id"`
+	FiredAt   time.Time  `json:"fired_at"`
+	ClearedAt *time.Time `json:"cleared_at"`
+	PeakValue float64    `json:"peak_value"`
+	Notified  bool       `json:"notified"`
+	// Joined fields from alert_rules (populated by queries that join).
+	ProbeName *string `json:"probe_name,omitempty"`
+	Severity  *string `json:"severity,omitempty"`
+}
+
+// NotificationTarget represents a row in the notification_targets table.
+type NotificationTarget struct {
+	ID      int64  `json:"id"`
+	Type    string `json:"type"`
+	Config  string `json:"config"`
+	Label   string `json:"label"`
+	Enabled bool   `json:"enabled"`
+}
+
 // BackupJob represents a row in the backup_jobs table.
 type BackupJob struct {
 	ID        int64     `json:"id"`

@@ -126,7 +126,11 @@ export default function Outlets() {
   usePageTitle('Outlets')
   const { data, isLoading } = useOutlets()
   const [eventLimit, setEventLimit] = useState(50)
-  const { data: eventsData } = useOutletEvents({ limit: eventLimit })
+  const [sourceFilter, setSourceFilter] = useState<string>('')
+  const { data: eventsData } = useOutletEvents({
+    limit: eventLimit,
+    ...(sourceFilter && { initiated_by: sourceFilter }),
+  })
 
   const outlets = (data?.outlets ?? []).filter((o) => !o.hidden)
   const events = eventsData?.events ?? []
@@ -191,9 +195,25 @@ export default function Outlets() {
 
       {/* Event Log */}
       <div>
-        <h2 className="text-lg font-semibold text-on-surface mb-3">
-          Recent Events
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-on-surface">
+            Recent Events
+          </h2>
+          <select
+            value={sourceFilter}
+            onChange={(e) => {
+              setSourceFilter(e.target.value)
+              setEventLimit(50)
+            }}
+            className="bg-surface-container-high text-on-surface text-xs rounded-lg px-3 py-1.5 uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50"
+          >
+            <option value="">All sources</option>
+            <option value="ui">UI</option>
+            <option value="cli">CLI</option>
+            <option value="mcp">MCP</option>
+            <option value="api">API</option>
+          </select>
+        </div>
         <div className="bg-surface-container rounded-2xl overflow-hidden">
           {events.length === 0 ? (
             <div className="p-8 text-center">
