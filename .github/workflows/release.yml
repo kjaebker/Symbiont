@@ -25,6 +25,7 @@ jobs:
   build:
     needs: build-frontend
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -35,12 +36,7 @@ jobs:
             goarch: arm64
             apt_packages: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc
-          - os: macos-latest    # cross-compile amd64 from arm64 runner
-            goos: darwin
-            goarch: amd64
-            cgo_cflags: "-arch x86_64"
-            cgo_ldflags: "-arch x86_64"
-          - os: macos-latest    # Apple Silicon arm64, native
+          - os: macos-latest
             goos: darwin
             goarch: arm64
 
@@ -68,8 +64,6 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 1
           CC: ${{ matrix.cc }}
-          CGO_CFLAGS: ${{ matrix.cgo_cflags }}
-          CGO_LDFLAGS: ${{ matrix.cgo_ldflags }}
         run: |
           go build -tags release -o symbiont ./cmd/symbiont
 
