@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -70,6 +71,38 @@ func respondMethodNotAllowed(w http.ResponseWriter) {
 func discardBody(r *http.Request) {
 	_, _ = io.Copy(io.Discard, r.Body)
 	r.Body.Close()
+}
+
+// probeDisplayNames loads probe configs and returns a map of probe name → display name.
+// Only probes with a user-set display name are included.
+func (s *Server) probeDisplayNames(ctx context.Context) map[string]string {
+	configs, err := s.sqlite.ListProbeConfigs(ctx)
+	if err != nil {
+		return nil
+	}
+	m := make(map[string]string, len(configs))
+	for _, c := range configs {
+		if c.DisplayName != nil {
+			m[c.ProbeName] = *c.DisplayName
+		}
+	}
+	return m
+}
+
+// outletDisplayNames loads outlet configs and returns a map of outlet ID → display name.
+// Only outlets with a user-set display name are included.
+func (s *Server) outletDisplayNames(ctx context.Context) map[string]string {
+	configs, err := s.sqlite.ListOutletConfigs(ctx)
+	if err != nil {
+		return nil
+	}
+	m := make(map[string]string, len(configs))
+	for _, c := range configs {
+		if c.DisplayName != nil {
+			m[c.OutletID] = *c.DisplayName
+		}
+	}
+	return m
 }
 
 // splitCamelCase inserts spaces before uppercase letters in a CamelCase string.

@@ -178,7 +178,10 @@ func (c *client) Status(ctx context.Context) (*StatusResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("status request failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
+		}
 		return nil, fmt.Errorf("status request failed: status %d, body %s", resp.StatusCode, body)
 	}
 
@@ -215,7 +218,10 @@ func (c *client) SetOutlet(ctx context.Context, did string, state OutletState) e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("outlet control failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("outlet control failed: status %d, body %s", resp.StatusCode, body)
 	}
 

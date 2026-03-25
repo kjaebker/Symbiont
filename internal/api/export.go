@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -20,7 +21,11 @@ func (s *Server) HandleProbeExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("%s-%s.csv", name, time.Now().Format("2006-01-02"))
+	displayName := name
+	if cfg, err := s.sqlite.GetProbeConfig(r.Context(), name); err == nil && cfg.DisplayName != nil {
+		displayName = sanitizeFilename(*cfg.DisplayName)
+	}
+	filename := fmt.Sprintf("%s-%s.csv", displayName, time.Now().Format("2006-01-02"))
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 
@@ -66,6 +71,24 @@ func (s *Server) HandleBulkExport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+var nonAlphaNum = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+
+// sanitizeFilename replaces non-alphanumeric characters with hyphens and trims.
+func sanitizeFilename(s string) string {
+	s = nonAlphaNum.ReplaceAllString(s, "-")
+	// Trim leading/trailing hyphens.
+	for len(s) > 0 && s[0] == '-' {
+		s = s[1:]
+	}
+	for len(s) > 0 && s[len(s)-1] == '-' {
+		s = s[:len(s)-1]
+	}
+	if s == "" {
+		return "export"
+	}
+	return s
 }
 
 func parseTimeRange(r *http.Request) (time.Time, time.Time, error) {

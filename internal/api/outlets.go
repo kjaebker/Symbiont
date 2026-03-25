@@ -10,6 +10,8 @@ import (
 	"github.com/kjaebker/symbiont/internal/db"
 )
 
+
+
 type outletResponse struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
@@ -187,5 +189,20 @@ func (s *Server) HandleOutletEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"events": events})
+	displayNames := s.outletDisplayNames(ctx)
+
+	type eventWithDisplay struct {
+		db.OutletEvent
+		OutletDisplayName string `json:"outlet_display_name"`
+	}
+	out := make([]eventWithDisplay, len(events))
+	for i, e := range events {
+		dn := displayNames[e.OutletID]
+		if dn == "" && e.OutletName != nil {
+			dn = splitCamelCase(*e.OutletName)
+		}
+		out[i] = eventWithDisplay{OutletEvent: e, OutletDisplayName: dn}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"events": out})
 }

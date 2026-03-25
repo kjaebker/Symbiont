@@ -136,7 +136,7 @@ export default function Alerts() {
                     className="transition-fluid hover:bg-surface-container-high/50"
                   >
                     <td className="py-3 px-4 text-sm font-medium text-on-surface">
-                      {rule.probe_name}
+                      {rule.probe_display_name ?? rule.probe_name}
                     </td>
                     <td className="py-3 px-4 text-xs text-on-surface-dim uppercase tracking-wider">
                       {conditionLabels[rule.condition] ?? rule.condition}
@@ -310,7 +310,7 @@ function AlertEventLog() {
                     className="transition-fluid hover:bg-surface-container-high/50"
                   >
                     <td className="py-3 px-4 text-sm font-medium text-on-surface">
-                      {event.probe_name ?? '--'}
+                      {event.probe_display_name ?? event.probe_name ?? '--'}
                     </td>
                     <td className="py-3 px-4">
                       <span

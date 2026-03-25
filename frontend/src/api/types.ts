@@ -43,6 +43,7 @@ export interface OutletEvent {
   ts: string
   outlet_id: string
   outlet_name: string
+  outlet_display_name?: string
   from_state: string
   to_state: string
   initiated_by: string
@@ -51,6 +52,7 @@ export interface OutletEvent {
 export interface AlertRule {
   id: number
   probe_name: string
+  probe_display_name?: string
   condition: 'above' | 'below' | 'outside_range'
   threshold_low: number | null
   threshold_high: number | null
@@ -121,6 +123,7 @@ export interface AlertEvent {
   peak_value: number
   notified: boolean
   probe_name: string | null
+  probe_display_name?: string
   severity: string | null
 }
 

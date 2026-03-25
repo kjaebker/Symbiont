@@ -128,6 +128,10 @@ func (s *Server) HandleProbeHistory(w http.ResponseWriter, r *http.Request) {
 	if interval == "" {
 		interval = autoInterval(to.Sub(from))
 	}
+	if !validInterval(interval) {
+		writeError(w, http.StatusBadRequest, "invalid interval value", "invalid_param")
+		return
+	}
 
 	data, err := s.duck.ProbeHistory(ctx, name, from, to, interval)
 	if err != nil {
@@ -164,8 +168,6 @@ func (s *Server) HandleProbeHistory(w http.ResponseWriter, r *http.Request) {
 // autoInterval selects a bucket interval based on the query time range.
 func autoInterval(d time.Duration) string {
 	switch {
-	case d <= 2*time.Hour:
-		return "1m"
 	case d <= 12*time.Hour:
 		return "1m"
 	case d <= 3*24*time.Hour:
@@ -177,6 +179,16 @@ func autoInterval(d time.Duration) string {
 	default:
 		return "1d"
 	}
+}
+
+var validIntervals = map[string]bool{
+	"10s": true, "30s": true, "1m": true, "5m": true,
+	"15m": true, "1h": true, "1d": true,
+}
+
+// validInterval checks if the given interval is in the allowlist.
+func validInterval(interval string) bool {
+	return validIntervals[interval]
 }
 
 type probeConfigLookup struct {

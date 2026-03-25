@@ -237,6 +237,32 @@ func TestProbeHistory(t *testing.T) {
 	}
 }
 
+func TestProbeHistoryRejectsInvalidInterval(t *testing.T) {
+	env := setupTestEnv(t)
+	seedTestData(t, env.duck)
+
+	tests := []struct {
+		interval string
+		expect   int
+	}{
+		{"10s", http.StatusOK},
+		{"1m", http.StatusOK},
+		{"1h", http.StatusOK},
+		{"invalid", http.StatusBadRequest},
+		{"1s", http.StatusBadRequest},
+		{"2h", http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.interval, func(t *testing.T) {
+			w := env.request(t, "GET", "/api/probes/Tmp/history?interval="+tt.interval, nil)
+			if w.Code != tt.expect {
+				t.Errorf("interval %q: expected %d, got %d: %s", tt.interval, tt.expect, w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
 func TestProbeHistoryAutoInterval(t *testing.T) {
 	tests := []struct {
 		duration time.Duration

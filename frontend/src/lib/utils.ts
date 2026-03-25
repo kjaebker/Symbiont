@@ -17,6 +17,10 @@ export function relativeTime(ts: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+export function splitCamelCase(s: string): string {
+  return s.replace(/([a-z])([A-Z])/g, '$1 $2')
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
   const k = 1024

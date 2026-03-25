@@ -251,7 +251,7 @@ export default function Outlets() {
                           {relativeTime(event.ts)}
                         </td>
                         <td className="py-2.5 px-4 text-sm text-on-surface">
-                          {event.outlet_name}
+                          {event.outlet_display_name ?? event.outlet_name}
                         </td>
                         <td className="py-2.5 px-4">
                           <span className="text-xs text-on-surface-dim">

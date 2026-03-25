@@ -5,7 +5,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { ProbeCard } from '@/components/ProbeCard'
 import { PowerPairCard } from '@/components/PowerPairCard'
 import { OutletCard } from '@/components/OutletCard'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn, relativeTime, splitCamelCase } from '@/lib/utils'
 import type { Probe } from '@/api/types'
 
 /** A probe card or a combined watts+amps power pair card. */
@@ -49,7 +49,7 @@ function groupPowerPairs(probes: Probe[]): ProbeCardItem[] {
       const amps = ampsByBase.get(base)!
       consumed.add(watts.name)
       consumed.add(amps.name)
-      items.push({ kind: 'power-pair', watts, amps, label: watts.display_name || base })
+      items.push({ kind: 'power-pair', watts, amps, label: watts.display_name || splitCamelCase(base) })
     } else {
       items.push({ kind: 'probe', probe: p })
     }
@@ -205,7 +205,7 @@ export default function Dashboard() {
                     <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm text-on-surface truncate">
-                        {event.outlet_name}
+                        {event.outlet_display_name ?? event.outlet_name}
                       </p>
                       <p className="text-xs text-on-surface-dim">
                         {event.from_state} → {event.to_state}
