@@ -732,6 +732,7 @@ function DeviceForm({
     brand: string | null
     model: string | null
     notes: string | null
+    image_path: string | null
     outlet_id: string | null
     probe_names: string[]
   }) => void
@@ -770,6 +771,7 @@ function DeviceForm({
       brand: brand || null,
       model: model || null,
       notes: notes || null,
+      image_path: initial?.image_path ?? null,
       outlet_id: outletId || null,
       probe_names: Array.from(selectedProbes),
     })
