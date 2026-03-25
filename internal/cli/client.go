@@ -86,7 +86,9 @@ func (c *APIClient) do(ctx context.Context, method, path string, body any, resul
 			Error string `json:"error"`
 			Code  string `json:"code"`
 		}
-		_ = json.NewDecoder(resp.Body).Decode(&apiErr)
+		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil || apiErr.Error == "" {
+			apiErr.Error = "unexpected error response"
+		}
 		return &APIError{
 			Status:  resp.StatusCode,
 			Message: apiErr.Error,

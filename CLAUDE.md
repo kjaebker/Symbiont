@@ -245,7 +245,7 @@ Error:
 - **Do not use `fmt.Println` or `log.Printf` for logging.** Use `slog` everywhere.
 - **Do not swallow errors.** Log and surface them.
 - **Do not use `interface{}` or `any` loosely.** Keep types tight.
-- **Do not add npm packages without checking if the functionality exists in the already-installed libraries** (shadcn/ui, Tremor, lucide-react, uPlot, TanStack Query).
+- **Do not add npm packages without checking if the functionality exists in the already-installed libraries** (lucide-react, uPlot, TanStack Query, tailwind-merge, clsx, dnd-kit).
 - **Do not use localStorage or sessionStorage in React components.** The only localStorage usage is the auth token in `src/api/client.ts`.
 - **Do not use `useEffect` for data fetching.** Use TanStack Query hooks.
 - **Do not inline SQL in HTTP handlers.** All queries are named functions in the db package.
@@ -295,7 +295,7 @@ When a task is complete, mark it `[x]` in the relevant phase file.
 
 > Update this section at the start of each session.
 
-**Active phase:** Phase 1 — Data Collection
-**Last completed task:** 1.6 — Poller binary (verified locally against real Apex, data accumulating in DuckDB)
-**Next task:** 1.7 — Structured logging
+**Active phase:** Phase 7 — Layout Builder (phases 1–6 substantially complete)
+**Last completed task:** Codebase review improvements — display name consistency, alert engine lock fix, input validation, frontend test setup
+**Next task:** Phase 7 tasks
 **Blockers:** None

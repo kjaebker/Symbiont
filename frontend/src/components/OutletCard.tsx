@@ -3,6 +3,8 @@ import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
 
+// Apex reports AON (Auto On) and AOF (Auto Off) for outlets under program control.
+// We display both as "Auto" variants since the ON/OFF is the program's decision, not the user's.
 const stateLabels: Record<string, string> = {
   ON: 'On',
   OFF: 'Off',

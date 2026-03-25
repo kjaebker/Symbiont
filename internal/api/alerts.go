@@ -8,12 +8,29 @@ import (
 )
 
 func (s *Server) HandleAlertList(w http.ResponseWriter, r *http.Request) {
-	rules, err := s.sqlite.ListAlertRules(r.Context())
+	ctx := r.Context()
+	rules, err := s.sqlite.ListAlertRules(ctx)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch alert rules", "db_error")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"rules": rules})
+
+	displayNames := s.probeDisplayNames(ctx)
+
+	type ruleWithDisplay struct {
+		db.AlertRule
+		ProbeDisplayName string `json:"probe_display_name"`
+	}
+	out := make([]ruleWithDisplay, len(rules))
+	for i, r := range rules {
+		dn := displayNames[r.ProbeName]
+		if dn == "" {
+			dn = splitCamelCase(r.ProbeName)
+		}
+		out[i] = ruleWithDisplay{AlertRule: r, ProbeDisplayName: dn}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"rules": out})
 }
 
 func (s *Server) HandleAlertCreate(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +121,26 @@ func (s *Server) HandleAlertEvents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to fetch alert events", "db_error")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"events": events})
+
+	displayNames := s.probeDisplayNames(r.Context())
+
+	type eventWithDisplay struct {
+		db.AlertEvent
+		ProbeDisplayName string `json:"probe_display_name"`
+	}
+	out := make([]eventWithDisplay, len(events))
+	for i, e := range events {
+		dn := ""
+		if e.ProbeName != nil {
+			dn = displayNames[*e.ProbeName]
+			if dn == "" {
+				dn = splitCamelCase(*e.ProbeName)
+			}
+		}
+		out[i] = eventWithDisplay{AlertEvent: e, ProbeDisplayName: dn}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"events": out})
 }
 
 // validateAlertRule returns an error message if the rule is invalid, or empty string if valid.

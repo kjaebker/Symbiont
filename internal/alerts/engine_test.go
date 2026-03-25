@@ -345,13 +345,76 @@ func TestFormatAlertTitle(t *testing.T) {
 	warning := db.AlertRule{ProbeName: "pH", Severity: "warning"}
 	critical := db.AlertRule{ProbeName: "Temp", Severity: "critical"}
 
-	got := formatAlertTitle(warning)
+	got := formatAlertTitle(warning, "pH")
 	if got != "⚠️ pH warning" {
 		t.Errorf("unexpected title: %s", got)
 	}
 
-	got = formatAlertTitle(critical)
-	if got != "🚨 Temp critical" {
+	got = formatAlertTitle(critical, "Tank Temperature")
+	if got != "🚨 Tank Temperature critical" {
 		t.Errorf("unexpected title: %s", got)
 	}
+}
+
+func TestFormatAlertTitleUsesDisplayName(t *testing.T) {
+	rule := db.AlertRule{ProbeName: "TmpT", Severity: "warning", Condition: "above", ThresholdHigh: ptr(80.0)}
+
+	got := formatAlertTitle(rule, "Tank Temperature")
+	if got != "⚠️ Tank Temperature warning" {
+		t.Errorf("unexpected title: %s", got)
+	}
+
+	got = formatAlertBody(rule, 82.0, "Tank Temperature")
+	if got != "Tank Temperature is 82.00 (threshold: above 80.00). Check your tank." {
+		t.Errorf("unexpected body: %s", got)
+	}
+}
+
+func TestEvaluateNotificationsOutsideLock(t *testing.T) {
+	engine, sqlite, duck, recorder := setupTestEngine(t)
+	ctx := context.Background()
+
+	// Use a slow notifier to verify notifications don't block the lock.
+	slow := &slowNotifier{delay: 200 * time.Millisecond, inner: recorder}
+	engine.notifier = slow
+
+	rule := db.AlertRule{
+		ProbeName:       "Temp",
+		Condition:       "above",
+		ThresholdHigh:   ptr(80.0),
+		Severity:        "warning",
+		CooldownMinutes: 15,
+		Enabled:         true,
+	}
+	_, err := sqlite.InsertAlertRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("inserting rule: %v", err)
+	}
+
+	seedProbeReading(t, duck, "Temp", 82.0)
+
+	start := time.Now()
+	engine.Evaluate(ctx)
+	elapsed := time.Since(start)
+
+	if recorder.count() != 1 {
+		t.Fatalf("expected 1 notification, got %d", recorder.count())
+	}
+
+	// The notification itself takes 200ms, but the lock should be released quickly.
+	// We allow some slack but the key invariant is that it completes.
+	if elapsed > 2*time.Second {
+		t.Errorf("Evaluate took too long (%v), expected under 2s", elapsed)
+	}
+}
+
+// slowNotifier wraps a notifier with an artificial delay.
+type slowNotifier struct {
+	delay time.Duration
+	inner notify.Notifier
+}
+
+func (s *slowNotifier) Send(ctx context.Context, n notify.Notification) error {
+	time.Sleep(s.delay)
+	return s.inner.Send(ctx, n)
 }

@@ -68,9 +68,17 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
         <input
           type="datetime-local"
           value={toLocalDatetime(value.from)}
+          max={toLocalDatetime(value.to)}
           onChange={(e) => {
             const d = new Date(e.target.value)
-            if (!isNaN(d.getTime())) onChange({ ...value, from: d })
+            if (!isNaN(d.getTime())) {
+              // Clamp: if from >= to, push to forward by 1 hour
+              if (d >= value.to) {
+                onChange({ from: d, to: new Date(d.getTime() + 60 * 60 * 1000) })
+              } else {
+                onChange({ ...value, from: d })
+              }
+            }
           }}
           className="bg-surface-container-high text-on-surface text-xs rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
         />
@@ -78,9 +86,17 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
         <input
           type="datetime-local"
           value={toLocalDatetime(value.to)}
+          min={toLocalDatetime(value.from)}
           onChange={(e) => {
             const d = new Date(e.target.value)
-            if (!isNaN(d.getTime())) onChange({ ...value, to: d })
+            if (!isNaN(d.getTime())) {
+              // Clamp: if to <= from, push from back by 1 hour
+              if (d <= value.from) {
+                onChange({ from: new Date(d.getTime() - 60 * 60 * 1000), to: d })
+              } else {
+                onChange({ ...value, to: d })
+              }
+            }
           }}
           className="bg-surface-container-high text-on-surface text-xs rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
         />

@@ -66,32 +66,47 @@ func (e *Engine) Start(ctx context.Context) {
 	}
 }
 
+// pendingNotification holds data for a notification that must be sent outside the lock.
+type pendingNotification struct {
+	rule        db.AlertRule
+	value       float64
+	displayName string
+	eventID     int64
+}
+
 // Evaluate loads current probe readings and evaluates all enabled rules.
 func (e *Engine) Evaluate(ctx context.Context) {
 	e.mu.Lock()
-	defer e.mu.Unlock()
 
 	rules, err := e.sqlite.ListEnabledAlertRules(ctx)
 	if err != nil {
+		e.mu.Unlock()
 		e.logger.Error("alert engine: failed to load rules", "err", err)
 		return
 	}
 
 	if len(rules) == 0 {
+		e.mu.Unlock()
 		return
 	}
 
 	readings, err := e.duck.CurrentProbeReadings(ctx)
 	if err != nil {
+		e.mu.Unlock()
 		e.logger.Error("alert engine: failed to load probe readings", "err", err)
 		return
 	}
+
+	// Build display name map from probe configs.
+	displayNames := e.loadProbeDisplayNames(ctx)
 
 	// Build a map of probe name → latest value.
 	probeValues := make(map[string]float64, len(readings))
 	for _, r := range readings {
 		probeValues[r.Name] = r.Value
 	}
+
+	var pending []pendingNotification
 
 	for _, rule := range rules {
 		value, exists := probeValues[rule.ProbeName]
@@ -100,20 +115,45 @@ func (e *Engine) Evaluate(ctx context.Context) {
 			continue
 		}
 
+		dn := displayNames[rule.ProbeName]
+		if dn == "" {
+			dn = splitCamelCase(rule.ProbeName)
+		}
+
 		breached := isBreached(rule, value)
 		state := e.state[rule.ID]
 
 		if breached {
 			if state == nil || !state.Active {
 				// New breach — fire the alert.
-				e.fire(ctx, rule, value)
+				p := e.fire(ctx, rule, value, dn)
+				if p != nil {
+					pending = append(pending, *p)
+				}
 			} else {
 				// Still breached — update peak and check cooldown for re-notify.
-				e.updatePeak(ctx, rule, value)
+				if p := e.updatePeak(ctx, rule, value, dn); p != nil {
+					pending = append(pending, *p)
+				}
 			}
 		} else if state != nil && state.Active {
 			// Condition resolved — clear the alert.
-			e.clear(ctx, rule)
+			e.clear(ctx, rule, dn)
+		}
+	}
+
+	e.mu.Unlock()
+
+	// Send notifications outside the lock to avoid blocking evaluation on I/O.
+	for _, p := range pending {
+		e.sendNotification(ctx, p.rule, p.value, p.displayName)
+		e.mu.Lock()
+		if s := e.state[p.rule.ID]; s != nil {
+			s.LastNotifiedAt = time.Now()
+		}
+		e.mu.Unlock()
+		if err := e.sqlite.MarkAlertEventNotified(ctx, p.eventID); err != nil {
+			e.logger.Error("alert engine: failed to mark event notified", "err", err, "event_id", p.eventID)
 		}
 	}
 }
@@ -134,14 +174,14 @@ func isBreached(rule db.AlertRule, value float64) bool {
 	}
 }
 
-func (e *Engine) fire(ctx context.Context, rule db.AlertRule, value float64) {
+func (e *Engine) fire(ctx context.Context, rule db.AlertRule, value float64, displayName string) *pendingNotification {
 	now := time.Now()
 
 	// Insert alert event in SQLite.
 	eventID, err := e.sqlite.InsertAlertEvent(ctx, rule.ID, value)
 	if err != nil {
 		e.logger.Error("alert engine: failed to insert alert event", "err", err, "rule_id", rule.ID)
-		return
+		return nil
 	}
 
 	e.state[rule.ID] = &AlertState{
@@ -151,34 +191,34 @@ func (e *Engine) fire(ctx context.Context, rule db.AlertRule, value float64) {
 		EventID:   eventID,
 	}
 
-	// Send notification.
-	e.sendNotification(ctx, rule, value)
-	e.state[rule.ID].LastNotifiedAt = now
-
 	// Publish SSE event.
 	e.broadcaster.Publish(api.Event{
 		Type: "alert_fired",
 		Data: map[string]any{
-			"rule_id":    rule.ID,
-			"event_id":   eventID,
-			"probe_name": rule.ProbeName,
-			"severity":   rule.Severity,
-			"value":      value,
-			"condition":  rule.Condition,
-			"fired_at":   now,
+			"rule_id":      rule.ID,
+			"event_id":     eventID,
+			"probe_name":   rule.ProbeName,
+			"display_name": displayName,
+			"severity":     rule.Severity,
+			"value":        value,
+			"condition":    rule.Condition,
+			"fired_at":     now,
 		},
 	})
 
 	e.logger.Warn("alert fired",
 		"rule_id", rule.ID,
 		"probe", rule.ProbeName,
+		"display_name", displayName,
 		"severity", rule.Severity,
 		"value", value,
 		"condition", rule.Condition,
 	)
+
+	return &pendingNotification{rule: rule, value: value, displayName: displayName, eventID: eventID}
 }
 
-func (e *Engine) clear(ctx context.Context, rule db.AlertRule) {
+func (e *Engine) clear(ctx context.Context, rule db.AlertRule, displayName string) {
 	state := e.state[rule.ID]
 	if state == nil {
 		return
@@ -197,10 +237,11 @@ func (e *Engine) clear(ctx context.Context, rule db.AlertRule) {
 	e.broadcaster.Publish(api.Event{
 		Type: "alert_cleared",
 		Data: map[string]any{
-			"rule_id":    rule.ID,
-			"event_id":   state.EventID,
-			"probe_name": rule.ProbeName,
-			"cleared_at": now,
+			"rule_id":      rule.ID,
+			"event_id":     state.EventID,
+			"probe_name":   rule.ProbeName,
+			"display_name": displayName,
+			"cleared_at":   now,
 		},
 	})
 
@@ -211,10 +252,10 @@ func (e *Engine) clear(ctx context.Context, rule db.AlertRule) {
 	)
 }
 
-func (e *Engine) updatePeak(ctx context.Context, rule db.AlertRule, value float64) {
+func (e *Engine) updatePeak(ctx context.Context, rule db.AlertRule, value float64, displayName string) *pendingNotification {
 	state := e.state[rule.ID]
 	if state == nil {
-		return
+		return nil
 	}
 
 	// Update peak value if higher.
@@ -228,18 +269,18 @@ func (e *Engine) updatePeak(ctx context.Context, rule db.AlertRule, value float6
 	// Re-notify if cooldown has expired and still breached.
 	cooldown := time.Duration(rule.CooldownMinutes) * time.Minute
 	if cooldown > 0 && time.Since(state.LastNotifiedAt) >= cooldown {
-		e.sendNotification(ctx, rule, value)
-		state.LastNotifiedAt = time.Now()
+		return &pendingNotification{rule: rule, value: value, displayName: displayName, eventID: state.EventID}
 	}
+	return nil
 }
 
-func (e *Engine) sendNotification(ctx context.Context, rule db.AlertRule, value float64) {
+func (e *Engine) sendNotification(ctx context.Context, rule db.AlertRule, value float64, displayName string) {
 	if e.notifier == nil {
 		return
 	}
 
-	title := formatAlertTitle(rule)
-	body := formatAlertBody(rule, value)
+	title := formatAlertTitle(rule, displayName)
+	body := formatAlertBody(rule, value, displayName)
 	priority := "high"
 	if rule.Severity == "critical" {
 		priority = "urgent"
@@ -258,28 +299,61 @@ func (e *Engine) sendNotification(ctx context.Context, rule db.AlertRule, value 
 			"rule_id", rule.ID,
 			"probe", rule.ProbeName,
 		)
-	} else {
-		_ = e.sqlite.MarkAlertEventNotified(ctx, e.state[rule.ID].EventID)
 	}
 }
 
-func formatAlertTitle(rule db.AlertRule) string {
+func formatAlertTitle(rule db.AlertRule, displayName string) string {
 	icon := "⚠️"
 	if rule.Severity == "critical" {
 		icon = "🚨"
 	}
-	return fmt.Sprintf("%s %s %s", icon, rule.ProbeName, rule.Severity)
+	return fmt.Sprintf("%s %s %s", icon, displayName, rule.Severity)
 }
 
-func formatAlertBody(rule db.AlertRule, value float64) string {
+func formatAlertBody(rule db.AlertRule, value float64, displayName string) string {
 	switch rule.Condition {
 	case "above":
-		return fmt.Sprintf("%s is %.2f (threshold: above %.2f). Check your tank.", rule.ProbeName, value, *rule.ThresholdHigh)
+		return fmt.Sprintf("%s is %.2f (threshold: above %.2f). Check your tank.", displayName, value, *rule.ThresholdHigh)
 	case "below":
-		return fmt.Sprintf("%s is %.2f (threshold: below %.2f). Check your tank.", rule.ProbeName, value, *rule.ThresholdLow)
+		return fmt.Sprintf("%s is %.2f (threshold: below %.2f). Check your tank.", displayName, value, *rule.ThresholdLow)
 	case "outside_range":
-		return fmt.Sprintf("%s is %.2f (range: %.2f–%.2f). Check your tank.", rule.ProbeName, value, *rule.ThresholdLow, *rule.ThresholdHigh)
+		return fmt.Sprintf("%s is %.2f (range: %.2f–%.2f). Check your tank.", displayName, value, *rule.ThresholdLow, *rule.ThresholdHigh)
 	default:
-		return fmt.Sprintf("%s is %.2f. Check your tank.", rule.ProbeName, value)
+		return fmt.Sprintf("%s is %.2f. Check your tank.", displayName, value)
 	}
+}
+
+// loadProbeDisplayNames loads probe configs and returns a map of probe name → display name.
+func (e *Engine) loadProbeDisplayNames(ctx context.Context) map[string]string {
+	configs, err := e.sqlite.ListProbeConfigs(ctx)
+	if err != nil {
+		e.logger.Error("alert engine: failed to load probe configs", "err", err)
+		return nil
+	}
+	m := make(map[string]string, len(configs))
+	for _, c := range configs {
+		if c.DisplayName != nil {
+			m[c.ProbeName] = *c.DisplayName
+		}
+	}
+	return m
+}
+
+// splitCamelCase inserts spaces before uppercase letters in a CamelCase string.
+func splitCamelCase(s string) string {
+	if len(s) <= 1 {
+		return s
+	}
+	var result []byte
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if i > 0 && ch >= 'A' && ch <= 'Z' {
+			prevUpper := s[i-1] >= 'A' && s[i-1] <= 'Z'
+			if !prevUpper {
+				result = append(result, ' ')
+			}
+		}
+		result = append(result, ch)
+	}
+	return string(result)
 }
