@@ -13,6 +13,9 @@ import type {
   NotificationTarget,
   NotificationTestResult,
   SystemLogLine,
+  Device,
+  DeviceSuggestion,
+  DashboardItem,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -222,6 +225,90 @@ export function getBackups() {
 
 export function triggerBackup() {
   return apiFetch<BackupJob>('/api/system/backups', { method: 'POST' })
+}
+
+// Devices
+export function getDevices() {
+  return apiFetch<{ devices: Device[] }>('/api/devices')
+}
+
+export function getDevice(id: number) {
+  return apiFetch<Device>(`/api/devices/${id}`)
+}
+
+export function createDevice(device: Omit<Device, 'id' | 'created_at' | 'updated_at' | 'image_path'>) {
+  return apiFetch<Device>('/api/devices', {
+    method: 'POST',
+    body: JSON.stringify(device),
+  })
+}
+
+export function updateDevice(id: number, device: Partial<Device>) {
+  return apiFetch<Device>(`/api/devices/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(device),
+  })
+}
+
+export function deleteDevice(id: number) {
+  return apiFetch<void>(`/api/devices/${id}`, { method: 'DELETE' })
+}
+
+export function setDeviceProbes(id: number, probeNames: string[]) {
+  return apiFetch<Device>(`/api/devices/${id}/probes`, {
+    method: 'PUT',
+    body: JSON.stringify({ probe_names: probeNames }),
+  })
+}
+
+export function uploadDeviceImage(id: number, file: File) {
+  const form = new FormData()
+  form.append('image', file)
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return fetch(`/api/devices/${id}/image`, {
+    method: 'POST',
+    headers,
+    body: form,
+  }).then(async (res) => {
+    if (!res.ok) {
+      const body = await res.json()
+      throw new Error(body.error ?? 'Upload failed')
+    }
+    return res.json() as Promise<{ image_path: string }>
+  })
+}
+
+export function deleteDeviceImage(id: number) {
+  return apiFetch<void>(`/api/devices/${id}/image`, { method: 'DELETE' })
+}
+
+export function getDeviceSuggestions() {
+  return apiFetch<{ suggestions: DeviceSuggestion[] }>('/api/devices/suggestions')
+}
+
+// Dashboard layout
+export function getDashboardLayout() {
+  return apiFetch<{ items: DashboardItem[] }>('/api/dashboard')
+}
+
+export function replaceDashboardLayout(items: Omit<DashboardItem, 'id' | 'sort_order'>[]) {
+  return apiFetch<{ items: DashboardItem[] }>('/api/dashboard', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  })
+}
+
+export function addDashboardItem(item: Omit<DashboardItem, 'id' | 'sort_order'>) {
+  return apiFetch<DashboardItem>('/api/dashboard', {
+    method: 'POST',
+    body: JSON.stringify(item),
+  })
+}
+
+export function removeDashboardItem(id: number) {
+  return apiFetch<void>(`/api/dashboard/${id}`, { method: 'DELETE' })
 }
 
 // System log

@@ -13,14 +13,12 @@ import (
 
 
 type outletResponse struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	DisplayName  string `json:"display_name"`
-	State        string `json:"state"`
-	Type         string `json:"type"`
-	Intensity    int    `json:"intensity"`
-	DisplayOrder int    `json:"display_order"`
-	Hidden       bool   `json:"hidden"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	State       string `json:"state"`
+	Type        string `json:"type"`
+	Intensity   int    `json:"intensity"`
 }
 
 func (s *Server) HandleOutletList(w http.ResponseWriter, r *http.Request) {
@@ -46,40 +44,24 @@ func (s *Server) HandleOutletList(w http.ResponseWriter, r *http.Request) {
 	resp := make([]outletResponse, 0, len(outlets))
 	for _, o := range outlets {
 		displayName := splitCamelCase(o.Name)
-		displayOrder := 0
-		hidden := false
 		if cfg, ok := cfgMap[o.DID]; ok {
 			if cfg.DisplayName != nil {
 				displayName = *cfg.DisplayName
 			}
-			displayOrder = cfg.DisplayOrder
-			hidden = cfg.Hidden
 		}
 		resp = append(resp, outletResponse{
-			ID:           o.DID,
-			Name:         o.Name,
-			DisplayName:  displayName,
-			State:        o.State,
-			Type:         o.Type,
-			Intensity:    o.Intensity,
-			DisplayOrder: displayOrder,
-			Hidden:       hidden,
+			ID:          o.DID,
+			Name:        o.Name,
+			DisplayName: displayName,
+			State:       o.State,
+			Type:        o.Type,
+			Intensity:   o.Intensity,
 		})
 	}
 
-	// Sort by display_order (0 sorts last), then by name.
+	// Sort alphabetically by name.
 	sort.SliceStable(resp, func(i, j int) bool {
-		oi, oj := resp[i].DisplayOrder, resp[j].DisplayOrder
-		if oi == 0 && oj == 0 {
-			return resp[i].Name < resp[j].Name
-		}
-		if oi == 0 {
-			return false
-		}
-		if oj == 0 {
-			return true
-		}
-		return oi < oj
+		return resp[i].Name < resp[j].Name
 	})
 
 	writeJSON(w, http.StatusOK, map[string]any{"outlets": resp})

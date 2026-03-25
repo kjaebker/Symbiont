@@ -132,7 +132,7 @@ export default function Outlets() {
     ...(sourceFilter && { initiated_by: sourceFilter }),
   })
 
-  const outlets = (data?.outlets ?? []).filter((o) => !o.hidden)
+  const outlets = data?.outlets ?? []
   const events = eventsData?.events ?? []
 
   return (

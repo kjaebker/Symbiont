@@ -404,8 +404,7 @@ func TestProbeConfigCRUD(t *testing.T) {
 
 	// Create.
 	w := env.request(t, "PUT", "/api/config/probes/Tmp", map[string]any{
-		"display_name":  "Temperature",
-		"display_order": 1,
+		"display_name": "Temperature",
 	})
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
@@ -429,8 +428,7 @@ func TestOutletConfigCRUD(t *testing.T) {
 	env := setupTestEnv(t)
 
 	w := env.request(t, "PUT", "/api/config/outlets/base_Var1", map[string]any{
-		"display_name":  "Return Pump",
-		"display_order": 1,
+		"display_name": "Return Pump",
 	})
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
