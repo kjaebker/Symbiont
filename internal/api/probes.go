@@ -7,15 +7,13 @@ import (
 )
 
 type probeResponse struct {
-	Name         string  `json:"name"`
-	DisplayName  string  `json:"display_name"`
-	Type         string  `json:"type"`
-	Value        float64 `json:"value"`
-	Unit         string  `json:"unit"`
-	TS           string  `json:"ts"`
-	Status       string  `json:"status"`
-	DisplayOrder int     `json:"display_order"`
-	Hidden       bool    `json:"hidden"`
+	Name        string  `json:"name"`
+	DisplayName string  `json:"display_name"`
+	Type        string  `json:"type"`
+	Value       float64 `json:"value"`
+	Unit        string  `json:"unit"`
+	TS          string  `json:"ts"`
+	Status      string  `json:"status"`
 }
 
 func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
@@ -38,14 +36,12 @@ func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
 	for i := range configs {
 		c := &configs[i]
 		cfgMap[c.ProbeName] = &probeConfigLookup{
-			displayName:  derefStr(c.DisplayName, c.ProbeName),
-			unit:         derefStr(c.UnitOverride, ""),
-			displayOrder: c.DisplayOrder,
-			hidden:       c.Hidden,
-			minNormal:    c.MinNormal,
-			maxNormal:    c.MaxNormal,
-			minWarning:   c.MinWarning,
-			maxWarning:   c.MaxWarning,
+			displayName: derefStr(c.DisplayName, c.ProbeName),
+			unit:        derefStr(c.UnitOverride, ""),
+			minNormal:   c.MinNormal,
+			maxNormal:   c.MaxNormal,
+			minWarning:  c.MinWarning,
+			maxWarning:  c.MaxWarning,
 		}
 	}
 
@@ -55,8 +51,6 @@ func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
 		displayName := splitCamelCase(rd.Name)
 		unit := probeTypeToUnit(rd.Type)
 		status := "unknown"
-		displayOrder := 0
-		hidden := false
 
 		if cfg != nil {
 			displayName = cfg.displayName
@@ -64,25 +58,23 @@ func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
 				unit = cfg.unit
 			}
 			status = computeProbeStatus(rd.Value, cfg)
-			displayOrder = cfg.displayOrder
-			hidden = cfg.hidden
 		}
 
 		probes = append(probes, probeResponse{
-			Name:         rd.Name,
-			DisplayName:  displayName,
-			Type:         rd.Type,
-			Value:        rd.Value,
-			Unit:         unit,
-			TS:           rd.Timestamp.Format(time.RFC3339),
-			Status:       status,
-			DisplayOrder: displayOrder,
-			Hidden:       hidden,
+			Name:        rd.Name,
+			DisplayName: displayName,
+			Type:        rd.Type,
+			Value:       rd.Value,
+			Unit:        unit,
+			TS:          rd.Timestamp.Format(time.RFC3339),
+			Status:      status,
 		})
 	}
 
-	// Sort by display_order (0 sorts last), then by name.
-	sortByDisplayOrder(probes)
+	// Sort alphabetically by name.
+	sort.SliceStable(probes, func(i, j int) bool {
+		return probes[i].Name < probes[j].Name
+	})
 
 	var polledAt string
 	if len(readings) > 0 {
@@ -192,14 +184,12 @@ func validInterval(interval string) bool {
 }
 
 type probeConfigLookup struct {
-	displayName  string
-	unit         string
-	displayOrder int
-	hidden       bool
-	minNormal    *float64
-	maxNormal    *float64
-	minWarning   *float64
-	maxWarning   *float64
+	displayName string
+	unit        string
+	minNormal   *float64
+	maxNormal   *float64
+	minWarning  *float64
+	maxWarning  *float64
 }
 
 // computeProbeStatus determines probe status from config thresholds.
@@ -262,21 +252,4 @@ func derefStr(p *string, def string) string {
 	return def
 }
 
-// sortByDisplayOrder sorts probes by display_order (items with order 0 sort last), then by name.
-func sortByDisplayOrder(probes []probeResponse) {
-	sort.SliceStable(probes, func(i, j int) bool {
-		oi, oj := probes[i].DisplayOrder, probes[j].DisplayOrder
-		// 0 means unset — sort after all explicitly ordered items.
-		if oi == 0 && oj == 0 {
-			return probes[i].Name < probes[j].Name
-		}
-		if oi == 0 {
-			return false
-		}
-		if oj == 0 {
-			return true
-		}
-		return oi < oj
-	})
-}
 

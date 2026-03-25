@@ -8,8 +8,6 @@ export interface Probe {
   unit: string
   ts: string
   status: ProbeStatus
-  display_order: number
-  hidden: boolean
 }
 
 export interface ProbeHistoryPoint {
@@ -34,8 +32,6 @@ export interface Outlet {
   state: OutletState
   type: string
   intensity: number
-  display_order: number
-  hidden: boolean
 }
 
 export interface OutletEvent {
@@ -83,20 +79,17 @@ export interface ProbeConfig {
   probe_name: string
   display_name: string
   unit_override: string
-  display_order: number
   min_normal: number | null
   max_normal: number | null
   min_warning: number | null
   max_warning: number | null
-  hidden: boolean
+  device_id: number | null
 }
 
 export interface OutletConfig {
   outlet_id: string
   display_name: string
-  display_order: number
   icon: string
-  hidden: boolean
 }
 
 export interface BackupJob {
@@ -147,6 +140,36 @@ export interface SystemLogLine {
   level: string
   msg: string
   fields?: Record<string, unknown>
+}
+
+export interface Device {
+  id: number
+  name: string
+  device_type: string | null
+  description: string | null
+  brand: string | null
+  model: string | null
+  notes: string | null
+  image_path: string | null
+  outlet_id: string | null
+  created_at: string
+  updated_at: string
+  probe_names: string[]
+}
+
+export interface DashboardItem {
+  id: number
+  item_type: 'probe' | 'outlet' | 'device' | 'separator'
+  reference_id: string | null
+  label: string | null
+  sort_order: number
+}
+
+export interface DeviceSuggestion {
+  outlet_name: string
+  outlet_id: string
+  probe_names: string[]
+  suggested_name: string
 }
 
 export interface APIError {

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -40,7 +41,15 @@ func OpenSQLite(path string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("creating sqlite schema: %w", err)
 	}
 
-	return &SQLiteDB{db: db, path: path}, nil
+	s := &SQLiteDB{db: db, path: path}
+
+	// Migrate legacy hidden/display_order data into dashboard_items.
+	if err := s.MigrateDashboardLayout(context.Background()); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrating dashboard layout: %w", err)
+	}
+
+	return s, nil
 }
 
 // Close closes the underlying database connection.

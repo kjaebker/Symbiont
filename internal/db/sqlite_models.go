@@ -16,21 +16,43 @@ type ProbeConfig struct {
 	ProbeName    string   `json:"probe_name"`
 	DisplayName  *string  `json:"display_name"`
 	UnitOverride *string  `json:"unit_override"`
-	DisplayOrder int      `json:"display_order"`
 	MinNormal    *float64 `json:"min_normal"`
 	MaxNormal    *float64 `json:"max_normal"`
 	MinWarning   *float64 `json:"min_warning"`
 	MaxWarning   *float64 `json:"max_warning"`
-	Hidden       bool     `json:"hidden"`
+	DeviceID     *int64   `json:"device_id"`
+}
+
+// Device represents a row in the devices table.
+type Device struct {
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	DeviceType  *string   `json:"device_type"`
+	Description *string   `json:"description"`
+	Brand       *string   `json:"brand"`
+	Model       *string   `json:"model"`
+	Notes       *string   `json:"notes"`
+	ImagePath   *string   `json:"image_path"`
+	OutletID    *string   `json:"outlet_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	ProbeNames  []string  `json:"probe_names"`
 }
 
 // OutletConfig represents a row in the outlet_config table.
 type OutletConfig struct {
-	OutletID     string  `json:"outlet_id"`
-	DisplayName  *string `json:"display_name"`
-	DisplayOrder int     `json:"display_order"`
-	Icon         *string `json:"icon"`
-	Hidden       bool    `json:"hidden"`
+	OutletID    string  `json:"outlet_id"`
+	DisplayName *string `json:"display_name"`
+	Icon        *string `json:"icon"`
+}
+
+// DashboardItem represents a row in the dashboard_items table.
+type DashboardItem struct {
+	ID          int64   `json:"id"`
+	ItemType    string  `json:"item_type"`
+	ReferenceID *string `json:"reference_id"`
+	Label       *string `json:"label"`
+	SortOrder   int     `json:"sort_order"`
 }
 
 // AlertRule represents a row in the alert_rules table.

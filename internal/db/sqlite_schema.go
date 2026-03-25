@@ -27,19 +27,29 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			probe_name      TEXT PRIMARY KEY,
 			display_name    TEXT,
 			unit_override   TEXT,
-			display_order   INTEGER NOT NULL DEFAULT 999,
 			min_normal      REAL,
 			max_normal      REAL,
 			min_warning     REAL,
 			max_warning     REAL,
-			hidden          INTEGER NOT NULL DEFAULT 0
+			device_id       INTEGER REFERENCES devices(id) ON DELETE SET NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS outlet_config (
 			outlet_id       TEXT PRIMARY KEY,
 			display_name    TEXT,
-			display_order   INTEGER NOT NULL DEFAULT 999,
-			icon            TEXT,
-			hidden          INTEGER NOT NULL DEFAULT 0
+			icon            TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS devices (
+			id            INTEGER  PRIMARY KEY AUTOINCREMENT,
+			name          TEXT     NOT NULL,
+			device_type   TEXT,
+			description   TEXT,
+			brand         TEXT,
+			model         TEXT,
+			notes         TEXT,
+			image_path    TEXT,
+			outlet_id     TEXT     UNIQUE,
+			created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS alert_rules (
 			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -84,12 +94,21 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			size_bytes  INTEGER,
 			error       TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS dashboard_items (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator')),
+			reference_id TEXT,
+			label        TEXT,
+			sort_order   INTEGER NOT NULL
+		)`,
 	}
 
 	indexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_alert_events_rule ON alert_events(rule_id, fired_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_outlet_event_log_ts ON outlet_event_log(ts DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_outlet_event_log_outlet ON outlet_event_log(outlet_id, ts DESC)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_dashboard_items_sort ON dashboard_items(sort_order)`,
 	}
 
 	for _, stmt := range tables {
@@ -102,5 +121,17 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			return err
 		}
 	}
+
+	// Post-table indexes.
+	postIndexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,
+	}
+	for _, stmt := range postIndexes {
+		if _, err := db.Exec(stmt); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
+

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
@@ -85,6 +86,23 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// System.
 	mux.HandleFunc("GET /api/system", s.HandleSystemStatus)
 
+	// Devices.
+	mux.HandleFunc("GET /api/devices", s.HandleDeviceList)
+	mux.HandleFunc("GET /api/devices/suggestions", s.HandleDeviceSuggestions)
+	mux.HandleFunc("POST /api/devices", s.HandleDeviceCreate)
+	mux.HandleFunc("GET /api/devices/{id}", s.HandleDeviceGet)
+	mux.HandleFunc("PUT /api/devices/{id}", s.HandleDeviceUpdate)
+	mux.HandleFunc("DELETE /api/devices/{id}", s.HandleDeviceDelete)
+	mux.HandleFunc("PUT /api/devices/{id}/probes", s.HandleDeviceSetProbes)
+	mux.HandleFunc("POST /api/devices/{id}/image", s.HandleDeviceImageUpload)
+	mux.HandleFunc("DELETE /api/devices/{id}/image", s.HandleDeviceImageDelete)
+
+	// Dashboard layout.
+	mux.HandleFunc("GET /api/dashboard", s.HandleDashboardGet)
+	mux.HandleFunc("PUT /api/dashboard", s.HandleDashboardReplace)
+	mux.HandleFunc("POST /api/dashboard", s.HandleDashboardAddItem)
+	mux.HandleFunc("DELETE /api/dashboard/{id}", s.HandleDashboardRemoveItem)
+
 	// Config.
 	mux.HandleFunc("GET /api/config/probes", s.HandleProbeConfigList)
 	mux.HandleFunc("PUT /api/config/probes/{name}", s.HandleProbeConfigUpdate)
@@ -121,6 +139,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
+
+	// Device images — serve from data directory.
+	dataDir := filepath.Dir(s.sqlite.Path())
+	mux.Handle("GET /data/", http.StripPrefix("/data/", http.FileServer(http.Dir(dataDir))))
 
 	// Static frontend serving with SPA fallback.
 	mux.Handle("GET /", spaHandler(s.frontendFS))

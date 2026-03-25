@@ -1,62 +1,14 @@
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets, useOutletEvents } from '@/hooks/useOutlets'
+import { useDevices } from '@/hooks/useDevices'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useDashboardLayout } from '@/hooks/useDashboardLayout'
 import { ProbeCard } from '@/components/ProbeCard'
-import { PowerPairCard } from '@/components/PowerPairCard'
 import { OutletCard } from '@/components/OutletCard'
-import { cn, relativeTime, splitCamelCase } from '@/lib/utils'
-import type { Probe } from '@/api/types'
-
-/** A probe card or a combined watts+amps power pair card. */
-type ProbeCardItem =
-  | { kind: 'probe'; probe: Probe }
-  | { kind: 'power-pair'; watts: Probe; amps: Probe; label: string }
-
-/**
- * Detect power probe pairs (FooW + FooA) and group them.
- * Unpaired power probes and all other probes pass through as-is.
- */
-function groupPowerPairs(probes: Probe[]): ProbeCardItem[] {
-  const wattsByBase = new Map<string, Probe>()
-  const ampsByBase = new Map<string, Probe>()
-  const pairedBases = new Set<string>()
-
-  for (const p of probes) {
-    if (p.type === 'pwr' && p.name.endsWith('W')) {
-      wattsByBase.set(p.name.slice(0, -1), p)
-    } else if (p.type === 'Amps' && p.name.endsWith('A')) {
-      ampsByBase.set(p.name.slice(0, -1), p)
-    }
-  }
-
-  for (const base of wattsByBase.keys()) {
-    if (ampsByBase.has(base)) pairedBases.add(base)
-  }
-
-  const items: ProbeCardItem[] = []
-  const consumed = new Set<string>()
-
-  for (const p of probes) {
-    if (consumed.has(p.name)) continue
-
-    let base: string | null = null
-    if (p.type === 'pwr' && p.name.endsWith('W')) base = p.name.slice(0, -1)
-    if (p.type === 'Amps' && p.name.endsWith('A')) base = p.name.slice(0, -1)
-
-    if (base && pairedBases.has(base)) {
-      const watts = wattsByBase.get(base)!
-      const amps = ampsByBase.get(base)!
-      consumed.add(watts.name)
-      consumed.add(amps.name)
-      items.push({ kind: 'power-pair', watts, amps, label: watts.display_name || splitCamelCase(base) })
-    } else {
-      items.push({ kind: 'probe', probe: p })
-    }
-  }
-
-  return items
-}
+import { DeviceCard } from '@/components/DeviceCard'
+import { cn, relativeTime } from '@/lib/utils'
+import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
 const statusLabel: Record<string, string> = {
   normal: 'Stable',
@@ -88,17 +40,85 @@ function SkeletonCard() {
   )
 }
 
+/** Split dashboard items into sections by separator items. */
+function groupIntoSections(items: DashboardItem[]): { label: string | null; items: DashboardItem[] }[] {
+  const sections: { label: string | null; items: DashboardItem[] }[] = []
+  let current: { label: string | null; items: DashboardItem[] } = { label: null, items: [] }
+
+  for (const item of items) {
+    if (item.item_type === 'separator') {
+      if (current.items.length > 0 || current.label !== null) {
+        sections.push(current)
+      }
+      current = { label: item.label, items: [] }
+    } else {
+      current.items.push(item)
+    }
+  }
+  if (current.items.length > 0 || current.label !== null) {
+    sections.push(current)
+  }
+
+  return sections
+}
+
+function renderCard(
+  item: DashboardItem,
+  probeMap: Map<string, Probe>,
+  outletMap: Map<string, Outlet>,
+  deviceMap: Map<number, Device>,
+) {
+  const ref = item.reference_id
+  if (!ref) return null
+
+  switch (item.item_type) {
+    case 'probe': {
+      const probe = probeMap.get(ref)
+      if (!probe) return null
+      return <ProbeCard key={`probe:${ref}`} probe={probe} />
+    }
+    case 'outlet': {
+      const outlet = outletMap.get(ref)
+      if (!outlet) return null
+      return <OutletCard key={`outlet:${ref}`} outlet={outlet} />
+    }
+    case 'device': {
+      const device = deviceMap.get(Number(ref))
+      if (!device) return null
+      return (
+        <DeviceCard
+          key={`device:${ref}`}
+          device={device}
+          probes={device.probe_names
+            .map((name) => probeMap.get(name))
+            .filter((p): p is NonNullable<typeof p> => !!p)}
+          outlet={device.outlet_id ? outletMap.get(device.outlet_id) : undefined}
+        />
+      )
+    }
+    default:
+      return null
+  }
+}
+
 export default function Dashboard() {
   usePageTitle('Dashboard')
+  const { data: layoutData, isLoading: layoutLoading } = useDashboardLayout()
   const { data: probeData, isLoading: probesLoading } = useProbes()
   const { data: outletData, isLoading: outletsLoading } = useOutlets()
+  const { data: deviceData, isLoading: devicesLoading } = useDevices()
   const { data: eventsData } = useOutletEvents({ limit: 8 })
   const { data: systemData } = useSystemStatus()
 
-  // Backend returns items sorted by display_order. Filter hidden items.
-  const probes = (probeData?.probes ?? []).filter((p) => !p.hidden)
-  const outlets = (outletData?.outlets ?? []).filter((o) => (o.type === 'outlet' || o.type === 'virtual') && !o.hidden)
+  const probes = probeData?.probes ?? []
+  const allOutlets = (outletData?.outlets ?? []).filter((o) => o.type === 'outlet' || o.type === 'virtual')
   const events = eventsData?.events ?? []
+  const devices = deviceData?.devices ?? []
+  const dashboardItems = layoutData?.items ?? []
+
+  const probeMap = new Map(probes.map((p) => [p.name, p]))
+  const outletMap = new Map(allOutlets.map((o) => [o.id, o]))
+  const deviceMap = new Map(devices.map((d) => [d.id, d]))
 
   // Overall status — worst of all probes
   const worstStatus = probes.reduce<string>((worst, p) => {
@@ -107,11 +127,19 @@ export default function Dashboard() {
     return worst
   }, 'normal')
 
-  const activeOutlets = outlets.filter(
-    (o) => o.state === 'ON' || o.state === 'AON' || o.state === 'TBL',
+  // Count active outlets from dashboard items only
+  const dashboardOutletIds = new Set(
+    dashboardItems.filter((i) => i.item_type === 'outlet').map((i) => i.reference_id),
+  )
+  const activeOutlets = allOutlets.filter(
+    (o) => dashboardOutletIds.has(o.id) && (o.state === 'ON' || o.state === 'AON' || o.state === 'TBL'),
   ).length
 
   const criticalCount = probes.filter((p) => p.status === 'critical').length
+
+  const isLoading = layoutLoading || probesLoading || outletsLoading || devicesLoading
+
+  const sections = groupIntoSections(dashboardItems)
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
@@ -146,46 +174,47 @@ export default function Dashboard() {
         </span>
       </div>
 
-      {/* Probe cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {probesLoading
-          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : groupPowerPairs(probes).map((item) =>
-              item.kind === 'power-pair' ? (
-                <PowerPairCard
-                  key={item.label}
-                  watts={item.watts}
-                  amps={item.amps}
-                  label={item.label}
-                />
-              ) : (
-                <ProbeCard key={item.probe.name} probe={item.probe} />
-              ),
-            )}
-      </div>
-
-      {/* Power management + System events */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Outlets */}
-        <div className="lg:col-span-3 space-y-4">
-          <h2 className="text-lg font-semibold text-on-surface">
-            Controls
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {outletsLoading
-              ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-              : outlets.map((outlet) => (
-                  <OutletCard key={outlet.id} outlet={outlet} />
-                ))}
-          </div>
-          {!outletsLoading && outlets.length === 0 && (
-            <div className="bg-surface-container rounded-2xl p-8 text-center">
-              <p className="text-on-surface-dim">No outlets detected</p>
-            </div>
-          )}
+      {/* Dashboard sections driven by dashboard_items */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
+      ) : dashboardItems.length === 0 ? (
+        <div className="bg-surface-container rounded-2xl p-8 text-center">
+          <p className="text-on-surface-dim">
+            No items on dashboard. Go to Settings → Dashboard to add items.
+          </p>
+        </div>
+      ) : (
+        sections.map((section, sectionIdx) => {
+          const cards = section.items
+            .map((item) => renderCard(item, probeMap, outletMap, deviceMap))
+            .filter(Boolean)
 
-        {/* System events */}
+          if (cards.length === 0 && section.label === null) return null
+
+          return (
+            <div key={sectionIdx} className="space-y-4">
+              {section.label && (
+                <h2 className="text-lg font-semibold text-on-surface">
+                  {section.label}
+                </h2>
+              )}
+              {cards.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {cards}
+                </div>
+              )}
+            </div>
+          )
+        })
+      )}
+
+      {/* System events sidebar — always visible, not part of dashboard items */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3" />
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-lg font-semibold text-on-surface">
             System Events

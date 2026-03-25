@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 )
@@ -86,19 +87,19 @@ func (s *SQLiteDB) DeleteToken(ctx context.Context, id int64) error {
 func (s *SQLiteDB) GetProbeConfig(ctx context.Context, probeName string) (*ProbeConfig, error) {
 	var c ProbeConfig
 	err := s.db.QueryRowContext(ctx,
-		"SELECT probe_name, display_name, unit_override, display_order, min_normal, max_normal, min_warning, max_warning, hidden FROM probe_config WHERE probe_name = ?",
+		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id FROM probe_config WHERE probe_name = ?",
 		probeName,
-	).Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.DisplayOrder, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.Hidden)
+	).Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID)
 	if err != nil {
 		return nil, fmt.Errorf("getting probe config %s: %w", probeName, err)
 	}
 	return &c, nil
 }
 
-// ListProbeConfigs returns all probe configs ordered by display_order.
+// ListProbeConfigs returns all probe configs ordered by name.
 func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT probe_name, display_name, unit_override, display_order, min_normal, max_normal, min_warning, max_warning, hidden FROM probe_config ORDER BY display_order, probe_name",
+		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id FROM probe_config ORDER BY probe_name",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing probe configs: %w", err)
@@ -108,7 +109,7 @@ func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) 
 	var configs []ProbeConfig
 	for rows.Next() {
 		var c ProbeConfig
-		if err := rows.Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.DisplayOrder, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.Hidden); err != nil {
+		if err := rows.Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID); err != nil {
 			return nil, fmt.Errorf("scanning probe config: %w", err)
 		}
 		configs = append(configs, c)
@@ -119,19 +120,17 @@ func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) 
 // UpsertProbeConfig inserts or updates a probe config.
 func (s *SQLiteDB) UpsertProbeConfig(ctx context.Context, cfg ProbeConfig) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO probe_config (probe_name, display_name, unit_override, display_order, min_normal, max_normal, min_warning, max_warning, hidden)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO probe_config (probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(probe_name) DO UPDATE SET
 			display_name = excluded.display_name,
 			unit_override = excluded.unit_override,
-			display_order = excluded.display_order,
 			min_normal = excluded.min_normal,
 			max_normal = excluded.max_normal,
 			min_warning = excluded.min_warning,
-			max_warning = excluded.max_warning,
-			hidden = excluded.hidden`,
-		cfg.ProbeName, cfg.DisplayName, cfg.UnitOverride, cfg.DisplayOrder,
-		cfg.MinNormal, cfg.MaxNormal, cfg.MinWarning, cfg.MaxWarning, cfg.Hidden,
+			max_warning = excluded.max_warning`,
+		cfg.ProbeName, cfg.DisplayName, cfg.UnitOverride,
+		cfg.MinNormal, cfg.MaxNormal, cfg.MinWarning, cfg.MaxWarning,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting probe config %s: %w", cfg.ProbeName, err)
@@ -145,19 +144,19 @@ func (s *SQLiteDB) UpsertProbeConfig(ctx context.Context, cfg ProbeConfig) error
 func (s *SQLiteDB) GetOutletConfig(ctx context.Context, outletID string) (*OutletConfig, error) {
 	var c OutletConfig
 	err := s.db.QueryRowContext(ctx,
-		"SELECT outlet_id, display_name, display_order, icon, hidden FROM outlet_config WHERE outlet_id = ?",
+		"SELECT outlet_id, display_name, icon FROM outlet_config WHERE outlet_id = ?",
 		outletID,
-	).Scan(&c.OutletID, &c.DisplayName, &c.DisplayOrder, &c.Icon, &c.Hidden)
+	).Scan(&c.OutletID, &c.DisplayName, &c.Icon)
 	if err != nil {
 		return nil, fmt.Errorf("getting outlet config %s: %w", outletID, err)
 	}
 	return &c, nil
 }
 
-// ListOutletConfigs returns all outlet configs ordered by display_order.
+// ListOutletConfigs returns all outlet configs ordered by outlet_id.
 func (s *SQLiteDB) ListOutletConfigs(ctx context.Context) ([]OutletConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT outlet_id, display_name, display_order, icon, hidden FROM outlet_config ORDER BY display_order, outlet_id",
+		"SELECT outlet_id, display_name, icon FROM outlet_config ORDER BY outlet_id",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing outlet configs: %w", err)
@@ -167,7 +166,7 @@ func (s *SQLiteDB) ListOutletConfigs(ctx context.Context) ([]OutletConfig, error
 	var configs []OutletConfig
 	for rows.Next() {
 		var c OutletConfig
-		if err := rows.Scan(&c.OutletID, &c.DisplayName, &c.DisplayOrder, &c.Icon, &c.Hidden); err != nil {
+		if err := rows.Scan(&c.OutletID, &c.DisplayName, &c.Icon); err != nil {
 			return nil, fmt.Errorf("scanning outlet config: %w", err)
 		}
 		configs = append(configs, c)
@@ -178,14 +177,12 @@ func (s *SQLiteDB) ListOutletConfigs(ctx context.Context) ([]OutletConfig, error
 // UpsertOutletConfig inserts or updates an outlet config.
 func (s *SQLiteDB) UpsertOutletConfig(ctx context.Context, cfg OutletConfig) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO outlet_config (outlet_id, display_name, display_order, icon, hidden)
-		VALUES (?, ?, ?, ?, ?)
+		`INSERT INTO outlet_config (outlet_id, display_name, icon)
+		VALUES (?, ?, ?)
 		ON CONFLICT(outlet_id) DO UPDATE SET
 			display_name = excluded.display_name,
-			display_order = excluded.display_order,
-			icon = excluded.icon,
-			hidden = excluded.hidden`,
-		cfg.OutletID, cfg.DisplayName, cfg.DisplayOrder, cfg.Icon, cfg.Hidden,
+			icon = excluded.icon`,
+		cfg.OutletID, cfg.DisplayName, cfg.Icon,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting outlet config %s: %w", cfg.OutletID, err)
@@ -548,4 +545,482 @@ func (s *SQLiteDB) ListBackupJobs(ctx context.Context, limit int) ([]BackupJob, 
 		jobs = append(jobs, j)
 	}
 	return jobs, rows.Err()
+}
+
+// --- Devices ---
+
+// ListDevices returns all devices with their linked probe names.
+func (s *SQLiteDB) ListDevices(ctx context.Context) ([]Device, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, name, device_type, description, brand, model, notes, image_path, outlet_id, created_at, updated_at
+		FROM devices ORDER BY name`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing devices: %w", err)
+	}
+	defer rows.Close()
+
+	var devices []Device
+	for rows.Next() {
+		var d Device
+		if err := rows.Scan(&d.ID, &d.Name, &d.DeviceType, &d.Description, &d.Brand, &d.Model, &d.Notes, &d.ImagePath, &d.OutletID, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning device: %w", err)
+		}
+		devices = append(devices, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Load probe names for each device.
+	for i := range devices {
+		probes, err := s.listDeviceProbeNames(ctx, devices[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		devices[i].ProbeNames = probes
+	}
+	return devices, nil
+}
+
+// GetDevice returns a single device by ID with its linked probe names.
+func (s *SQLiteDB) GetDevice(ctx context.Context, id int64) (*Device, error) {
+	var d Device
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, name, device_type, description, brand, model, notes, image_path, outlet_id, created_at, updated_at
+		FROM devices WHERE id = ?`, id,
+	).Scan(&d.ID, &d.Name, &d.DeviceType, &d.Description, &d.Brand, &d.Model, &d.Notes, &d.ImagePath, &d.OutletID, &d.CreatedAt, &d.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("getting device %d: %w", id, err)
+	}
+	probes, err := s.listDeviceProbeNames(ctx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	d.ProbeNames = probes
+	return &d, nil
+}
+
+// InsertDevice inserts a new device and returns its ID.
+func (s *SQLiteDB) InsertDevice(ctx context.Context, d Device) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO devices (name, device_type, description, brand, model, notes, image_path, outlet_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.Name, d.DeviceType, d.Description, d.Brand, d.Model, d.Notes, d.ImagePath, d.OutletID,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting device: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// UpdateDevice updates an existing device. Returns an error if the device is not found.
+func (s *SQLiteDB) UpdateDevice(ctx context.Context, id int64, d Device) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE devices SET name = ?, device_type = ?, description = ?, brand = ?, model = ?, notes = ?, image_path = ?, outlet_id = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?`,
+		d.Name, d.DeviceType, d.Description, d.Brand, d.Model, d.Notes, d.ImagePath, d.OutletID, id,
+	)
+	if err != nil {
+		return fmt.Errorf("updating device %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("device %d not found", id)
+	}
+	return nil
+}
+
+// DeleteDevice removes a device by ID. Linked probe_config rows have device_id set to NULL via ON DELETE SET NULL.
+func (s *SQLiteDB) DeleteDevice(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM devices WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("deleting device %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("device %d not found", id)
+	}
+	return nil
+}
+
+// SetProbeDevice sets or clears the device_id on a probe_config row.
+// Ensures the probe_config row exists via upsert.
+func (s *SQLiteDB) SetProbeDevice(ctx context.Context, probeName string, deviceID *int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO probe_config (probe_name, device_id) VALUES (?, ?)
+		ON CONFLICT(probe_name) DO UPDATE SET device_id = excluded.device_id`,
+		probeName, deviceID,
+	)
+	if err != nil {
+		return fmt.Errorf("setting probe device for %s: %w", probeName, err)
+	}
+	return nil
+}
+
+// SetDeviceProbes replaces the full probe membership for a device.
+// Clears device_id from any probes previously linked, then sets it on the new list.
+func (s *SQLiteDB) SetDeviceProbes(ctx context.Context, deviceID int64, probeNames []string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Clear existing links.
+	if _, err := tx.ExecContext(ctx, "UPDATE probe_config SET device_id = NULL WHERE device_id = ?", deviceID); err != nil {
+		return fmt.Errorf("clearing probe links for device %d: %w", deviceID, err)
+	}
+
+	// Set new links.
+	for _, name := range probeNames {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO probe_config (probe_name, device_id) VALUES (?, ?)
+			ON CONFLICT(probe_name) DO UPDATE SET device_id = excluded.device_id`,
+			name, deviceID,
+		); err != nil {
+			return fmt.Errorf("linking probe %s to device %d: %w", name, deviceID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// SyncDeviceDisplayNames writes the device name through to linked outlet_config and probe_config rows.
+// Both the outlet and all linked probes get the bare device name.
+func (s *SQLiteDB) SyncDeviceDisplayNames(ctx context.Context, deviceID int64, name string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Update outlet display name.
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE outlet_config SET display_name = ?
+		WHERE outlet_id = (SELECT outlet_id FROM devices WHERE id = ? AND outlet_id IS NOT NULL)`,
+		name, deviceID,
+	); err != nil {
+		return fmt.Errorf("syncing outlet display name for device %d: %w", deviceID, err)
+	}
+
+	// Update all linked probes with the bare device name.
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE probe_config SET display_name = ? WHERE device_id = ?",
+		name, deviceID,
+	); err != nil {
+		return fmt.Errorf("syncing probe display names for device %d: %w", deviceID, err)
+	}
+
+	return tx.Commit()
+}
+
+// GetDeviceByOutletID returns the device linked to an outlet, or nil if none.
+func (s *SQLiteDB) GetDeviceByOutletID(ctx context.Context, outletID string) (*Device, error) {
+	var d Device
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, name, device_type, description, brand, model, notes, image_path, outlet_id, created_at, updated_at
+		FROM devices WHERE outlet_id = ?`, outletID,
+	).Scan(&d.ID, &d.Name, &d.DeviceType, &d.Description, &d.Brand, &d.Model, &d.Notes, &d.ImagePath, &d.OutletID, &d.CreatedAt, &d.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting device by outlet %s: %w", outletID, err)
+	}
+	return &d, nil
+}
+
+// GetDeviceByProbeName returns the device linked to a probe, or nil if none.
+func (s *SQLiteDB) GetDeviceByProbeName(ctx context.Context, probeName string) (*Device, error) {
+	var d Device
+	err := s.db.QueryRowContext(ctx,
+		`SELECT d.id, d.name, d.device_type, d.description, d.brand, d.model, d.notes, d.image_path, d.outlet_id, d.created_at, d.updated_at
+		FROM devices d
+		JOIN probe_config pc ON pc.device_id = d.id
+		WHERE pc.probe_name = ?`, probeName,
+	).Scan(&d.ID, &d.Name, &d.DeviceType, &d.Description, &d.Brand, &d.Model, &d.Notes, &d.ImagePath, &d.OutletID, &d.CreatedAt, &d.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting device by probe %s: %w", probeName, err)
+	}
+	return &d, nil
+}
+
+// listDeviceProbeNames returns the probe names linked to a device.
+func (s *SQLiteDB) listDeviceProbeNames(ctx context.Context, deviceID int64) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT probe_name FROM probe_config WHERE device_id = ? ORDER BY probe_name", deviceID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing probe names for device %d: %w", deviceID, err)
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, fmt.Errorf("scanning probe name: %w", err)
+		}
+		names = append(names, n)
+	}
+	return names, rows.Err()
+}
+
+// --- Dashboard Items ---
+
+// ListDashboardItems returns all dashboard items ordered by sort_order.
+func (s *SQLiteDB) ListDashboardItems(ctx context.Context) ([]DashboardItem, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT id, item_type, reference_id, label, sort_order FROM dashboard_items ORDER BY sort_order",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing dashboard items: %w", err)
+	}
+	defer rows.Close()
+
+	var items []DashboardItem
+	for rows.Next() {
+		var item DashboardItem
+		if err := rows.Scan(&item.ID, &item.ItemType, &item.ReferenceID, &item.Label, &item.SortOrder); err != nil {
+			return nil, fmt.Errorf("scanning dashboard item: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+// ReplaceDashboardLayout replaces the entire dashboard layout in a transaction.
+func (s *SQLiteDB) ReplaceDashboardLayout(ctx context.Context, items []DashboardItem) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM dashboard_items"); err != nil {
+		return fmt.Errorf("clearing dashboard items: %w", err)
+	}
+
+	for i, item := range items {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES (?, ?, ?, ?)",
+			item.ItemType, item.ReferenceID, item.Label, i+1,
+		); err != nil {
+			return fmt.Errorf("inserting dashboard item %d: %w", i, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// AddDashboardItem appends a single item to the dashboard (sort_order = max+1).
+func (s *SQLiteDB) AddDashboardItem(ctx context.Context, item DashboardItem) (int64, error) {
+	var maxOrder int
+	_ = s.db.QueryRowContext(ctx, "SELECT COALESCE(MAX(sort_order), 0) FROM dashboard_items").Scan(&maxOrder)
+
+	res, err := s.db.ExecContext(ctx,
+		"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES (?, ?, ?, ?)",
+		item.ItemType, item.ReferenceID, item.Label, maxOrder+1,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("adding dashboard item: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// RemoveDashboardItem removes a dashboard item by ID.
+func (s *SQLiteDB) RemoveDashboardItem(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM dashboard_items WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("removing dashboard item %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("dashboard item %d not found", id)
+	}
+	return nil
+}
+
+// RemoveDashboardItemByRef removes a dashboard item by type and reference_id.
+func (s *SQLiteDB) RemoveDashboardItemByRef(ctx context.Context, itemType, referenceID string) error {
+	_, err := s.db.ExecContext(ctx,
+		"DELETE FROM dashboard_items WHERE item_type = ? AND reference_id = ?",
+		itemType, referenceID,
+	)
+	if err != nil {
+		return fmt.Errorf("removing dashboard item by ref %s/%s: %w", itemType, referenceID, err)
+	}
+	return nil
+}
+
+// MigrateDashboardLayout migrates old hidden/display_order data into dashboard_items.
+// It is idempotent: if dashboard_items already has rows, it does nothing.
+func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
+	var count int
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM dashboard_items").Scan(&count); err != nil {
+		return fmt.Errorf("checking dashboard_items count: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	// Check if legacy columns exist before attempting migration.
+	// Must close rows before starting any transaction (MaxOpenConns=1).
+	var hasLegacy bool
+	func() {
+		rows, err := s.db.QueryContext(ctx, "PRAGMA table_info(probe_config)")
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var cid int
+			var name, ctype string
+			var notnull int
+			var dfltValue *string
+			var pk int
+			if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+				return
+			}
+			if name == "hidden" {
+				hasLegacy = true
+				break
+			}
+		}
+	}()
+	if !hasLegacy {
+		return nil
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning migration transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	sortOrder := 1
+
+	// Migrate non-hidden probes.
+	probeRows, err := tx.QueryContext(ctx,
+		"SELECT probe_name FROM probe_config WHERE hidden = 0 ORDER BY display_order, probe_name",
+	)
+	if err != nil {
+		return fmt.Errorf("reading probe configs for migration: %w", err)
+	}
+	var probeNames []string
+	for probeRows.Next() {
+		var name string
+		if err := probeRows.Scan(&name); err != nil {
+			probeRows.Close()
+			return fmt.Errorf("scanning probe name: %w", err)
+		}
+		probeNames = append(probeNames, name)
+	}
+	probeRows.Close()
+
+	if len(probeNames) > 0 {
+		// Add separator for probes.
+		label := "Telemetry"
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('separator', NULL, ?, ?)",
+			label, sortOrder,
+		); err != nil {
+			return fmt.Errorf("inserting probe separator: %w", err)
+		}
+		sortOrder++
+
+		for _, name := range probeNames {
+			if _, err := tx.ExecContext(ctx,
+				"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('probe', ?, NULL, ?)",
+				name, sortOrder,
+			); err != nil {
+				return fmt.Errorf("inserting probe dashboard item: %w", err)
+			}
+			sortOrder++
+		}
+	}
+
+	// Migrate non-hidden devices.
+	deviceRows, err := tx.QueryContext(ctx,
+		"SELECT id FROM devices WHERE hidden = 0 ORDER BY display_order, name",
+	)
+	if err != nil {
+		return fmt.Errorf("reading devices for migration: %w", err)
+	}
+	var deviceIDs []string
+	for deviceRows.Next() {
+		var id int64
+		if err := deviceRows.Scan(&id); err != nil {
+			deviceRows.Close()
+			return fmt.Errorf("scanning device id: %w", err)
+		}
+		deviceIDs = append(deviceIDs, fmt.Sprintf("%d", id))
+	}
+	deviceRows.Close()
+
+	if len(deviceIDs) > 0 {
+		label := "Equipment"
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('separator', NULL, ?, ?)",
+			label, sortOrder,
+		); err != nil {
+			return fmt.Errorf("inserting device separator: %w", err)
+		}
+		sortOrder++
+
+		for _, idStr := range deviceIDs {
+			if _, err := tx.ExecContext(ctx,
+				"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('device', ?, NULL, ?)",
+				idStr, sortOrder,
+			); err != nil {
+				return fmt.Errorf("inserting device dashboard item: %w", err)
+			}
+			sortOrder++
+		}
+	}
+
+	// Migrate non-hidden outlets.
+	outletRows, err := tx.QueryContext(ctx,
+		"SELECT outlet_id FROM outlet_config WHERE hidden = 0 ORDER BY display_order, outlet_id",
+	)
+	if err != nil {
+		return fmt.Errorf("reading outlet configs for migration: %w", err)
+	}
+	var outletIDs []string
+	for outletRows.Next() {
+		var id string
+		if err := outletRows.Scan(&id); err != nil {
+			outletRows.Close()
+			return fmt.Errorf("scanning outlet id: %w", err)
+		}
+		outletIDs = append(outletIDs, id)
+	}
+	outletRows.Close()
+
+	if len(outletIDs) > 0 {
+		label := "Controls"
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('separator', NULL, ?, ?)",
+			label, sortOrder,
+		); err != nil {
+			return fmt.Errorf("inserting outlet separator: %w", err)
+		}
+		sortOrder++
+
+		for _, id := range outletIDs {
+			if _, err := tx.ExecContext(ctx,
+				"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES ('outlet', ?, NULL, ?)",
+				id, sortOrder,
+			); err != nil {
+				return fmt.Errorf("inserting outlet dashboard item: %w", err)
+			}
+			sortOrder++
+		}
+	}
+
+	return tx.Commit()
 }
