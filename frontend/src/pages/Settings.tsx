@@ -513,16 +513,10 @@ function useMergedProbeConfigs(
 function ProbesTab() {
   const { data: configData, isLoading: configsLoading } = useProbeConfigs()
   const { data: probesData, isLoading: probesLoading } = useProbes()
-  const { data: devicesData } = useDevices()
   const updateMutation = useUpdateProbeConfig()
 
   const isLoading = configsLoading || probesLoading
   const items = useMergedProbeConfigs(probesData?.probes, configData?.configs)
-
-  // Build device name lookup by ID for tooltip.
-  const deviceNameById = new Map(
-    (devicesData?.devices ?? []).map((d) => [d.id, d.name]),
-  )
 
   function handleUpdate(name: string, field: keyof ProbeConfig, raw: string) {
     const numericFields: (keyof ProbeConfig)[] = [
@@ -556,23 +550,11 @@ function ProbesTab() {
           </tr>
         </thead>
         <tbody>
-          {items.map((c) => {
-            const deviceName = c.device_id ? deviceNameById.get(c.device_id) : null
-            return (
+          {items.map((c) => (
             <tr key={c.probe_name} className="transition-fluid hover:bg-surface-container-high/50">
               <td className="py-2 px-4 text-sm font-medium text-on-surface">{c.probe_name}</td>
               <td className="py-2 px-4">
-                {deviceName ? (
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2 py-1 text-sm text-on-surface-dim cursor-default"
-                    title={`Managed by device "${deviceName}" — edit the device name to change this`}
-                  >
-                    {c.display_name}
-                    <span className="text-xs text-on-surface-faint">({deviceName})</span>
-                  </span>
-                ) : (
-                  <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
-                )}
+                <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
               </td>
               <td className="py-2 px-4">
                 <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
@@ -590,8 +572,7 @@ function ProbesTab() {
                 <EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} />
               </td>
             </tr>
-            )
-          })}
+          ))}
         </tbody>
       </table>
     </div>
@@ -625,18 +606,10 @@ function useMergedOutletConfigs(
 function OutletsTab() {
   const { data: outletConfigData, isLoading: outletConfigsLoading } = useOutletConfigs()
   const { data: outletsData, isLoading: outletsLoading } = useOutlets()
-  const { data: devicesData } = useDevices()
   const updateOutletMutation = useUpdateOutletConfig()
 
   const isLoading = outletConfigsLoading || outletsLoading
   const items = useMergedOutletConfigs(outletsData?.outlets, outletConfigData?.configs)
-
-  // Build outlet_id → device name lookup.
-  const deviceNameByOutletId = new Map(
-    (devicesData?.devices ?? [])
-      .filter((d) => d.outlet_id)
-      .map((d) => [d.outlet_id!, d.name]),
-  )
 
   function handleUpdate(id: string, field: keyof OutletConfig, raw: string) {
     updateOutletMutation.mutate({ id, config: { [field]: raw } })
@@ -666,28 +639,15 @@ function OutletsTab() {
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
-            const deviceName = deviceNameByOutletId.get(item.outlet_id)
-            return (
+          {items.map((item) => (
               <tr key={item.outlet_id} className="transition-fluid hover:bg-surface-container-high/50">
                 <td className="py-2 px-4 text-sm font-medium text-on-surface">{item.outletName}</td>
                 <td className="py-2 px-4">
-                  {deviceName ? (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-2 py-1 text-sm text-on-surface-dim cursor-default"
-                      title={`Managed by device "${deviceName}" — edit the device name to change this`}
-                    >
-                      {item.display_name}
-                      <span className="text-xs text-on-surface-faint">({deviceName})</span>
-                    </span>
-                  ) : (
-                    <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
-                  )}
+                  <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
                 </td>
                 <td className="py-2 px-4 text-xs text-on-surface-faint font-mono">{item.outlet_id}</td>
               </tr>
-            )
-          })}
+          ))}
         </tbody>
       </table>
     </div>

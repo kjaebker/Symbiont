@@ -119,11 +119,6 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Sync display names.
-	if err := s.sqlite.SyncDeviceDisplayNames(ctx, id, body.Name); err != nil {
-		s.logger.Error("failed to sync device display names", "err", err, "device_id", id)
-	}
-
 	// Auto-add to dashboard.
 	refID := fmt.Sprintf("%d", id)
 	if _, err := s.sqlite.AddDashboardItem(ctx, db.DashboardItem{ItemType: "device", ReferenceID: &refID}); err != nil {
@@ -202,13 +197,6 @@ func (s *Server) HandleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If name changed, sync display names.
-	if body.Name != existing.Name {
-		if err := s.sqlite.SyncDeviceDisplayNames(ctx, id, body.Name); err != nil {
-			s.logger.Error("failed to sync device display names", "err", err, "device_id", id)
-		}
-	}
-
 	device, err := s.sqlite.GetDevice(ctx, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch updated device", "db_error")
@@ -259,7 +247,7 @@ func (s *Server) HandleDeviceSetProbes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify device exists.
-	device, err := s.sqlite.GetDevice(ctx, id)
+	_, err = s.sqlite.GetDevice(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "device not found", "not_found")
@@ -280,11 +268,6 @@ func (s *Server) HandleDeviceSetProbes(w http.ResponseWriter, r *http.Request) {
 	if err := s.sqlite.SetDeviceProbes(ctx, id, body.ProbeNames); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to set device probes", "db_error")
 		return
-	}
-
-	// Sync display names for the new probe set.
-	if err := s.sqlite.SyncDeviceDisplayNames(ctx, id, device.Name); err != nil {
-		s.logger.Error("failed to sync device display names", "err", err, "device_id", id)
 	}
 
 	updated, err := s.sqlite.GetDevice(ctx, id)
