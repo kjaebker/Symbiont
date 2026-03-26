@@ -1,6 +1,9 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+	"strings"
+)
 
 // CreateSQLiteSchema creates all SQLite tables and indexes idempotently.
 func CreateSQLiteSchema(db *sql.DB) error {
@@ -122,7 +125,20 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		}
 	}
 
-	// Post-table indexes.
+	// Migrations: add columns to existing tables. Each migration catches
+	// "duplicate column" to be idempotent.
+	migrations := []string{
+		`ALTER TABLE probe_config ADD COLUMN device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL`,
+	}
+	for _, m := range migrations {
+		if _, err := db.Exec(m); err != nil {
+			if !isDuplicateColumn(err) {
+				return err
+			}
+		}
+	}
+
+	// Post-migration indexes (depend on columns added above).
 	postIndexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,
 	}
@@ -133,5 +149,10 @@ func CreateSQLiteSchema(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// isDuplicateColumn checks if a SQLite error is a "duplicate column name" error.
+func isDuplicateColumn(err error) bool {
+	return strings.Contains(err.Error(), "duplicate column name")
 }
 
