@@ -65,10 +65,10 @@
         #   nix hash convert --hash-algo sha256 --to sri <base32-hash>
         symbiont-bin = pkgs.stdenv.mkDerivation {
           pname = "symbiont-bin";
-          version = "0.1.0"; # <── bump on upgrade
+          version = "0.2.0"; # <── bump on upgrade
           src = pkgs.fetchurl {
-            url = "https://github.com/kjaebker/Symbiont/releases/download/v0.1.0/symbiont-linux-amd64.tar.gz";
-            hash = "sha256-ufKv5+uK60l81z7QV5zu42Tarefs75os8JPqUgiu/f0="; # <── update on upgrade
+            url = "https://github.com/kjaebker/Symbiont/releases/download/v0.2.0/symbiont-linux-amd64.tar.gz";
+            hash = "sha256-nNS5ZcN+KwtD3vNrLar2TR8OIjat3kgAAKwOJzdhnjQ="; # <── update on upgrade
           };
           sourceRoot = ".";
           # Patch the binary's interpreter and rpath to use Nix store paths.
