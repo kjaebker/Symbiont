@@ -45,7 +45,14 @@ endif
 	git push origin "v$(V)"
 	@echo ""
 	@echo "==> Waiting for CI release build..."
-	@RUN_ID=$$(gh run list --branch "v$(V)" --event push --limit 1 --json databaseId -q '.[0].databaseId'); \
+	@echo "    Waiting for run to appear..."; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+		RUN_ID=$$(gh run list --json databaseId,headBranch -q '.[] | select(.headBranch=="v$(V)") | .databaseId' --limit 5 | head -1); \
+		[ -n "$$RUN_ID" ] && break; \
+		sleep 3; \
+	done; \
+	if [ -z "$$RUN_ID" ]; then echo "ERROR: CI run not found for v$(V)"; exit 1; fi; \
+	echo "    Found run $$RUN_ID"; \
 	gh run watch "$$RUN_ID" --exit-status
 	@echo ""
 	@echo "==> Updating flake.nix with new hash..."
