@@ -68,7 +68,7 @@
           version = "0.2.0"; # <── bump on upgrade
           src = pkgs.fetchurl {
             url = "https://github.com/kjaebker/Symbiont/releases/download/v0.2.0/symbiont-linux-amd64.tar.gz";
-            hash = "sha256-nNS5ZcN+KwtD3vNrLar2TR8OIjat3kgAAKwOJzdhnjQ="; # <── update on upgrade
+            hash = "sha256-brQDSGx+sjP6C44Np2ibK6UpAZhkQhm86y5tKN7fzBQ="; # <── update on upgrade
           };
           sourceRoot = ".";
           # Patch the binary's interpreter and rpath to use Nix store paths.
