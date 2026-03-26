@@ -73,6 +73,7 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		Brand       *string  `json:"brand"`
 		Model       *string  `json:"model"`
 		Notes       *string  `json:"notes"`
+		ImagePath   *string  `json:"image_path"`
 		OutletID    *string  `json:"outlet_id"`
 		ProbeNames  []string `json:"probe_names"`
 	}
@@ -97,6 +98,7 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		Brand:       body.Brand,
 		Model:       body.Model,
 		Notes:       body.Notes,
+		ImagePath:   body.ImagePath,
 		OutletID:    body.OutletID,
 	}
 
@@ -162,6 +164,7 @@ func (s *Server) HandleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		Brand       *string  `json:"brand"`
 		Model       *string  `json:"model"`
 		Notes       *string  `json:"notes"`
+		ImagePath   *string  `json:"image_path"`
 		OutletID    *string  `json:"outlet_id"`
 		ProbeNames  []string `json:"probe_names"`
 	}
