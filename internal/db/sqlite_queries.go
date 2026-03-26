@@ -868,34 +868,6 @@ func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
 		return nil
 	}
 
-	// Check if legacy columns exist before attempting migration.
-	// Must close rows before starting any transaction (MaxOpenConns=1).
-	var hasLegacy bool
-	func() {
-		rows, err := s.db.QueryContext(ctx, "PRAGMA table_info(probe_config)")
-		if err != nil {
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var cid int
-			var name, ctype string
-			var notnull int
-			var dfltValue *string
-			var pk int
-			if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
-				return
-			}
-			if name == "hidden" {
-				hasLegacy = true
-				break
-			}
-		}
-	}()
-	if !hasLegacy {
-		return nil
-	}
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("beginning migration transaction: %w", err)
@@ -904,12 +876,15 @@ func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
 
 	sortOrder := 1
 
-	// Migrate non-hidden probes.
+	// Migrate probes. Fall back to simple query if legacy columns don't exist.
 	probeRows, err := tx.QueryContext(ctx,
 		"SELECT probe_name FROM probe_config WHERE hidden = 0 ORDER BY display_order, probe_name",
 	)
 	if err != nil {
-		return fmt.Errorf("reading probe configs for migration: %w", err)
+		probeRows, err = tx.QueryContext(ctx, "SELECT probe_name FROM probe_config ORDER BY probe_name")
+		if err != nil {
+			return fmt.Errorf("reading probe configs for migration: %w", err)
+		}
 	}
 	var probeNames []string
 	for probeRows.Next() {
@@ -944,12 +919,17 @@ func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
 		}
 	}
 
-	// Migrate non-hidden devices.
+	// Migrate devices. The hidden/display_order columns may not exist on
+	// all production databases, so fall back to a simple query.
 	deviceRows, err := tx.QueryContext(ctx,
 		"SELECT id FROM devices WHERE hidden = 0 ORDER BY display_order, name",
 	)
 	if err != nil {
-		return fmt.Errorf("reading devices for migration: %w", err)
+		// Columns don't exist — just select all devices.
+		deviceRows, err = tx.QueryContext(ctx, "SELECT id FROM devices ORDER BY name")
+		if err != nil {
+			return fmt.Errorf("reading devices for migration: %w", err)
+		}
 	}
 	var deviceIDs []string
 	for deviceRows.Next() {
@@ -983,12 +963,15 @@ func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
 		}
 	}
 
-	// Migrate non-hidden outlets.
+	// Migrate outlets. Same fallback as devices.
 	outletRows, err := tx.QueryContext(ctx,
 		"SELECT outlet_id FROM outlet_config WHERE hidden = 0 ORDER BY display_order, outlet_id",
 	)
 	if err != nil {
-		return fmt.Errorf("reading outlet configs for migration: %w", err)
+		outletRows, err = tx.QueryContext(ctx, "SELECT outlet_id FROM outlet_config ORDER BY outlet_id")
+		if err != nil {
+			return fmt.Errorf("reading outlet configs for migration: %w", err)
+		}
 	}
 	var outletIDs []string
 	for outletRows.Next() {
