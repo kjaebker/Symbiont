@@ -4,6 +4,7 @@ import type {
   Outlet,
   OutletEvent,
   SystemStatus,
+  FeedStatus,
   AlertRule,
   AlertEvent,
   ProbeConfig,
@@ -119,6 +120,18 @@ export function getOutletEvents(params?: { outlet_id?: string; initiated_by?: st
   if (params?.limit) search.set('limit', String(params.limit))
   const qs = search.toString()
   return apiFetch<{ events: OutletEvent[] }>(`/api/outlets/events${qs ? `?${qs}` : ''}`)
+}
+
+// Feed mode
+export function getFeedStatus() {
+  return apiFetch<FeedStatus>('/api/feed')
+}
+
+export function setFeedMode(name: number, active: boolean) {
+  return apiFetch<FeedStatus>('/api/feed', {
+    method: 'PUT',
+    body: JSON.stringify({ name, active }),
+  })
 }
 
 // System

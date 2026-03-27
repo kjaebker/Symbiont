@@ -242,7 +242,9 @@ function SortableDashboardRow({
         ? 'bg-tertiary/10 text-tertiary'
         : item.item_type === 'separator'
           ? 'bg-amber-400/10 text-amber-400'
-          : 'bg-secondary/10 text-secondary'
+          : item.item_type === 'feed_mode'
+            ? 'bg-primary/10 text-primary'
+            : 'bg-secondary/10 text-secondary'
 
   return (
     <div
@@ -304,6 +306,7 @@ function DashboardTab() {
 
   function getDisplayName(item: DashboardItem): string {
     if (item.item_type === 'separator') return item.label ?? 'Section'
+    if (item.item_type === 'feed_mode') return 'Feed Mode'
     const ref = item.reference_id ?? ''
     switch (item.item_type) {
       case 'probe': return probeNameMap.get(ref) ?? ref
@@ -453,7 +456,20 @@ function DashboardTab() {
               </div>
             </div>
           )}
-          {availableProbes.length === 0 && availableOutlets.length === 0 && availableDevices.length === 0 && (
+          {!onDashboard.has('feed_mode:feed') && (
+            <div>
+              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Controller</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleAdd('feed_mode', 'feed')}
+                  className="px-2.5 py-1 text-xs rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-fluid cursor-pointer"
+                >
+                  Feed Mode
+                </button>
+              </div>
+            </div>
+          )}
+          {availableProbes.length === 0 && availableOutlets.length === 0 && availableDevices.length === 0 && onDashboard.has('feed_mode:feed') && (
             <p className="text-xs text-on-surface-faint text-center py-2">All items are already on the dashboard.</p>
           )}
         </div>

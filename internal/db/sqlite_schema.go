@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -138,6 +139,11 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		}
 	}
 
+	// Structural migrations that require table recreation.
+	if err := migrateDashboardItemTypes(db); err != nil {
+		return err
+	}
+
 	// Post-migration indexes (depend on columns added above).
 	postIndexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,
@@ -154,5 +160,40 @@ func CreateSQLiteSchema(db *sql.DB) error {
 // isDuplicateColumn checks if a SQLite error is a "duplicate column name" error.
 func isDuplicateColumn(err error) bool {
 	return strings.Contains(err.Error(), "duplicate column name")
+}
+
+// migrateDashboardItemTypes expands the dashboard_items CHECK constraint to
+// include 'feed_mode'. SQLite does not support ALTER TABLE to change constraints,
+// so this recreates the table when the migration has not yet been applied.
+func migrateDashboardItemTypes(db *sql.DB) error {
+	var createSQL string
+	err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dashboard_items'`).Scan(&createSQL)
+	if err != nil {
+		return fmt.Errorf("querying dashboard_items schema: %w", err)
+	}
+	if strings.Contains(createSQL, "'feed_mode'") {
+		return nil // already migrated
+	}
+
+	stmts := []string{
+		`CREATE TABLE dashboard_items_new (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator','feed_mode')),
+			reference_id TEXT,
+			label        TEXT,
+			sort_order   INTEGER NOT NULL
+		)`,
+		`INSERT INTO dashboard_items_new SELECT * FROM dashboard_items`,
+		`DROP TABLE dashboard_items`,
+		`ALTER TABLE dashboard_items_new RENAME TO dashboard_items`,
+		`CREATE UNIQUE INDEX idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
+		`CREATE INDEX idx_dashboard_items_sort ON dashboard_items(sort_order)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := db.Exec(stmt); err != nil {
+			return fmt.Errorf("migrating dashboard_items item_type constraint: %w", err)
+		}
+	}
+	return nil
 }
 

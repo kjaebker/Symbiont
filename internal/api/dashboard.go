@@ -32,7 +32,7 @@ func (s *Server) HandleDashboardReplace(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Validate items.
-	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true}
+	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true, "feed_mode": true}
 	seen := make(map[string]bool)
 	for _, item := range body.Items {
 		if !validTypes[item.ItemType] {
@@ -80,7 +80,7 @@ func (s *Server) HandleDashboardAddItem(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true}
+	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true, "feed_mode": true}
 	if !validTypes[item.ItemType] {
 		writeError(w, http.StatusBadRequest, "invalid item_type", "invalid_field")
 		return

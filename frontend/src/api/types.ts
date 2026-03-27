@@ -157,9 +157,14 @@ export interface Device {
   probe_names: string[]
 }
 
+export interface FeedStatus {
+  name: number   // 0=inactive, 1=Feed A, 2=Feed B, 3=Feed C, 4=Feed D
+  active: number // 0=inactive, 1=active
+}
+
 export interface DashboardItem {
   id: number
-  item_type: 'probe' | 'outlet' | 'device' | 'separator'
+  item_type: 'probe' | 'outlet' | 'device' | 'separator' | 'feed_mode'
   reference_id: string | null
   label: string | null
   sort_order: number

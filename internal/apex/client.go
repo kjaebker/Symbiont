@@ -24,6 +24,10 @@ type Client interface {
 	// legacy CGI endpoint, which supports state=0 for AUTO. The outletName
 	// must be the Apex outlet name (not DID).
 	SetOutletAuto(ctx context.Context, outletName string) error
+
+	// SetFeedMode enables or cancels a feed cycle on the Apex.
+	// name is 1-4 for Feed A-D; use name=0, active=false to cancel.
+	SetFeedMode(ctx context.Context, name int, active bool) error
 }
 
 // client implements Client using the Apex local REST API.
@@ -223,6 +227,44 @@ func (c *client) SetOutlet(ctx context.Context, did string, state OutletState) e
 			return fmt.Errorf("outlet control failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
 		}
 		return fmt.Errorf("outlet control failed: status %d, body %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+// SetFeedMode enables or cancels a feed cycle via PUT /rest/status/feed.
+func (c *client) SetFeedMode(ctx context.Context, name int, active bool) error {
+	activeInt := 0
+	if active {
+		activeInt = 1
+	}
+	controlReq := FeedControlRequest{Name: name, Active: activeInt}
+	payload, err := json.Marshal(controlReq)
+	if err != nil {
+		return fmt.Errorf("marshaling feed mode request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/rest/status/feed", bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("creating feed mode request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(payload)), nil
+	}
+
+	resp, err := c.do(ctx, req)
+	if err != nil {
+		return fmt.Errorf("setting feed mode: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("feed mode request failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
+		}
+		return fmt.Errorf("feed mode request failed: status %d, body %s", resp.StatusCode, body)
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout'
 import { ProbeCard } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard } from '@/components/DeviceCard'
+import { FeedCard } from '@/components/FeedCard'
 import { cn, relativeTime } from '@/lib/utils'
 import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
@@ -100,6 +101,8 @@ function renderCard(
         />
       )
     }
+    case 'feed_mode':
+      return <FeedCard key="feed_mode" controlsLocked={controlsLocked} />
     default:
       return null
   }
