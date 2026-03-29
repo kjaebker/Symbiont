@@ -140,6 +140,12 @@ type LinkInfo struct {
 	Link      bool   `json:"link"`
 }
 
+// FeedControlRequest is the body sent to PUT /rest/status/feed.
+type FeedControlRequest struct {
+	Name   int `json:"name"`   // 1-4 for Feed A-D; 0 to cancel
+	Active int `json:"active"` // 1 to enable, 0 to cancel
+}
+
 // OutletState represents valid states for outlet control via
 // PUT /rest/status/outputs/<did>.
 type OutletState string

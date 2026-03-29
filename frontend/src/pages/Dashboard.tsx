@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Lock, Unlock } from 'lucide-react'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets, useOutletEvents } from '@/hooks/useOutlets'
 import { useDevices } from '@/hooks/useDevices'
@@ -7,6 +9,7 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout'
 import { ProbeCard } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard } from '@/components/DeviceCard'
+import { FeedCard } from '@/components/FeedCard'
 import { cn, relativeTime } from '@/lib/utils'
 import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
@@ -67,6 +70,7 @@ function renderCard(
   probeMap: Map<string, Probe>,
   outletMap: Map<string, Outlet>,
   deviceMap: Map<number, Device>,
+  controlsLocked: boolean,
 ) {
   const ref = item.reference_id
   if (!ref) return null
@@ -80,7 +84,7 @@ function renderCard(
     case 'outlet': {
       const outlet = outletMap.get(ref)
       if (!outlet) return null
-      return <OutletCard key={`outlet:${ref}`} outlet={outlet} />
+      return <OutletCard key={`outlet:${ref}`} outlet={outlet} controlsLocked={controlsLocked} />
     }
     case 'device': {
       const device = deviceMap.get(Number(ref))
@@ -93,9 +97,12 @@ function renderCard(
             .map((name) => probeMap.get(name))
             .filter((p): p is NonNullable<typeof p> => !!p)}
           outlet={device.outlet_id ? outletMap.get(device.outlet_id) : undefined}
+          controlsLocked={controlsLocked}
         />
       )
     }
+    case 'feed_mode':
+      return <FeedCard key="feed_mode" controlsLocked={controlsLocked} />
     default:
       return null
   }
@@ -103,6 +110,7 @@ function renderCard(
 
 export default function Dashboard() {
   usePageTitle('Dashboard')
+  const [controlsLocked, setControlsLocked] = useState(false)
   const { data: layoutData, isLoading: layoutLoading } = useDashboardLayout()
   const { data: probeData, isLoading: probesLoading } = useProbes()
   const { data: outletData, isLoading: outletsLoading } = useOutlets()
@@ -164,14 +172,28 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <span
-          className={cn(
-            'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap self-start',
-            statusStyle[worstStatus] ?? statusStyle.normal,
-          )}
-        >
-          {statusLabel[worstStatus] ?? 'Stable'}
-        </span>
+        <div className="flex items-center gap-3 self-start">
+          <button
+            onClick={() => setControlsLocked((prev) => !prev)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-fluid',
+              controlsLocked
+                ? 'bg-tertiary/15 text-tertiary'
+                : 'bg-surface-container text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            {controlsLocked ? <Lock size={12} /> : <Unlock size={12} />}
+            {controlsLocked ? 'Controls Locked' : 'Lock Controls'}
+          </button>
+          <span
+            className={cn(
+              'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap',
+              statusStyle[worstStatus] ?? statusStyle.normal,
+            )}
+          >
+            {statusLabel[worstStatus] ?? 'Stable'}
+          </span>
+        </div>
       </div>
 
       {/* Dashboard sections driven by dashboard_items */}
@@ -190,7 +212,7 @@ export default function Dashboard() {
       ) : (
         sections.map((section, sectionIdx) => {
           const cards = section.items
-            .map((item) => renderCard(item, probeMap, outletMap, deviceMap))
+            .map((item) => renderCard(item, probeMap, outletMap, deviceMap, controlsLocked))
             .filter(Boolean)
 
           if (cards.length === 0 && section.label === null) return null

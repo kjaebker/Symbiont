@@ -1,4 +1,4 @@
-import { Power, Zap } from 'lucide-react'
+import { Lock, Power, Zap } from 'lucide-react'
 import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
@@ -27,14 +27,16 @@ const stateColors: Record<string, string> = {
 
 interface OutletCardProps {
   outlet: Outlet
+  controlsLocked?: boolean
 }
 
-export function OutletCard({ outlet }: OutletCardProps) {
+export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) {
   const mutation = useSetOutlet()
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
   const isAuto = outlet.state === 'AON' || outlet.state === 'AOF' || outlet.state === 'TBL'
 
   function handleControl(state: 'ON' | 'OFF' | 'AUTO') {
+    if (controlsLocked) return
     mutation.mutate({ id: outlet.id, state })
   }
 
@@ -70,35 +72,44 @@ export function OutletCard({ outlet }: OutletCardProps) {
         </div>
       </div>
 
-      <div className="flex gap-1.5">
-        {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-          const active =
-            (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-            (s === 'ON' && outlet.state === 'ON') ||
-            (s === 'AUTO' && isAuto)
+      <div className={cn('relative', controlsLocked && 'opacity-40')}>
+        <div className="flex gap-1.5">
+          {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
+            const active =
+              (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
+              (s === 'ON' && outlet.state === 'ON') ||
+              (s === 'AUTO' && isAuto)
 
-          return (
-            <button
-              key={s}
-              onClick={() => handleControl(s)}
-              disabled={mutation.isPending}
-              className={cn(
-                'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                active
-                  ? s === 'AUTO'
-                    ? 'bg-primary text-on-primary'
-                    : s === 'ON'
-                      ? 'bg-secondary text-on-secondary'
-                      : 'bg-surface-container-highest text-on-surface'
-                  : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
-              )}
-            >
-              {s}
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={s}
+                onClick={() => handleControl(s)}
+                disabled={mutation.isPending || controlsLocked}
+                className={cn(
+                  'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
+                  controlsLocked
+                    ? 'bg-surface-container-high text-on-surface-faint cursor-not-allowed'
+                    : active
+                      ? s === 'AUTO'
+                        ? 'bg-primary text-on-primary'
+                        : s === 'ON'
+                          ? 'bg-secondary text-on-secondary'
+                          : 'bg-surface-container-highest text-on-surface'
+                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+                )}
+              >
+                {s}
+              </button>
+            )
+          })}
+        </div>
+        {controlsLocked && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Lock size={14} className="text-on-surface-dim" />
+          </div>
+        )}
       </div>
-      {mutation.isError && (
+      {mutation.isError && !controlsLocked && (
         <p className="text-xs text-tertiary mt-2">
           Failed to set state. Try again.
         </p>
