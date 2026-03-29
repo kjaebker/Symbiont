@@ -21,7 +21,10 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(controlOutletTool(), controlOutletHandler(client))
 	s.AddTool(getOutletEventLogTool(), getOutletEventLogHandler(client))
 	s.AddTool(getAlertRulesTool(), getAlertRulesHandler(client))
+	s.AddTool(getAlertEventsTool(), getAlertEventsHandler(client))
 	s.AddTool(getSystemStatusTool(), getSystemStatusHandler(client))
+	s.AddTool(getSystemLogTool(), getSystemLogHandler(client))
+	s.AddTool(getDevicesTool(), getDevicesHandler(client))
 	s.AddTool(summarizeTankHealthTool(), summarizeTankHealthHandler(client))
 }
 
@@ -344,5 +347,85 @@ func summarizeTankHealthHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		}
 
 		return jsonResult(summary)
+	}
+}
+
+// --- get_alert_events ---
+
+func getAlertEventsTool() mcp.Tool {
+	return mcp.NewTool("get_alert_events",
+		mcp.WithDescription("Get recent alert trigger events — when thresholds were breached, what parameter was affected, severity, peak value, and whether the alert has since cleared. Useful for understanding recent parameter problems."),
+		mcp.WithNumber("limit",
+			mcp.Description("Max events to return, default 20, max 100"),
+		),
+		mcp.WithString("active_only",
+			mcp.Description("Set to 'true' to return only uncleared (still active) alerts"),
+		),
+	)
+}
+
+func getAlertEventsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		path := "/api/alerts/events?"
+		limit := request.GetInt("limit", 20)
+		path += fmt.Sprintf("limit=%d&", limit)
+		if request.GetString("active_only", "") == "true" {
+			path += "active_only=true&"
+		}
+
+		var resp any
+		if err := apiCall(client, path, &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_system_log ---
+
+func getSystemLogTool() mcp.Tool {
+	return mcp.NewTool("get_system_log",
+		mcp.WithDescription("Get recent structured log entries from the Symbiont API and poller services. Useful for diagnosing errors, checking poll failures, or understanding recent system activity."),
+		mcp.WithNumber("limit",
+			mcp.Description("Max log lines to return, default 50, max 500"),
+		),
+		mcp.WithString("service",
+			mcp.Description("Filter by service: api or poller. Omit for both."),
+			mcp.Enum("api", "poller"),
+		),
+	)
+}
+
+func getSystemLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		limit := request.GetInt("limit", 50)
+		path := fmt.Sprintf("/api/system/log?limit=%d&", limit)
+		if v := request.GetString("service", ""); v != "" {
+			path += "service=" + v + "&"
+		}
+
+		var resp any
+		if err := apiCall(client, path, &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_devices ---
+
+func getDevicesTool() mcp.Tool {
+	return mcp.NewTool("get_devices",
+		mcp.WithDescription("Get the list of aquarium devices (equipment) configured in Symbiont — pumps, lights, skimmers, heaters, etc. Each device may have an associated outlet and probes. Useful for understanding what equipment is in the tank and how it relates to outlets and sensor readings."),
+	)
+}
+
+func getDevicesHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(client, "/api/devices", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
 	}
 }

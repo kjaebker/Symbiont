@@ -73,6 +73,22 @@ func setupMockAPI(t *testing.T) (*httptest.Server, *cli.APIClient) {
 		json.NewEncoder(w).Encode(map[string]any{"alerts": []map[string]any{}})
 	})
 
+	mux.HandleFunc("GET /api/alerts/events", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"events": []map[string]any{}})
+	})
+
+	mux.HandleFunc("GET /api/system/log", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"lines": []map[string]any{}})
+	})
+
+	mux.HandleFunc("GET /api/devices", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"devices": []map[string]any{
+				{"id": 1, "name": "Return Pump", "device_type": "pump"},
+			},
+		})
+	})
+
 	mux.HandleFunc("GET /api/system", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"controller": map[string]string{
@@ -102,7 +118,10 @@ func setupTools(t *testing.T, client *cli.APIClient) handlerMap {
 	handlers["control_outlet"] = controlOutletHandler(client)
 	handlers["get_outlet_event_log"] = getOutletEventLogHandler(client)
 	handlers["get_alert_rules"] = getAlertRulesHandler(client)
+	handlers["get_alert_events"] = getAlertEventsHandler(client)
 	handlers["get_system_status"] = getSystemStatusHandler(client)
+	handlers["get_system_log"] = getSystemLogHandler(client)
+	handlers["get_devices"] = getDevicesHandler(client)
 	handlers["summarize_tank_health"] = summarizeTankHealthHandler(client)
 	return handlers
 }
@@ -288,5 +307,57 @@ func TestGetOutletEventLog(t *testing.T) {
 	result := callTool(t, handlers, "get_outlet_event_log", map[string]any{"limit": float64(10)})
 	if result.IsError {
 		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestGetAlertEvents(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_alert_events", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "events") {
+		t.Fatalf("expected 'events' in result, got: %s", text)
+	}
+}
+
+func TestGetAlertEventsActiveOnly(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_alert_events", map[string]any{"active_only": "true", "limit": float64(5)})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestGetSystemLog(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_system_log", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "lines") {
+		t.Fatalf("expected 'lines' in result, got: %s", text)
+	}
+}
+
+func TestGetDevices(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_devices", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "Return Pump") {
+		t.Fatalf("expected device in result, got: %s", text)
 	}
 }

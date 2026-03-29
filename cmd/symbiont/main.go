@@ -69,6 +69,8 @@ func main() {
 	rootCmd.AddCommand(cli.NewAlertsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewSystemCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewAuthCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewNotifyCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewConfigCmd(sharedClient))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
