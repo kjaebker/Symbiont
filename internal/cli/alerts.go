@@ -17,6 +17,7 @@ func NewAlertsCmd(client *APIClient) *cobra.Command {
 	cmd.AddCommand(newAlertsCreateCmd(client))
 	cmd.AddCommand(newAlertsUpdateCmd(client))
 	cmd.AddCommand(newAlertsDeleteCmd(client))
+	cmd.AddCommand(newAlertsEventsCmd(client))
 	return cmd
 }
 
@@ -219,6 +220,87 @@ func newAlertsDeleteCmd(client *APIClient) *cobra.Command {
 		},
 	}
 	cmd.Flags().Bool("yes", false, "skip confirmation prompt")
+	return cmd
+}
+
+func newAlertsEventsCmd(client *APIClient) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "events",
+		Short: "Show alert trigger events",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ruleID, _ := cmd.Flags().GetString("rule-id")
+			limit, _ := cmd.Flags().GetString("limit")
+			activeOnly, _ := cmd.Flags().GetBool("active-only")
+
+			path := "/api/alerts/events?"
+			if ruleID != "" {
+				path += "rule_id=" + ruleID + "&"
+			}
+			if limit != "" {
+				path += "limit=" + limit + "&"
+			}
+			if activeOnly {
+				path += "active_only=true&"
+			}
+
+			var resp struct {
+				Events []struct {
+					ID        int64   `json:"id"`
+					RuleID    int64   `json:"rule_id"`
+					FiredAt   string  `json:"fired_at"`
+					ClearedAt *string `json:"cleared_at"`
+					PeakValue float64 `json:"peak_value"`
+					Notified  bool    `json:"notified"`
+					ProbeName *string `json:"probe_name"`
+					Severity  *string `json:"severity"`
+				} `json:"events"`
+			}
+			if err := client.Get(cmd.Context(), path, &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			if len(resp.Events) == 0 {
+				fmt.Println("No alert events.")
+				return nil
+			}
+
+			headers := []string{"ID", "RULE", "PROBE", "SEVERITY", "PEAK", "FIRED", "CLEARED"}
+			rows := make([][]string, 0, len(resp.Events))
+			for _, e := range resp.Events {
+				probe := "-"
+				if e.ProbeName != nil {
+					probe = *e.ProbeName
+				}
+				severity := "-"
+				if e.Severity != nil {
+					severity = ColorStatus(*e.Severity)
+				}
+				cleared := "active"
+				if e.ClearedAt != nil {
+					cleared = formatTimestamp(*e.ClearedAt)
+				}
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", e.ID),
+					fmt.Sprintf("%d", e.RuleID),
+					probe,
+					severity,
+					fmt.Sprintf("%.2f", e.PeakValue),
+					formatTimestamp(e.FiredAt),
+					cleared,
+				})
+			}
+			PrintTable(headers, rows)
+			return nil
+		},
+	}
+	cmd.Flags().String("rule-id", "", "filter by rule ID")
+	cmd.Flags().String("limit", "", "max events to return (default 50)")
+	cmd.Flags().Bool("active-only", false, "show only uncleared (active) alerts")
 	return cmd
 }
 

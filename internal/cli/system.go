@@ -15,7 +15,9 @@ func NewSystemCmd(client *APIClient) *cobra.Command {
 	}
 	cmd.AddCommand(newSystemStatusCmd(client))
 	cmd.AddCommand(newSystemBackupCmd(client))
+	cmd.AddCommand(newSystemBackupsCmd(client))
 	cmd.AddCommand(newSystemCleanupCmd(client))
+	cmd.AddCommand(newSystemLogCmd(client))
 	return cmd
 }
 
@@ -148,6 +150,119 @@ func newSystemCleanupCmd(client *APIClient) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newSystemBackupsCmd(client *APIClient) *cobra.Command {
+	return &cobra.Command{
+		Use:   "backups",
+		Short: "List backup history",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var resp struct {
+				Backups []struct {
+					ID        int64   `json:"id"`
+					TS        string  `json:"ts"`
+					Status    string  `json:"status"`
+					Path      *string `json:"path"`
+					SizeBytes *int64  `json:"size_bytes"`
+					Error     *string `json:"error"`
+				} `json:"backups"`
+			}
+			if err := client.Get(cmd.Context(), "/api/system/backups", &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			if len(resp.Backups) == 0 {
+				fmt.Println("No backups recorded.")
+				return nil
+			}
+
+			headers := []string{"ID", "TIME", "STATUS", "SIZE", "PATH"}
+			rows := make([][]string, 0, len(resp.Backups))
+			for _, b := range resp.Backups {
+				size := "-"
+				if b.SizeBytes != nil {
+					size = formatBytes(*b.SizeBytes)
+				}
+				path := "-"
+				if b.Path != nil {
+					path = *b.Path
+				}
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", b.ID),
+					formatTimestamp(b.TS),
+					ColorStatus(b.Status),
+					size,
+					path,
+				})
+			}
+			PrintTable(headers, rows)
+			return nil
+		},
+	}
+}
+
+func newSystemLogCmd(client *APIClient) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "log",
+		Short: "Show recent system log entries",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			limit, _ := cmd.Flags().GetString("limit")
+			service, _ := cmd.Flags().GetString("service")
+
+			path := "/api/system/log?"
+			if limit != "" {
+				path += "limit=" + limit + "&"
+			}
+			if service != "" {
+				path += "service=" + service + "&"
+			}
+
+			var resp struct {
+				Lines []struct {
+					TS      string `json:"ts"`
+					Service string `json:"service"`
+					Level   string `json:"level"`
+					Msg     string `json:"msg"`
+				} `json:"lines"`
+			}
+			if err := client.Get(cmd.Context(), path, &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			if len(resp.Lines) == 0 {
+				fmt.Println("No log entries (journalctl unavailable or no entries).")
+				return nil
+			}
+
+			for _, l := range resp.Lines {
+				level := l.Level
+				switch l.Level {
+				case "ERROR":
+					level = colorRed + l.Level + colorReset
+				case "WARN":
+					level = colorYellow + l.Level + colorReset
+				case "DEBUG":
+					level = colorBlue + l.Level + colorReset
+				}
+				fmt.Printf("%s  %-7s  %-7s  %s\n",
+					formatTimestamp(l.TS), l.Service, level, l.Msg)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().String("limit", "", "max log lines to return (default 200, max 500)")
+	cmd.Flags().String("service", "", "filter by service: api, poller")
+	return cmd
 }
 
 func formatBytes(b int64) string {
