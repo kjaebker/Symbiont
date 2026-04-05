@@ -181,3 +181,50 @@ export interface APIError {
   error: string
   code: string
 }
+
+// --- System Layout ---
+
+export type SystemNodeType = 'container' | 'device' | 'probe' | 'powerbar' | 'tport' | 'valve'
+export type SystemEdgeLayer = 'water' | 'electrical' | 'sensor'
+export type SystemContainerSubtype = 'tank' | 'sump' | 'ato'
+
+export interface PowerBarSlot {
+  index: number
+  outletId: string
+}
+
+export interface SystemNode {
+  id: string
+  type: SystemNodeType
+  position: { x: number; y: number }
+  size?: { width: number; height: number }
+  parentId?: string
+  data: {
+    label: string
+    subtype?: string
+    deviceId?: number
+    probeName?: string
+    outletId?: string
+    slots?: PowerBarSlot[]
+  }
+}
+
+export interface SystemEdge {
+  id: string
+  source: string
+  sourceHandle?: string
+  target: string
+  targetHandle?: string
+  layer: SystemEdgeLayer
+  data?: {
+    flowDirection?: 'forward' | 'reverse'
+  }
+}
+
+export interface SystemLayout {
+  version: 1
+  viewport: { x: number; y: number; zoom: number }
+  settings: { snapToGrid: boolean; gridSize: number }
+  nodes: SystemNode[]
+  edges: SystemEdge[]
+}

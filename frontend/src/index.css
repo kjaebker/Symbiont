@@ -97,6 +97,40 @@
   transition: all 300ms ease-in-out;
 }
 
+/* React Flow dark theme overrides */
+.react-flow {
+  --xy-background-color: var(--color-surface);
+  --xy-minimap-background-color-props: var(--color-surface-container);
+  --xy-node-background-color: var(--color-surface-container);
+  --xy-node-border-color: transparent;
+  --xy-node-border: none;
+  --xy-edge-label-background-color: var(--color-surface-container-high);
+  --xy-selection-background-color: rgba(58, 223, 250, 0.08);
+  --xy-selection-border-color: rgba(58, 223, 250, 0.4);
+  --xy-controls-background-color: var(--color-surface-container-low);
+  --xy-controls-border-color: transparent;
+  --xy-controls-button-background-color: var(--color-surface-container);
+  --xy-controls-button-background-color-hover: var(--color-surface-container-high);
+  --xy-controls-button-color: var(--color-on-surface-dim);
+  --xy-controls-button-color-hover: var(--color-primary);
+  --xy-background-pattern-color: rgba(65, 71, 91, 0.4);
+  --xy-handle-background-color: var(--color-surface-container-highest);
+  --xy-handle-border-color: var(--color-outline-variant);
+}
+
+/* Layer visibility toggles */
+.hide-layer-water .react-flow__edge.layer-water { display: none; }
+.hide-layer-electrical .react-flow__edge.layer-electrical { display: none; }
+.hide-layer-sensor .react-flow__edge.layer-sensor { display: none; }
+
+/* Flow particle animation */
+@keyframes flow-particle {
+  0% { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

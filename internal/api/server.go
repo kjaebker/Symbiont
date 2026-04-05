@@ -126,6 +126,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/notifications/targets/{id}", s.HandleNotificationTargetDelete)
 	mux.HandleFunc("POST /api/notifications/test", s.HandleNotificationTest)
 
+	// System layout.
+	mux.HandleFunc("GET /api/system/layout", s.HandleSystemLayoutGet)
+	mux.HandleFunc("PUT /api/system/layout", s.HandleSystemLayoutSave)
+
 	// System management.
 	mux.HandleFunc("GET /api/system/log", s.HandleSystemLog)
 	mux.HandleFunc("GET /api/system/backups", s.HandleBackupList)

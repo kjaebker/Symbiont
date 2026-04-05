@@ -105,6 +105,13 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			label        TEXT,
 			sort_order   INTEGER NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS system_layouts (
+			id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+			name       TEXT     NOT NULL DEFAULT 'default' UNIQUE,
+			layout     TEXT     NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	indexes := []string{

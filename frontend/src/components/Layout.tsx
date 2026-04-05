@@ -5,6 +5,7 @@ import {
   Power,
   Bell,
   Settings,
+  Network,
 } from 'lucide-react'
 import { useSSE } from '@/hooks/useSSE'
 import { useSystemStatus } from '@/hooks/useSystem'
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/history', icon: Clock, label: 'History' },
   { to: '/outlets', icon: Power, label: 'Outlets' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
+  { to: '/system', icon: Network, label: 'System' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

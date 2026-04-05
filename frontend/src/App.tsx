@@ -7,6 +7,7 @@ import History from '@/pages/History'
 import Outlets from '@/pages/Outlets'
 import Alerts from '@/pages/Alerts'
 import Settings from '@/pages/Settings'
+import System from '@/pages/System'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!getToken()) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="outlets" element={<Outlets />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="system" element={<System />} />
       </Route>
     </Routes>
   )

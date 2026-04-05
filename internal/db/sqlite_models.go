@@ -101,6 +101,15 @@ type NotificationTarget struct {
 	Enabled bool   `json:"enabled"`
 }
 
+// SystemLayout represents a row in the system_layouts table.
+type SystemLayout struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Layout    string    `json:"layout"` // raw JSON blob
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // BackupJob represents a row in the backup_jobs table.
 type BackupJob struct {
 	ID        int64     `json:"id"`

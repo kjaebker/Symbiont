@@ -1007,3 +1007,35 @@ func (s *SQLiteDB) MigrateDashboardLayout(ctx context.Context) error {
 
 	return tx.Commit()
 }
+
+// --- System Layouts ---
+
+// GetSystemLayout returns the layout with the given name, or nil if not found.
+func (s *SQLiteDB) GetSystemLayout(ctx context.Context, name string) (*SystemLayout, error) {
+	var sl SystemLayout
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, name, layout, created_at, updated_at FROM system_layouts WHERE name = ?",
+		name,
+	).Scan(&sl.ID, &sl.Name, &sl.Layout, &sl.CreatedAt, &sl.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting system layout %q: %w", name, err)
+	}
+	return &sl, nil
+}
+
+// UpsertSystemLayout inserts or replaces the layout with the given name.
+func (s *SQLiteDB) UpsertSystemLayout(ctx context.Context, name, layoutJSON string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO system_layouts (name, layout, updated_at)
+		 VALUES (?, ?, CURRENT_TIMESTAMP)
+		 ON CONFLICT(name) DO UPDATE SET layout = excluded.layout, updated_at = CURRENT_TIMESTAMP`,
+		name, layoutJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("upserting system layout %q: %w", name, err)
+	}
+	return nil
+}

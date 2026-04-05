@@ -17,6 +17,7 @@ import type {
   Device,
   DeviceSuggestion,
   DashboardItem,
+  SystemLayout,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -331,4 +332,16 @@ export function getSystemLog(params?: { limit?: number; service?: string }) {
   if (params?.service) search.set('service', params.service)
   const qs = search.toString()
   return apiFetch<{ lines: SystemLogLine[] }>(`/api/system/log${qs ? `?${qs}` : ''}`)
+}
+
+// System layout
+export function getSystemLayout() {
+  return apiFetch<{ layout: SystemLayout | null }>('/api/system/layout')
+}
+
+export function saveSystemLayout(layout: SystemLayout) {
+  return apiFetch<{ status: string }>('/api/system/layout', {
+    method: 'PUT',
+    body: JSON.stringify({ layout }),
+  })
 }
