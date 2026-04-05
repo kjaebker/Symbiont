@@ -4,7 +4,7 @@ import { useSystemLayout, useSaveSystemLayout } from '@/hooks/useSystemLayout'
 import SystemCanvas, { type SystemCanvasHandle } from '@/components/system/SystemCanvas'
 import ElementPalette from '@/components/system/ElementPalette'
 import { cn } from '@/lib/utils'
-import type { SystemLayout, SystemNode } from '@/api/types'
+import type { SystemLayout } from '@/api/types'
 
 type Mode = 'view' | 'edit'
 
@@ -24,73 +24,47 @@ export default function System() {
     sensor: true,
   })
   const [snapToGrid, setSnapToGrid] = useState(true)
-  const [editingLayout, setEditingLayout] = useState<SystemLayout | null>(null)
-  const [hasUnsaved, setHasUnsaved] = useState(false)
+  // canvasKey forces remount of the canvas whenever we enter/cancel edit mode,
+  // so the canvas re-initializes from the current serverLayout.
+  const [canvasKey, setCanvasKey] = useState(0)
+  const [inEditSession, setInEditSession] = useState(false)
   const canvasRef = useRef<SystemCanvasHandle | null>(null)
 
   const serverLayout = data?.layout ?? null
 
-  // Warn on unload if unsaved
+  // Warn on unload if in an edit session
   useEffect(() => {
-    if (!hasUnsaved) return
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-    }
+    if (!inEditSession) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [hasUnsaved])
+  }, [inEditSession])
 
   function enterEdit() {
-    setEditingLayout(serverLayout ? JSON.parse(JSON.stringify(serverLayout)) : null)
-    setHasUnsaved(false)
+    setCanvasKey((k) => k + 1) // remount canvas with fresh serverLayout
+    setInEditSession(true)
     setMode('edit')
   }
 
   function cancelEdit() {
-    setEditingLayout(null)
-    setHasUnsaved(false)
+    setCanvasKey((k) => k + 1) // remount canvas, discarding edits
+    setInEditSession(false)
     setMode('view')
   }
 
-  async function handleSave(layout: SystemLayout) {
+  async function handleSave() {
+    const layout = canvasRef.current?.getLayout(snapToGrid)
+    if (!layout) return
     await saveLayout.mutateAsync(layout)
-    setHasUnsaved(false)
+    setInEditSession(false)
     setMode('view')
-    setEditingLayout(null)
   }
 
   function toggleLayer(layer: keyof LayerVisibility) {
     setLayers((prev) => ({ ...prev, [layer]: !prev[layer] }))
   }
 
-  function handleDrop(event: React.DragEvent, position: { x: number; y: number }) {
-    const raw = event.dataTransfer.getData('application/symbiont-node')
-    if (!raw) return
-    try {
-      const item = JSON.parse(raw)
-      const newNode: SystemNode = {
-        id: `${item.nodeType}-${Date.now()}`,
-        type: item.nodeType,
-        position,
-        data: {
-          label: item.label,
-          subtype: item.subtype,
-          deviceId: item.deviceId,
-          probeName: item.probeName,
-        },
-        ...(item.nodeType === 'container' ? { size: { width: 240, height: 160 } } : {}),
-      }
-      setEditingLayout((prev) => {
-        const base = prev ?? makeEmptyLayout()
-        return { ...base, nodes: [...base.nodes, newNode] }
-      })
-      setHasUnsaved(true)
-    } catch {
-      // ignore bad drag data
-    }
-  }
-
-  const displayLayout = mode === 'edit' ? editingLayout : serverLayout
+  const displayLayout = serverLayout
 
   if (isLoading) {
     return (
@@ -203,10 +177,7 @@ export default function System() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  const layout = canvasRef.current?.getLayout(snapToGrid)
-                  if (layout) handleSave(layout)
-                }}
+                onClick={handleSave}
                 disabled={saveLayout.isPending}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-secondary/20 text-secondary hover:bg-secondary/30 transition-fluid"
               >
@@ -234,11 +205,11 @@ export default function System() {
             <EmptyState onEdit={enterEdit} />
           ) : (
             <SystemCanvas
+              key={canvasKey}
               layout={displayLayout}
               mode={mode}
               snapToGrid={snapToGrid}
               canvasRef={canvasRef}
-              onDrop={mode === 'edit' ? handleDrop : undefined}
             />
           )}
         </div>
@@ -247,15 +218,6 @@ export default function System() {
   )
 }
 
-function makeEmptyLayout(): SystemLayout {
-  return {
-    version: 1,
-    viewport: { x: 0, y: 0, zoom: 1 },
-    settings: { snapToGrid: true, gridSize: 20 },
-    nodes: [],
-    edges: [],
-  }
-}
 
 function EmptyState({ onEdit }: { onEdit: () => void }) {
   return (

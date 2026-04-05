@@ -114,18 +114,17 @@ interface SystemCanvasProps {
   layout: SystemLayout | null
   mode: 'view' | 'edit'
   snapToGrid: boolean
-  onDrop?: (event: React.DragEvent, position: { x: number; y: number }) => void
 }
 
 const SystemCanvasInner = forwardRef<SystemCanvasHandle, SystemCanvasProps>(
-  function SystemCanvasInner({ layout, mode, snapToGrid, onDrop }, ref) {
+  function SystemCanvasInner({ layout, mode, snapToGrid }, ref) {
     const initialNodes = layout ? toFlowNodes(layout.nodes) : []
     const initialEdges = layout ? toFlowEdges(layout.edges, mode) : []
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
     const reactFlowWrapper = useRef<HTMLDivElement>(null)
-    const { getViewport } = useReactFlow()
+    const { getViewport, screenToFlowPosition } = useReactFlow()
 
     // Expose getLayout() to the parent (System.tsx save button)
     useImperativeHandle(ref, () => ({
@@ -170,15 +169,33 @@ const SystemCanvasInner = forwardRef<SystemCanvasHandle, SystemCanvasProps>(
     const handleDrop = useCallback(
       (event: React.DragEvent) => {
         event.preventDefault()
-        if (!reactFlowWrapper.current) return
-        const rect = reactFlowWrapper.current.getBoundingClientRect()
-        const position = {
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top,
+        const raw = event.dataTransfer.getData('application/symbiont-node')
+        if (!raw) return
+        let item: Record<string, unknown>
+        try {
+          item = JSON.parse(raw)
+        } catch {
+          return
         }
-        onDrop?.(event, position)
+        // Convert screen coordinates to React Flow canvas coordinates
+        const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+        const newNode: Node = {
+          id: `${item.nodeType}-${Date.now()}`,
+          type: item.nodeType as string,
+          position,
+          data: {
+            label: item.label,
+            subtype: item.subtype,
+            deviceId: item.deviceId,
+            probeName: item.probeName,
+          },
+          ...(item.nodeType === 'container'
+            ? { style: { width: 240, height: 160 } }
+            : {}),
+        }
+        setNodes((nds) => [...nds, newNode])
       },
-      [onDrop],
+      [screenToFlowPosition, setNodes],
     )
 
     // Inject mode into edge data so particles animate in view mode
@@ -237,11 +254,11 @@ const SystemCanvasInner = forwardRef<SystemCanvasHandle, SystemCanvasProps>(
 )
 
 export default function SystemCanvas(props: SystemCanvasProps & { canvasRef?: React.Ref<SystemCanvasHandle> }) {
-  const { canvasRef, ...rest } = props
+  const { canvasRef, layout, mode, snapToGrid } = props
   return (
     <ReactFlowProvider>
       <SystemDataProvider>
-        <SystemCanvasInner ref={canvasRef} {...rest} />
+        <SystemCanvasInner ref={canvasRef} layout={layout} mode={mode} snapToGrid={snapToGrid} />
       </SystemDataProvider>
     </ReactFlowProvider>
   )
