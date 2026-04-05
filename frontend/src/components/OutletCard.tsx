@@ -72,7 +72,7 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
         </div>
       </div>
 
-      <div className={cn('relative', controlsLocked && 'opacity-40')}>
+      <div className="relative">
         <div className="flex gap-1.5">
           {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
             const active =
@@ -87,15 +87,14 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
                 disabled={mutation.isPending || controlsLocked}
                 className={cn(
                   'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                  controlsLocked
-                    ? 'bg-surface-container-high text-on-surface-faint cursor-not-allowed'
-                    : active
-                      ? s === 'AUTO'
-                        ? 'bg-primary text-on-primary'
-                        : s === 'ON'
-                          ? 'bg-secondary text-on-secondary'
-                          : 'bg-surface-container-highest text-on-surface'
-                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+                  active
+                    ? s === 'AUTO'
+                      ? 'bg-primary text-on-primary'
+                      : s === 'ON'
+                        ? 'bg-secondary text-on-secondary'
+                        : 'bg-surface-container-highest text-on-surface'
+                    : 'bg-surface-container-high text-on-surface-faint',
+                  !controlsLocked && !active && 'hover:text-on-surface-dim',
                 )}
               >
                 {s}
@@ -104,8 +103,8 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
           })}
         </div>
         {controlsLocked && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Lock size={14} className="text-on-surface-dim" />
+          <div className="absolute inset-0 rounded-lg bg-surface-container/75 flex items-center justify-center pointer-events-none">
+            <Lock size={18} className="text-on-surface" />
           </div>
         )}
       </div>

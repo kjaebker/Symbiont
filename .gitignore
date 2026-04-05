@@ -12,6 +12,8 @@ testdata/
 *.db
 *.db-shm
 *.db-wal
+*.db.wal
+*.db.shm
 
 # Backup directory
 backups/

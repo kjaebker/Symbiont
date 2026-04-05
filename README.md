@@ -23,7 +23,7 @@ A local-first Neptune Apex dashboard and data platform. Replaces Apex Fusion wit
 | Time-series DB | DuckDB (embedded, no server) |
 | App state DB | SQLite (embedded) |
 | Frontend | React + TypeScript + Vite |
-| UI | shadcn/ui + Tremor + uPlot |
+| UI | Tailwind CSS + lucide-react + uPlot + dnd-kit |
 | Deployment | NixOS systemd services |
 | Remote access | Tailscale |
 
@@ -32,8 +32,8 @@ A local-first Neptune Apex dashboard and data platform. Replaces Apex Fusion wit
 ## Requirements
 
 - Neptune Apex running AOS 5+, accessible on the local network
-- NixOS (primary target) or any Linux system with Go 1.23+
-- Node.js 20+ for frontend builds
+- NixOS (primary target) or any Linux system with Go 1.25+
+- Node.js 22+ for frontend builds
 - Tailscale (optional, for remote access)
 
 ---
@@ -62,41 +62,37 @@ SYMBIONT_APEX_USER=admin
 SYMBIONT_APEX_PASS=your-apex-password
 ```
 
-### 3. Start the poller
+### 3. Start the backend
+
+> **Note:** If the production systemd service is already running on this machine (port 8420), set a different port in `.env` to avoid conflicts:
+> ```bash
+> SYMBIONT_API_PORT=8421
+> ```
 
 ```bash
-go run ./cmd/poller
+set -a && source .env && set +a
+go run ./cmd/symbiont serve
 ```
 
-Wait 30 seconds, then verify data is collecting:
-
-```bash
-duckdb telemetry.db "SELECT probe_name, value, ts FROM probe_readings LIMIT 10;"
-```
-
-### 4. Start the API server
-
-In a second terminal:
-
-```bash
-go run ./cmd/api
-```
-
-On first start, a token is printed to stdout. Save it — it's shown once.
+This starts the API server and poller together in a single process. On first start, a token is printed to stdout — save it, it's shown once.
 
 Verify the API is working:
 
 ```bash
-curl -s -H "Authorization: Bearer <your-token>" http://localhost:8420/api/probes | jq .
+curl -s -H "Authorization: Bearer <your-token>" http://localhost:8421/api/probes | jq .
 ```
 
-### 5. Start the frontend dev server
+### 4. Start the frontend dev server
+
+In a second terminal:
 
 ```bash
 cd frontend
 npm install
-npm run dev
+VITE_API_URL=http://localhost:8421 npm run dev
 ```
+
+If running on the default port 8420 (no prod service conflict), omit `VITE_API_URL`.
 
 Open [http://localhost:5173](http://localhost:5173), enter your token, and the dashboard loads.
 
@@ -139,21 +135,41 @@ symbiont probes current
 # Probe history
 symbiont probes history Temp --interval 5m
 
-# Outlet states
+# Outlet states and control
 symbiont outlets list
-
-# Control an outlet
 symbiont outlets set <outlet-id> OFF
+symbiont outlets events
 
-# System status
+# Alert rules
+symbiont alerts list
+symbiont alerts create
+symbiont alerts update <id>
+symbiont alerts delete <id>
+symbiont alerts events
+
+# Notification channels
+symbiont notify list
+symbiont notify create
+symbiont notify delete <id>
+symbiont notify test <id>
+
+# Display config (probe/outlet labels and ordering)
+symbiont config probes list
+symbiont config probes update <name>
+symbiont config outlets list
+symbiont config outlets update <id>
+
+# System
 symbiont system status
-
-# Run a manual backup
 symbiont system backup
+symbiont system cleanup
+symbiont system backups
+symbiont system log
 
 # Token management
 symbiont auth tokens list
 symbiont auth tokens create --label "claude-desktop"
+symbiont auth tokens revoke <id>
 ```
 
 Add `--json` to any command for machine-readable output.
@@ -188,7 +204,7 @@ claude mcp add symbiont /run/current-system/sw/bin/symbiont-mcp \
   --env SYMBIONT_TOKEN=your-token
 ```
 
-Available tools: `get_current_parameters`, `get_probe_history`, `get_outlet_states`, `control_outlet`, `get_outlet_event_log`, `get_alert_rules`, `get_system_status`, `summarize_tank_health`.
+Available tools: `get_current_parameters`, `get_probe_history`, `get_outlet_states`, `control_outlet`, `get_outlet_event_log`, `get_alert_rules`, `get_alert_events`, `get_system_status`, `get_system_log`, `get_devices`, `summarize_tank_health`.
 
 ---
 
@@ -241,9 +257,9 @@ Restrict access via Tailscale ACLs to only your own devices.
 
 ## Project Status
 
-Currently in **Phase 1: Data Collection**.
+Currently in **Phase 7: Layout Builder** (phases 1–6 substantially complete).
 
-See `docs/impl-01-data-collection.md` for the active task list.
+See `docs/impl-07-layout-builder.md` for the active task list.
 
 ---
 

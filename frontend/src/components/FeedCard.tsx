@@ -74,7 +74,7 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
         )}
       </div>
 
-      <div className={cn('relative space-y-1.5', controlsLocked && 'opacity-40')}>
+      <div className="relative space-y-1.5">
         <div className="flex gap-1.5">
           {FEED_CYCLES.map(({ name, label }) => (
             <button
@@ -83,11 +83,10 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
               disabled={mutation.isPending || controlsLocked}
               className={cn(
                 'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                controlsLocked
-                  ? 'bg-surface-container-high text-on-surface-faint cursor-not-allowed'
-                  : isActive && activeFeed === name
-                    ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+                isActive && activeFeed === name
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-high text-on-surface-faint',
+                !controlsLocked && !(isActive && activeFeed === name) && 'hover:text-on-surface-dim',
               )}
             >
               {label}
@@ -102,7 +101,7 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
             className={cn(
               'w-full py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid flex items-center justify-center gap-1.5',
               controlsLocked
-                ? 'bg-surface-container-high text-on-surface-faint cursor-not-allowed'
+                ? 'bg-tertiary/15 text-tertiary'
                 : 'bg-tertiary/15 text-tertiary hover:bg-tertiary/25',
             )}
           >
@@ -112,8 +111,8 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
         )}
 
         {controlsLocked && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Lock size={14} className="text-on-surface-dim" />
+          <div className="absolute inset-0 rounded-lg bg-surface-container/75 flex items-center justify-center pointer-events-none">
+            <Lock size={18} className="text-on-surface" />
           </div>
         )}
       </div>

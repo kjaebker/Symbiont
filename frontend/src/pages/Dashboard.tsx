@@ -110,7 +110,7 @@ function renderCard(
 
 export default function Dashboard() {
   usePageTitle('Dashboard')
-  const [controlsLocked, setControlsLocked] = useState(false)
+  const [controlsLocked, setControlsLocked] = useState(true)
   const { data: layoutData, isLoading: layoutLoading } = useDashboardLayout()
   const { data: probeData, isLoading: probesLoading } = useProbes()
   const { data: outletData, isLoading: outletsLoading } = useOutlets()

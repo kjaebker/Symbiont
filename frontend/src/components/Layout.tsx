@@ -47,8 +47,11 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
       <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0">
-        <div className="px-2 py-3 mb-4">
-          <img src="/logo.png" alt="Symbiont" className="w-full object-contain" style={{ maxHeight: '72px' }} />
+        <div className="flex items-center gap-3 px-2 py-3 mb-4">
+          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
+            <img src="/icon-192.png" alt="" className="w-full h-full object-cover scale-150" />
+          </div>
+          <span className="text-lg font-bold text-on-surface tracking-tight">Symbiont</span>
         </div>
 
         {navItems.map(({ to, icon: Icon, label }) => (

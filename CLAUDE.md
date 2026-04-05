@@ -61,8 +61,9 @@ go build ./cmd/api
 go build ./cmd/mcp
 go build ./cmd/symbiont
 
-# Run a binary with local .env
-godotenv -f .env ./poller
+# Run a binary with local .env (load vars first, then run)
+set -a && source .env && set +a
+go run ./cmd/poller
 
 # Frontend
 cd frontend && npm run dev     # Dev server (proxies /api to localhost:8420)
