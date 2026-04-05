@@ -35,6 +35,9 @@ func (m *mockApexClient) SetOutletAuto(ctx context.Context, outletName string) e
 	return m.setOutletErr
 }
 
+func (m *mockApexClient) SetFeedMode(ctx context.Context, name int, active bool) error {
+	return nil
+}
 
 type testEnv struct {
 	server *Server

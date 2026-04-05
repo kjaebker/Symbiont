@@ -35,6 +35,9 @@ func (m *mockApexClient) SetOutletAuto(ctx context.Context, outletName string) e
 	return nil
 }
 
+func (m *mockApexClient) SetFeedMode(ctx context.Context, name int, active bool) error {
+	return nil
+}
 
 func sampleStatus() *apex.StatusResponse {
 	intensity := 100
