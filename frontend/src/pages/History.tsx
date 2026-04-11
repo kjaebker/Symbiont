@@ -271,7 +271,7 @@ export default function History() {
                     Min
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.min?.toFixed(2) ?? '--'}
+                    {s.min != null ? (s.min % 1 === 0 ? s.min.toFixed(0) : s.min.toFixed(2)) : '--'}
                     {s.min != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
@@ -280,7 +280,7 @@ export default function History() {
                     Avg
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.avg?.toFixed(2) ?? '--'}
+                    {s.avg != null ? (s.avg % 1 === 0 ? s.avg.toFixed(0) : s.avg.toFixed(2)) : '--'}
                     {s.avg != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
@@ -289,7 +289,7 @@ export default function History() {
                     Max
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.max?.toFixed(2) ?? '--'}
+                    {s.max != null ? (s.max % 1 === 0 ? s.max.toFixed(0) : s.max.toFixed(2)) : '--'}
                     {s.max != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
