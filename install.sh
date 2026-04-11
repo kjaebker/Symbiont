@@ -143,6 +143,12 @@ fi
 if [ "$OS" = "linux" ] && command -v systemctl &>/dev/null; then
   UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
+  if systemctl is-active --quiet "$SERVICE_NAME"; then
+    echo "==> Restarting ${SERVICE_NAME} service..."
+    sudo systemctl restart "$SERVICE_NAME"
+    echo "    Restarted."
+  fi
+
   if [ ! -f "$UNIT_FILE" ]; then
     echo "==> Installing systemd service..."
 
