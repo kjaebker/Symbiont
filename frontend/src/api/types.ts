@@ -177,6 +177,27 @@ export interface DeviceSuggestion {
   suggested_name: string
 }
 
+export interface MeasurementParameter {
+  id: number
+  name: string
+  canonical_unit: string
+  sort_order: number
+}
+
+export interface Measurement {
+  id: number
+  measured_at: string
+  parameter_id: number
+  parameter: string
+  canonical_unit: string
+  value: number
+  notes: string | null
+  source: string
+  test_kit_ref: string | null
+  raw_value: number | null
+  created_at: string
+}
+
 export interface APIError {
   error: string
   code: string

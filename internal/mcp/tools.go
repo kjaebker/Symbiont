@@ -26,6 +26,8 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(getSystemLogTool(), getSystemLogHandler(client))
 	s.AddTool(getDevicesTool(), getDevicesHandler(client))
 	s.AddTool(summarizeTankHealthTool(), summarizeTankHealthHandler(client))
+	s.AddTool(getMeasurementsTool(), getMeasurementsHandler(client))
+	s.AddTool(addMeasurementTool(), addMeasurementHandler(client))
 }
 
 func apiCall(client *cli.APIClient, path string, result any) error {
@@ -425,6 +427,102 @@ func getDevicesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		var resp any
 		if err := apiCall(client, "/api/devices", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_measurements ---
+
+func getMeasurementsTool() mcp.Tool {
+	return mcp.NewTool("get_measurements",
+		mcp.WithDescription("Get manual water chemistry measurements logged in Symbiont — alkalinity, calcium, magnesium, nitrate, phosphate, etc. Returns timestamped readings with parameter name and unit. Useful for tracking water quality trends, identifying parameter drift, or correlating chemistry changes with tank events."),
+		mcp.WithString("parameter",
+			mcp.Description("Filter by parameter name — e.g. 'Alkalinity', 'Magnesium', 'Calcium'. Omit for all parameters."),
+		),
+		mcp.WithString("from",
+			mcp.Description("ISO 8601 start time — e.g. '2026-01-01T00:00:00Z'. Omit for no lower bound."),
+		),
+		mcp.WithString("to",
+			mcp.Description("ISO 8601 end time. Omit for now."),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Max results to return, default 200."),
+		),
+	)
+}
+
+func getMeasurementsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		path := "/api/measurements?"
+		if v := request.GetString("parameter", ""); v != "" {
+			path += "parameter=" + v + "&"
+		}
+		if v := request.GetString("from", ""); v != "" {
+			path += "from=" + v + "&"
+		}
+		if v := request.GetString("to", ""); v != "" {
+			path += "to=" + v + "&"
+		}
+		if v := request.GetInt("limit", 0); v > 0 {
+			path += fmt.Sprintf("limit=%d&", v)
+		}
+
+		var resp any
+		if err := apiCall(client, path, &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- add_measurement ---
+
+func addMeasurementTool() mcp.Tool {
+	return mcp.NewTool("add_measurement",
+		mcp.WithDescription("Log a manual water chemistry measurement. Use this to record test results for alkalinity, calcium, magnesium, nitrate, phosphate, and other parameters. The parameter name must be one of the known parameters (use get_measurement_parameters to list them)."),
+		mcp.WithString("parameter",
+			mcp.Required(),
+			mcp.Description("Parameter name — e.g. 'Alkalinity', 'Magnesium'. Must be a known parameter."),
+		),
+		mcp.WithNumber("value",
+			mcp.Required(),
+			mcp.Description("Measured value in the parameter's canonical unit (e.g. 9.5 for Alkalinity in dKH, 1350 for Magnesium in ppm)."),
+		),
+		mcp.WithString("measured_at",
+			mcp.Description("ISO 8601 timestamp of when the measurement was taken. Defaults to now."),
+		),
+		mcp.WithString("notes",
+			mcp.Description("Optional notes — e.g. 'after 10% water change'."),
+		),
+	)
+}
+
+func addMeasurementHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		parameter, err := request.RequireString("parameter")
+		if err != nil {
+			return toolError("Parameter 'parameter' is required"), nil
+		}
+		value := request.GetFloat("value", 0)
+
+		body := map[string]any{
+			"parameter": parameter,
+			"value":     value,
+		}
+		if v := request.GetString("measured_at", ""); v != "" {
+			body["measured_at"] = v
+		}
+		if v := request.GetString("notes", ""); v != "" {
+			body["notes"] = v
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Post(timeoutCtx, "/api/measurements", body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to add measurement: %v", err)), nil
 		}
 		return jsonResult(resp)
 	}

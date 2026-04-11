@@ -1,0 +1,63 @@
+manufacturer: "Salifert"
+slug: "salifert"
+kits:
+  - id: "alkalinity"
+    name: "Salifert KH/Alkalinity Profi-Test"
+    parameter: "Alkalinity"
+    input:
+      label: "Test Reading"
+      unit: "dKH"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "calcium"
+    name: "Salifert Calcium Profi-Test"
+    parameter: "Calcium"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "magnesium"
+    name: "Salifert Magnesium Profi-Test"
+    parameter: "Magnesium"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "nitrate"
+    name: "Salifert Nitrate Profi-Test"
+    parameter: "Nitrate"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "phosphate"
+    name: "Salifert Phosphate Profi-Test"
+    parameter: "Phosphate"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      # Salifert reads in ppm; canonical unit is ppb
+      scale: 1000.0
+      offset: 0
+
+  - id: "ammonia"
+    name: "Salifert Ammonia Profi-Test"
+    parameter: "Ammonia"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0

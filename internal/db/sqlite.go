@@ -49,6 +49,12 @@ func OpenSQLite(path string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("migrating dashboard layout: %w", err)
 	}
 
+	// Seed built-in measurement parameter definitions (idempotent).
+	if err := s.SeedMeasurementParameters(context.Background()); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("seeding measurement parameters: %w", err)
+	}
+
 	return s, nil
 }
 

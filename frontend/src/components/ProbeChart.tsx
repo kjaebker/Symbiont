@@ -8,6 +8,7 @@ interface Series {
   data: { ts: string; value: number }[]
   unit: string
   color: string
+  scatter?: boolean
 }
 
 interface ProbeChartProps {
@@ -16,14 +17,19 @@ interface ProbeChartProps {
 }
 
 function buildUPlotData(series: Series[]): uPlot.AlignedData {
-  if (series.length === 0 || series[0].data.length === 0) {
-    return [[]]
-  }
+  if (series.length === 0) return [[]]
 
-  // Use the first series' timestamps as the x-axis
-  const timestamps = series[0].data.map((d) => Math.floor(new Date(d.ts).getTime() / 1000))
+  // Union of all timestamps across all series, sorted ascending
+  const tsSet = new Set<number>()
+  for (const s of series) {
+    for (const d of s.data) {
+      tsSet.add(Math.floor(new Date(d.ts).getTime() / 1000))
+    }
+  }
+  const timestamps = Array.from(tsSet).sort((a, b) => a - b)
+  if (timestamps.length === 0) return [[]]
+
   const values = series.map((s) => {
-    // Build a map from timestamp to value for this series
     const tsMap = new Map(s.data.map((d) => [Math.floor(new Date(d.ts).getTime() / 1000), d.value]))
     return timestamps.map((t) => tsMap.get(t) ?? null) as (number | null)[]
   })
@@ -84,13 +90,17 @@ function buildOpts(
         label: s.name,
         stroke: s.color,
         scale: `y${i}`,
-        width: 2,
-        fill: s.color + '15',
-        points: { show: false },
-        paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
-          const spline = uPlot.paths.spline!()
-          return spline(u, seriesIdx, idx0, idx1)
-        },
+        width: s.scatter ? 0 : 2,
+        fill: s.scatter ? s.color + '40' : s.color + '15',
+        points: s.scatter
+          ? { show: true, size: 8, fill: s.color, stroke: s.color }
+          : { show: false },
+        paths: s.scatter
+          ? () => null
+          : (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
+              const spline = uPlot.paths.spline!()
+              return spline(u, seriesIdx, idx0, idx1)
+            },
         value: (_self: uPlot, val: number | null) =>
           val != null ? `${val.toFixed(2)} ${s.unit}` : '--',
       })),

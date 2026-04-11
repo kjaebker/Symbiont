@@ -105,6 +105,24 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			label        TEXT,
 			sort_order   INTEGER NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS measurement_parameters (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			name           TEXT    NOT NULL UNIQUE,
+			canonical_unit TEXT    NOT NULL,
+			sort_order     INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS measurements (
+			id            INTEGER  PRIMARY KEY AUTOINCREMENT,
+			measured_at   DATETIME NOT NULL,
+			parameter_id  INTEGER  NOT NULL REFERENCES measurement_parameters(id),
+			value         REAL     NOT NULL,
+			notes         TEXT,
+			source        TEXT     NOT NULL DEFAULT 'manual'
+			              CHECK(source IN ('manual','import')),
+			test_kit_ref  TEXT,
+			raw_value     REAL,
+			created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	indexes := []string{
@@ -113,6 +131,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_outlet_event_log_outlet ON outlet_event_log(outlet_id, ts DESC)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_items_sort ON dashboard_items(sort_order)`,
+		`CREATE INDEX IF NOT EXISTS idx_measurements_param ON measurements(parameter_id, measured_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_measurements_date ON measurements(measured_at DESC)`,
 	}
 
 	for _, stmt := range tables {

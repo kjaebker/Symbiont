@@ -14,6 +14,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/kits"
 )
 
 
@@ -27,11 +28,13 @@ type Server struct {
 	http        *http.Server
 	broadcaster *Broadcaster
 	frontendFS  fs.FS
+	catalog     *kits.Catalog
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the
 // frontend from; if nil, falls back to os.DirFS(cfg.FrontendPath).
-func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger, frontendFS fs.FS) *Server {
+// catalog is the test kit catalog; if nil, kit-ref validation is skipped.
+func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger, frontendFS fs.FS, catalog *kits.Catalog) *Server {
 	if frontendFS == nil {
 		frontendFS = os.DirFS(cfg.FrontendPath)
 	}
@@ -43,6 +46,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		logger:      logger,
 		broadcaster: NewBroadcaster(),
 		frontendFS:  frontendFS,
+		catalog:     catalog,
 	}
 
 	mux := http.NewServeMux()
@@ -135,6 +139,13 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Export.
 	mux.HandleFunc("GET /api/probes/{name}/export", s.HandleProbeExport)
 	mux.HandleFunc("GET /api/export", s.HandleBulkExport)
+
+	// Measurements.
+	mux.HandleFunc("GET /api/measurements/parameters", s.HandleMeasurementParameterList)
+	mux.HandleFunc("GET /api/measurements", s.HandleMeasurementList)
+	mux.HandleFunc("POST /api/measurements", s.HandleMeasurementCreate)
+	mux.HandleFunc("PUT /api/measurements/{id}", s.HandleMeasurementUpdate)
+	mux.HandleFunc("DELETE /api/measurements/{id}", s.HandleMeasurementDelete)
 
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
