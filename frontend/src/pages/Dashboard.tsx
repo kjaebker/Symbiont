@@ -10,6 +10,7 @@ import { ProbeCard } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard } from '@/components/DeviceCard'
 import { FeedCard } from '@/components/FeedCard'
+import { MeasurementCard } from '@/components/MeasurementCard'
 import { cn, relativeTime } from '@/lib/utils'
 import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
@@ -103,6 +104,10 @@ function renderCard(
     }
     case 'feed_mode':
       return <FeedCard key="feed_mode" controlsLocked={controlsLocked} />
+    case 'measurement': {
+      if (!ref) return null
+      return <MeasurementCard key={`measurement:${ref}`} parameter={ref} />
+    }
     default:
       return null
   }

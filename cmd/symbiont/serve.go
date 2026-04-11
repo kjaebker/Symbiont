@@ -14,6 +14,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/kits"
 	"github.com/kjaebker/symbiont/internal/notify"
 	"github.com/kjaebker/symbiont/internal/poller"
 	"github.com/spf13/cobra"
@@ -70,6 +71,21 @@ func runServe(frontendFS fs.FS) error {
 
 	apexClient := apex.NewClient(cfg.ApexURL, cfg.ApexUser, cfg.ApexPass)
 
+	// Load kit catalog, validated against seeded measurement parameters.
+	measurementParams, err := sqliteDB.ListMeasurementParameters(ctx)
+	if err != nil {
+		return fmt.Errorf("loading measurement parameters for kit validation: %w", err)
+	}
+	validParams := make(map[string]bool, len(measurementParams))
+	for _, p := range measurementParams {
+		validParams[p.Name] = true
+	}
+	catalog, err := kits.Load(validParams)
+	if err != nil {
+		return fmt.Errorf("loading kit catalog: %w", err)
+	}
+	logger.Info("kit catalog loaded", "kits", len(catalog.All()))
+
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
@@ -80,7 +96,7 @@ func runServe(frontendFS fs.FS) error {
 	}
 	go p.Run(sigCtx)
 
-	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS)
+	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS, catalog)
 
 	targets, err := sqliteDB.ListEnabledNotificationTargets(ctx, "ntfy")
 	if err != nil {

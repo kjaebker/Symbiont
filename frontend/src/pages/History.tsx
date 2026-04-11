@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { useProbes, useProbeHistory } from '@/hooks/useProbes'
+import { useMeasurements } from '@/hooks/useMeasurements'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
-import { ProbeSelector, SERIES_COLORS } from '@/components/ProbeSelector'
+import { ProbeSelector, MeasurementSelector, SERIES_COLORS } from '@/components/ProbeSelector'
 import { getToken } from '@/api/client'
 import { cn } from '@/lib/utils'
 
@@ -39,17 +40,21 @@ export default function History() {
   // Parse URL state
   const probeParam = searchParams.get('probe')
   const initialProbes = probeParam ? probeParam.split(',').filter(Boolean) : []
+  const measParam = searchParams.get('meas')
+  const initialMeas = measParam ? measParam.split(',').filter(Boolean) : []
   const intervalParam = searchParams.get('interval') ?? ''
 
   const [selectedProbes, setSelectedProbes] = useState<string[]>(initialProbes)
+  const [selectedMeas, setSelectedMeas] = useState<string[]>(initialMeas)
   const [range, setRange] = useState(() => parseRange(searchParams))
   const [interval, setInterval] = useState(intervalParam)
 
   // Sync state to URL
   const syncUrl = useCallback(
-    (probes: string[], r: { from: Date; to: Date }, int: string) => {
+    (probes: string[], meas: string[], r: { from: Date; to: Date }, int: string) => {
       const params = new URLSearchParams()
       if (probes.length > 0) params.set('probe', probes.join(','))
+      if (meas.length > 0) params.set('meas', meas.join(','))
       params.set('from', r.from.toISOString())
       params.set('to', r.to.toISOString())
       if (int) params.set('interval', int)
@@ -60,8 +65,8 @@ export default function History() {
 
   // Sync on changes
   useEffect(() => {
-    syncUrl(selectedProbes, range, interval)
-  }, [selectedProbes, range, interval, syncUrl])
+    syncUrl(selectedProbes, selectedMeas, range, interval)
+  }, [selectedProbes, selectedMeas, range, interval, syncUrl])
 
   const historyParams = useMemo(
     () => ({
@@ -89,8 +94,19 @@ export default function History() {
   const probe3 = useProbeHistory(selectedProbes[3] ?? null, historyParams)
   const queries = [probe0, probe1, probe2, probe3]
 
+  // Fetch measurements for each selected parameter
+  const measRangeParams = useMemo(
+    () => ({ from: range.from.toISOString(), to: range.to.toISOString() }),
+    [range],
+  )
+  const meas0 = useMeasurements(selectedMeas[0] ? { parameter: selectedMeas[0], ...measRangeParams } : undefined)
+  const meas1 = useMeasurements(selectedMeas[1] ? { parameter: selectedMeas[1], ...measRangeParams } : undefined)
+  const meas2 = useMeasurements(selectedMeas[2] ? { parameter: selectedMeas[2], ...measRangeParams } : undefined)
+  const meas3 = useMeasurements(selectedMeas[3] ? { parameter: selectedMeas[3], ...measRangeParams } : undefined)
+  const measQueries = [meas0, meas1, meas2, meas3]
+
   const chartSeries = useMemo(() => {
-    return selectedProbes
+    const probeSeries = selectedProbes
       .map((_name, i) => {
         const q = queries[i]
         if (!q?.data) return null
@@ -105,8 +121,27 @@ export default function History() {
         }
       })
       .filter((s): s is NonNullable<typeof s> => s !== null)
+
+    const measSeries = selectedMeas
+      .map((paramName, i) => {
+        const q = measQueries[i]
+        if (!q?.data) return null
+        const measurements = q.data.measurements
+        if (measurements.length === 0) return null
+        const unit = measurements[0].canonical_unit ?? ''
+        return {
+          name: unit ? `${paramName} (${unit}) ●` : `${paramName} ●`,
+          data: measurements.map((m) => ({ ts: m.measured_at, value: m.value })),
+          unit,
+          color: SERIES_COLORS[(selectedProbes.length + i) % SERIES_COLORS.length],
+          scatter: true as const,
+        }
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+
+    return [...probeSeries, ...measSeries]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProbes, probe0.data, probe1.data, probe2.data, probe3.data, probeMap])
+  }, [selectedProbes, selectedMeas, probe0.data, probe1.data, probe2.data, probe3.data, meas0.data, meas1.data, meas2.data, meas3.data, probeMap])
 
   // Summary stats per series
   const stats = useMemo(() => {
@@ -120,7 +155,9 @@ export default function History() {
     })
   }, [chartSeries])
 
-  const isLoading = selectedProbes.some((_, i) => queries[i]?.isLoading)
+  const isLoading =
+    selectedProbes.some((_, i) => queries[i]?.isLoading) ||
+    selectedMeas.some((_, i) => measQueries[i]?.isLoading)
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -136,12 +173,19 @@ export default function History() {
 
       {/* Controls */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <ProbeSelector
-          selected={selectedProbes}
-          onChange={setSelectedProbes}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <ProbeSelector
+            selected={selectedProbes}
+            onChange={setSelectedProbes}
+          />
+          <MeasurementSelector
+            selected={selectedMeas}
+            onChange={setSelectedMeas}
+            colorOffset={selectedProbes.length}
+          />
+        </div>
 
-        <div className="flex flex-col gap-3 md:items-end">
+        <div className="flex flex-col gap-3 sm:items-end">
           <TimeRangePicker value={range} onChange={setRange} />
 
           <div className="flex items-center gap-1.5">
@@ -167,10 +211,10 @@ export default function History() {
       </div>
 
       {/* Chart */}
-      {selectedProbes.length === 0 ? (
+      {selectedProbes.length === 0 && selectedMeas.length === 0 ? (
         <div className="bg-surface-container rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
           <span className="text-on-surface-faint text-sm">
-            Select a probe to view its history
+            Select a probe or test parameter to view history
           </span>
         </div>
       ) : (
@@ -227,7 +271,7 @@ export default function History() {
                     Min
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.min?.toFixed(2) ?? '--'}
+                    {s.min != null ? (s.min % 1 === 0 ? s.min.toFixed(0) : s.min.toFixed(2)) : '--'}
                     {s.min != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
@@ -236,7 +280,7 @@ export default function History() {
                     Avg
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.avg?.toFixed(2) ?? '--'}
+                    {s.avg != null ? (s.avg % 1 === 0 ? s.avg.toFixed(0) : s.avg.toFixed(2)) : '--'}
                     {s.avg != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>
@@ -245,7 +289,7 @@ export default function History() {
                     Max
                   </span>
                   <span className="text-lg font-bold text-on-surface">
-                    {s.max?.toFixed(2) ?? '--'}
+                    {s.max != null ? (s.max % 1 === 0 ? s.max.toFixed(0) : s.max.toFixed(2)) : '--'}
                     {s.max != null && s.unit && <span className="text-xs text-on-surface-faint ml-0.5">{s.unit}</span>}
                   </span>
                 </div>

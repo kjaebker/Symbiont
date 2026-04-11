@@ -17,6 +17,8 @@ import type {
   Device,
   DeviceSuggestion,
   DashboardItem,
+  MeasurementParameter,
+  Measurement,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -331,4 +333,59 @@ export function getSystemLog(params?: { limit?: number; service?: string }) {
   if (params?.service) search.set('service', params.service)
   const qs = search.toString()
   return apiFetch<{ lines: SystemLogLine[] }>(`/api/system/log${qs ? `?${qs}` : ''}`)
+}
+
+// Measurements
+export function getMeasurementParameters() {
+  return apiFetch<{ parameters: MeasurementParameter[] }>('/api/measurements/parameters')
+}
+
+export function getMeasurements(params?: {
+  parameter?: string
+  from?: string
+  to?: string
+  limit?: number
+}) {
+  const search = new URLSearchParams()
+  if (params?.parameter) search.set('parameter', params.parameter)
+  if (params?.from) search.set('from', params.from)
+  if (params?.to) search.set('to', params.to)
+  if (params?.limit) search.set('limit', String(params.limit))
+  const qs = search.toString()
+  return apiFetch<{ measurements: Measurement[] }>(`/api/measurements${qs ? `?${qs}` : ''}`)
+}
+
+export function createMeasurement(data: {
+  parameter: string
+  value: number
+  measured_at: string
+  notes?: string | null
+  test_kit_ref?: string | null
+  raw_value?: number | null
+}) {
+  return apiFetch<Measurement>('/api/measurements', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateMeasurement(
+  id: number,
+  data: {
+    parameter?: string
+    value?: number
+    measured_at?: string
+    notes?: string | null
+    test_kit_ref?: string | null
+    raw_value?: number | null
+  },
+) {
+  return apiFetch<Measurement>(`/api/measurements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteMeasurement(id: number) {
+  return apiFetch<void>(`/api/measurements/${id}`, { method: 'DELETE' })
 }

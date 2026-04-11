@@ -71,6 +71,7 @@ func main() {
 	rootCmd.AddCommand(cli.NewAuthCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewNotifyCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewConfigCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewMeasurementsCmd(sharedClient))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)

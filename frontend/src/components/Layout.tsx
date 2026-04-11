@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Clock,
+  FlaskConical,
   Power,
   Bell,
   Settings,
@@ -13,6 +14,7 @@ import { cn, relativeTime } from '@/lib/utils'
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/history', icon: Clock, label: 'History' },
+  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
   { to: '/outlets', icon: Power, label: 'Outlets' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/settings', icon: Settings, label: 'Settings' },

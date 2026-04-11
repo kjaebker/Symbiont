@@ -101,6 +101,38 @@ type NotificationTarget struct {
 	Enabled bool   `json:"enabled"`
 }
 
+// MeasurementParameter represents a row in the measurement_parameters table.
+type MeasurementParameter struct {
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	CanonicalUnit string `json:"canonical_unit"`
+	SortOrder     int    `json:"sort_order"`
+}
+
+// MeasurementFilter is used to filter the ListMeasurements query.
+type MeasurementFilter struct {
+	ParameterID *int64
+	From        *time.Time
+	To          *time.Time
+	Limit       int // defaults to 200 if <= 0
+}
+
+// Measurement represents a row in the measurements table, joined with its parameter name and unit.
+type Measurement struct {
+	ID          int64     `json:"id"`
+	MeasuredAt  time.Time `json:"measured_at"`
+	ParameterID int64     `json:"parameter_id"`
+	Value       float64   `json:"value"`
+	Notes       *string   `json:"notes"`
+	Source      string    `json:"source"`
+	TestKitRef  *string   `json:"test_kit_ref"`
+	RawValue    *float64  `json:"raw_value"`
+	CreatedAt   time.Time `json:"created_at"`
+	// Joined from measurement_parameters:
+	Parameter     string `json:"parameter"`
+	CanonicalUnit string `json:"canonical_unit"`
+}
+
 // BackupJob represents a row in the backup_jobs table.
 type BackupJob struct {
 	ID        int64     `json:"id"`

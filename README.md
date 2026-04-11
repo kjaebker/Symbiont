@@ -205,12 +205,21 @@ Restrict access via Tailscale ACLs to only your own devices.
 
 ## Development
 
-Requires Go 1.24+, Node 22+, and a C compiler (DuckDB uses CGO).
+The dev environment is managed via [Nix](https://nixos.org/) and provides Go 1.25, Node 22, DuckDB, and all required C libraries automatically. Non-Nix builds are possible but require Go 1.25+, Node 22+, and DuckDB development headers installed manually.
 
-### Build
+### Enter the dev shell
 
 ```bash
-# Install: Go 1.24+, Node 22+, gcc/clang
+nix develop
+```
+
+All commands below assume you are inside the dev shell.
+
+### Build (release only)
+
+To produce a release binary with the frontend embedded:
+
+```bash
 cd frontend && npm ci && npm run build && cd ..
 go build -tags release -o symbiont ./cmd/symbiont
 ```
@@ -219,16 +228,16 @@ go build -tags release -o symbiont ./cmd/symbiont
 
 ```bash
 cp .env.example .env
-# edit .env
+# edit .env — set SYMBIONT_APEX_URL, SYMBIONT_APEX_USER, SYMBIONT_APEX_PASS
 
 set -a && source .env && set +a
 go run ./cmd/symbiont serve
 ```
 
-Frontend dev server (live reload, proxies /api to :8420):
+Frontend dev server (live reload, proxies /api to :8421):
 
 ```bash
-cd frontend && npm run dev
+cd frontend && npm install && npm run dev
 # Open http://localhost:5173
 ```
 

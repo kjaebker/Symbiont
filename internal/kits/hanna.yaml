@@ -1,0 +1,54 @@
+manufacturer: "Hanna Instruments"
+slug: "hanna"
+kits:
+  - id: "hi772"
+    name: "HI772 Marine Alkalinity Checker"
+    parameter: "Alkalinity"
+    input:
+      label: "Checker Reading"
+      unit: "mg/L as CaCO₃"
+    conversion:
+      # 1 dKH = 17.848 mg/L CaCO₃; result_dKH = reading / 17.848
+      scale: 0.05603
+      offset: 0
+
+  - id: "hi758"
+    name: "HI758 Marine Calcium Checker"
+    parameter: "Calcium"
+    input:
+      label: "Checker Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "hi784"
+    name: "HI784 Marine Phosphate Checker (ULR)"
+    parameter: "Phosphate"
+    input:
+      label: "Checker Reading"
+      unit: "ppb"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "hi781"
+    name: "HI781 Marine Phosphate Checker (LR)"
+    parameter: "Phosphate"
+    input:
+      label: "Checker Reading"
+      unit: "ppm"
+    conversion:
+      # ppm → ppb (canonical unit)
+      scale: 1000.0
+      offset: 0
+
+  - id: "hi713"
+    name: "HI713 Ammonia Checker"
+    parameter: "Ammonia"
+    input:
+      label: "Checker Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0

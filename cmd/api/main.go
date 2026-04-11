@@ -13,6 +13,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/kits"
 	"github.com/kjaebker/symbiont/internal/notify"
 	"github.com/kjaebker/symbiont/internal/poller"
 )
@@ -60,6 +61,23 @@ func main() {
 	// Create Apex client.
 	apexClient := apex.NewClient(cfg.ApexURL, cfg.ApexUser, cfg.ApexPass)
 
+	// Load kit catalog, validated against seeded measurement parameters.
+	measurementParams, err := sqliteDB.ListMeasurementParameters(ctx)
+	if err != nil {
+		logger.Error("failed to load measurement parameters for kit validation", "err", err)
+		os.Exit(1)
+	}
+	validParams := make(map[string]bool, len(measurementParams))
+	for _, mp := range measurementParams {
+		validParams[mp.Name] = true
+	}
+	catalog, err := kits.Load(validParams)
+	if err != nil {
+		logger.Error("failed to load kit catalog", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("kit catalog loaded", "kits", len(catalog.All()))
+
 	// Set up signal-based context cancellation for graceful shutdown.
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
@@ -74,7 +92,7 @@ func main() {
 	go p.Run(sigCtx)
 
 	// Create API server (nil FS falls back to cfg.FrontendPath).
-	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil)
+	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog)
 
 	// Build notification system from enabled targets.
 	var notifier notify.Notifier

@@ -1,0 +1,52 @@
+manufacturer: "Red Sea"
+slug: "redsea"
+kits:
+  - id: "alk-pro"
+    name: "Red Sea Alkalinity Pro Test Kit"
+    parameter: "Alkalinity"
+    input:
+      label: "Test Reading"
+      unit: "dKH"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "calcium-pro"
+    name: "Red Sea Calcium Pro Test Kit"
+    parameter: "Calcium"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "magnesium-pro"
+    name: "Red Sea Magnesium Pro Test Kit"
+    parameter: "Magnesium"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "nitrate-pro"
+    name: "Red Sea Nitrate Pro Test Kit"
+    parameter: "Nitrate"
+    input:
+      label: "Test Reading"
+      unit: "ppm"
+    conversion:
+      scale: 1.0
+      offset: 0
+
+  - id: "phosphate-pro"
+    name: "Red Sea Phosphate Pro Test Kit"
+    parameter: "Phosphate"
+    input:
+      label: "Test Reading"
+      unit: "ppb"
+    conversion:
+      scale: 1.0
+      offset: 0

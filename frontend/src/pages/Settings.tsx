@@ -32,6 +32,7 @@ import {
 } from '@/hooks/useSettings'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
+import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import { useSystemLog } from '@/hooks/useSystem'
 import {
   useNotificationTargets,
@@ -244,7 +245,9 @@ function SortableDashboardRow({
           ? 'bg-amber-400/10 text-amber-400'
           : item.item_type === 'feed_mode'
             ? 'bg-primary/10 text-primary'
-            : 'bg-secondary/10 text-secondary'
+            : item.item_type === 'measurement'
+              ? 'bg-secondary/10 text-secondary'
+              : 'bg-secondary/10 text-secondary'
 
   return (
     <div
@@ -288,6 +291,7 @@ function DashboardTab() {
   const { data: probesData, isLoading: probesLoading } = useProbes()
   const { data: outletsData, isLoading: outletsLoading } = useOutlets()
   const { data: devicesData, isLoading: devicesLoading } = useDevices()
+  const { data: measParamsData } = useMeasurementParameters()
   const replaceMutation = useReplaceDashboardLayout()
   const addMutation = useAddDashboardItem()
   const removeMutation = useRemoveDashboardItem()
@@ -312,6 +316,7 @@ function DashboardTab() {
       case 'probe': return probeNameMap.get(ref) ?? ref
       case 'outlet': return outletNameMap.get(ref) ?? ref
       case 'device': return deviceNameMap.get(ref) ?? ref
+      case 'measurement': return ref
       default: return ref
     }
   }
@@ -328,6 +333,7 @@ function DashboardTab() {
   const availableOutlets = (outletsData?.outlets ?? [])
     .filter((o) => (o.type === 'outlet' || o.type === 'virtual') && !onDashboard.has(`outlet:${o.id}`))
   const availableDevices = (devicesData?.devices ?? []).filter((d) => !onDashboard.has(`device:${String(d.id)}`))
+  const availableMeasurements = (measParamsData?.parameters ?? []).filter((p) => !onDashboard.has(`measurement:${p.name}`))
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -456,6 +462,22 @@ function DashboardTab() {
               </div>
             </div>
           )}
+          {availableMeasurements.length > 0 && (
+            <div>
+              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Chemistry</p>
+              <div className="flex flex-wrap gap-1.5">
+                {availableMeasurements.map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => handleAdd('measurement', p.name)}
+                    className="px-2.5 py-1 text-xs rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 transition-fluid cursor-pointer"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!onDashboard.has('feed_mode:feed') && (
             <div>
               <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Controller</p>
@@ -469,7 +491,7 @@ function DashboardTab() {
               </div>
             </div>
           )}
-          {availableProbes.length === 0 && availableOutlets.length === 0 && availableDevices.length === 0 && onDashboard.has('feed_mode:feed') && (
+          {availableProbes.length === 0 && availableOutlets.length === 0 && availableDevices.length === 0 && availableMeasurements.length === 0 && onDashboard.has('feed_mode:feed') && (
             <p className="text-xs text-on-surface-faint text-center py-2">All items are already on the dashboard.</p>
           )}
         </div>
