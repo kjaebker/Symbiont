@@ -164,7 +164,7 @@ export interface FeedStatus {
 
 export interface DashboardItem {
   id: number
-  item_type: 'probe' | 'outlet' | 'device' | 'separator' | 'feed_mode'
+  item_type: 'probe' | 'outlet' | 'device' | 'separator' | 'feed_mode' | 'measurement'
   reference_id: string | null
   label: string | null
   sort_order: number
