@@ -65,13 +65,13 @@ tar -xzf symbiont-*.tar.gz
 sudo mv symbiont /usr/local/bin/symbiont
 ```
 
-3. Configure:
+3. Configure (`.env.example` is included in the tarball):
 
 ```bash
 sudo mkdir -p /etc/symbiont
 sudo cp .env.example /etc/symbiont/env
 sudo chmod 600 /etc/symbiont/env
-# edit /etc/symbiont/env
+sudo nano /etc/symbiont/env   # set SYMBIONT_APEX_URL, SYMBIONT_APEX_USER, SYMBIONT_APEX_PASS
 ```
 
 4. Run:
@@ -110,7 +110,7 @@ symbiont alerts events
 symbiont notify list
 symbiont notify create
 symbiont notify delete <id>
-symbiont notify test <id>
+symbiont notify test
 
 # Display config (probe/outlet labels and ordering)
 symbiont config probes list
