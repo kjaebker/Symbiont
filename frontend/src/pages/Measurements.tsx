@@ -36,6 +36,19 @@ interface AddFormProps {
   onClose: () => void
 }
 
+const PARAM_PLACEHOLDERS: Record<string, string> = {
+  Alkalinity: '8.3',
+  Calcium: '420',
+  Magnesium: '1350',
+  Nitrate: '2',
+  Nitrite: '0',
+  Phosphate: '0.05',
+  Salinity: '35.0',
+  pH: '8.2',
+  Ammonia: '0',
+  Silicate: '0.5',
+}
+
 function AddForm({ parameters, onClose }: AddFormProps) {
   const create = useCreateMeasurement()
   const [paramName, setParamName] = useState(parameters[0]?.name ?? '')
@@ -105,7 +118,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
               step="any"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="e.g. 1350"
+              placeholder={`e.g. ${PARAM_PLACEHOLDERS[paramName] ?? '0'}`}
               required
               className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
             />

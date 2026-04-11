@@ -102,7 +102,7 @@ function buildOpts(
               return spline(u, seriesIdx, idx0, idx1)
             },
         value: (_self: uPlot, val: number | null) =>
-          val != null ? `${val.toFixed(2)} ${s.unit}` : '--',
+          val != null ? `${val % 1 === 0 ? val.toFixed(0) : val.toFixed(2)} ${s.unit}`.trim() : '--',
       })),
     ],
     scales,
