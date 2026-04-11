@@ -225,7 +225,7 @@ set -a && source .env && set +a
 go run ./cmd/symbiont serve
 ```
 
-Frontend dev server (live reload, proxies /api to :8420):
+Frontend dev server (live reload, proxies /api to :8421):
 
 ```bash
 cd frontend && npm run dev
