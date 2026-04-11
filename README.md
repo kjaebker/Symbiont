@@ -15,113 +15,72 @@ A local-first Neptune Apex dashboard and data platform. Replaces Apex Fusion wit
 
 ---
 
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Backend | Go — four binaries: poller, api, mcp, cli |
-| Time-series DB | DuckDB (embedded, no server) |
-| App state DB | SQLite (embedded) |
-| Frontend | React + TypeScript + Vite |
-| UI | Tailwind CSS + lucide-react + uPlot + dnd-kit |
-| Deployment | NixOS systemd services |
-| Remote access | Tailscale |
-
----
-
 ## Requirements
 
 - Neptune Apex running AOS 5+, accessible on the local network
-- NixOS (primary target) or any Linux system with Go 1.25+
-- Node.js 22+ for frontend builds
+- Linux (x86_64 or arm64) or macOS (Apple Silicon)
 - Tailscale (optional, for remote access)
 
 ---
 
-## Quick Start (Development)
-
-### 1. Enter the dev shell
+## Install
 
 ```bash
-nix develop
+bash <(curl -fsSL https://raw.githubusercontent.com/kjaebker/Symbiont/main/install.sh)
 ```
 
-This provides Go, DuckDB CLI, SQLite CLI, Node.js, and development tools.
+The installer prompts for your Apex controller IP, username, and password, then writes the config and (on Linux) installs a systemd service.
 
-### 2. Configure environment
+**Start the service:**
 
 ```bash
-cp .env.example .env
+# Linux
+sudo systemctl enable --now symbiont
+sudo journalctl -u symbiont -f          # token is printed on first run — save it
+
+# macOS
+launchctl load ~/Library/LaunchAgents/com.symbiont.plist
+tail -f ~/.symbiont/symbiont.log        # token is printed on first run — save it
 ```
 
-Edit `.env` with your Apex IP, username, and password:
+Dashboard: **http://localhost:8420**
 
-```bash
-SYMBIONT_APEX_URL=http://192.168.1.100
-SYMBIONT_APEX_USER=admin
-SYMBIONT_APEX_PASS=your-apex-password
-```
-
-### 3. Start the backend
-
-> **Note:** If the production systemd service is already running on this machine (port 8420), set a different port in `.env` to avoid conflicts:
-> ```bash
-> SYMBIONT_API_PORT=8421
-> ```
-
-```bash
-set -a && source .env && set +a
-go run ./cmd/symbiont serve
-```
-
-This starts the API server and poller together in a single process. On first start, a token is printed to stdout — save it, it's shown once.
-
-Verify the API is working:
-
-```bash
-curl -s -H "Authorization: Bearer <your-token>" http://localhost:8421/api/probes | jq .
-```
-
-### 4. Start the frontend dev server
-
-In a second terminal:
-
-```bash
-cd frontend
-npm install
-VITE_API_URL=http://localhost:8421 npm run dev
-```
-
-If running on the default port 8420 (no prod service conflict), omit `VITE_API_URL`.
-
-Open [http://localhost:5173](http://localhost:5173), enter your token, and the dashboard loads.
+> The token is generated once on first start and printed to the log. It's needed to log in to the dashboard and for CLI/MCP use. If you lose it, see [Authentication](#authentication).
 
 ---
 
-## Running All Services (Production)
+## Manual Install
 
-On NixOS, all services are managed by systemd and defined in `flake.nix`:
+If you prefer not to pipe to bash:
+
+1. Download the right archive from the [latest release](https://github.com/kjaebker/Symbiont/releases/latest):
+   - Linux x86_64: `symbiont-linux-amd64.tar.gz`
+   - Linux arm64: `symbiont-linux-arm64.tar.gz`
+   - macOS Apple Silicon: `symbiont-darwin-arm64.tar.gz`
+
+2. Extract and install:
 
 ```bash
-# Enable and start all services
-sudo systemctl enable --now symbiont-poller
-sudo systemctl enable --now symbiont-api
-sudo systemctl enable --now symbiont-mcp
-
-# Check status
-sudo systemctl status symbiont-poller
-sudo systemctl status symbiont-api
-
-# View logs
-sudo journalctl -u symbiont-poller -f
-sudo journalctl -u symbiont-api -f
+tar -xzf symbiont-*.tar.gz
+sudo mv symbiont /usr/local/bin/symbiont
 ```
 
-The frontend is built and served statically by the API server:
+3. Configure:
 
 ```bash
-cd frontend && npm run build
-# Frontend is now served at http://localhost:8420/
+sudo mkdir -p /etc/symbiont
+sudo cp .env.example /etc/symbiont/env
+sudo chmod 600 /etc/symbiont/env
+# edit /etc/symbiont/env
+```
+
+4. Run:
+
+```bash
+# One-shot (foreground)
+symbiont serve
+
+# Or as a systemd service (Linux) — see install.sh for the unit file
 ```
 
 ---
@@ -186,7 +145,8 @@ Symbiont exposes an MCP server that lets Claude and other AI assistants query an
 {
   "mcpServers": {
     "symbiont": {
-      "command": "/run/current-system/sw/bin/symbiont-mcp",
+      "command": "/usr/local/bin/symbiont",
+      "args": ["mcp"],
       "env": {
         "SYMBIONT_API_URL": "http://localhost:8420",
         "SYMBIONT_TOKEN": "your-token-here"
@@ -199,7 +159,7 @@ Symbiont exposes an MCP server that lets Claude and other AI assistants query an
 **Claude Code:**
 
 ```bash
-claude mcp add symbiont /run/current-system/sw/bin/symbiont-mcp \
+claude mcp add symbiont /usr/local/bin/symbiont mcp \
   --env SYMBIONT_API_URL=http://localhost:8420 \
   --env SYMBIONT_TOKEN=your-token
 ```
@@ -210,7 +170,7 @@ Available tools: `get_current_parameters`, `get_probe_history`, `get_outlet_stat
 
 ## Authentication
 
-All API endpoints require a Bearer token. The token is generated on first run and printed once to stdout. Additional tokens can be created via:
+All API endpoints require a Bearer token. The token is generated on first run and printed once to the log. Additional tokens can be created via:
 
 ```bash
 symbiont auth tokens create --label "phone"
@@ -229,9 +189,9 @@ symbiont auth reset --db-path /var/lib/symbiont/app.db --yes
 - **DuckDB** (`telemetry.db`) — all probe readings and outlet states, 10-second granularity
 - **SQLite** (`app.db`) — alert rules, display config, tokens, outlet event log, backup records
 
-Default retention: 1 year. Configurable via `SYMBIONT_RETENTION_DAYS`. Cleanup runs weekly via systemd timer.
+Default retention: 1 year. Configurable via `SYMBIONT_RETENTION_DAYS`. Cleanup runs weekly.
 
-Backups run nightly to `/var/lib/symbiont/backups/` and are viewable in the Settings page.
+Backups run nightly to the `backups/` subdirectory of your data directory and are viewable in the Settings page.
 
 ---
 
@@ -243,23 +203,52 @@ Restrict access via Tailscale ACLs to only your own devices.
 
 ---
 
+## Development
+
+Requires Go 1.24+, Node 22+, and a C compiler (DuckDB uses CGO).
+
+### Build
+
+```bash
+# Install: Go 1.24+, Node 22+, gcc/clang
+cd frontend && npm ci && npm run build && cd ..
+go build -tags release -o symbiont ./cmd/symbiont
+```
+
+### Running locally
+
+```bash
+cp .env.example .env
+# edit .env
+
+set -a && source .env && set +a
+go run ./cmd/symbiont serve
+```
+
+Frontend dev server (live reload, proxies /api to :8420):
+
+```bash
+cd frontend && npm run dev
+# Open http://localhost:5173
+```
+
+### Tests
+
+```bash
+go test ./...
+```
+
+---
+
 ## Documentation
 
 | Document | Description |
 |---|---|
 | `CLAUDE.md` | Agent instructions — read before every coding session |
-| `docs/architecture.md` | Full technical architecture |
+| `docs/symbiont-architecture.md` | Full technical architecture |
 | `docs/impl-00-overview.md` | Implementation plan index |
 | `docs/impl-01-*.md` through `impl-07-*.md` | Per-phase task lists |
 | `docs/apex-api-notes.md` | Apex local API findings from DevTools capture |
-
----
-
-## Project Status
-
-Currently in **Phase 7: Layout Builder** (phases 1–6 substantially complete).
-
-See `docs/impl-07-layout-builder.md` for the active task list.
 
 ---
 
