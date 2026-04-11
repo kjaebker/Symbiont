@@ -215,7 +215,9 @@ nix develop
 
 All commands below assume you are inside the dev shell.
 
-### Build
+### Build (release only)
+
+To produce a release binary with the frontend embedded:
 
 ```bash
 cd frontend && npm ci && npm run build && cd ..
