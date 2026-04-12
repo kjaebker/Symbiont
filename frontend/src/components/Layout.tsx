@@ -10,7 +10,7 @@ import {
   LayoutGrid,
   X,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSSE } from '@/hooks/useSSE'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { cn, relativeTime } from '@/lib/utils'
@@ -52,23 +52,6 @@ function StatusBadge() {
   )
 }
 
-function MobileStatusBadge() {
-  const { data } = useSystemStatus()
-  const pollOk = data?.poller.poll_ok ?? false
-  const lastPoll = data?.poller.last_poll_ts
-
-  return (
-    <div className="flex items-center gap-2 text-sm text-on-surface-dim">
-      <span
-        className={cn(
-          'h-2 w-2 rounded-full shrink-0',
-          pollOk ? 'bg-secondary animate-bio-pulse' : 'bg-tertiary',
-        )}
-      />
-      <span>{lastPoll ? relativeTime(lastPoll) : 'Connecting...'}</span>
-    </div>
-  )
-}
 
 function MobileMoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const location = useLocation()
@@ -89,18 +72,18 @@ function MobileMoreSheet({ open, onClose }: { open: boolean; onClose: () => void
         onClick={onClose}
       />
 
-      {/* Sheet */}
+      {/* Sheet — anchored at bottom-0, pb clears the nav bar, z-index below nav */}
       <div
         className={cn(
-          'md:hidden fixed bottom-[4.5rem] inset-x-0 z-50 transition-fluid',
+          'md:hidden fixed bottom-0 inset-x-0 pb-[4.5rem] transition-fluid',
           open ? 'translate-y-0' : 'translate-y-full',
         )}
+        style={{ zIndex: 49 }}
       >
         <div className="mx-3 mb-2 rounded-2xl bg-surface-container-low/95 backdrop-blur-xl overflow-hidden"
           style={{ boxShadow: '0 -4px 40px rgba(58, 223, 250, 0.08)' }}>
           {/* Sheet header */}
-          <div className="flex items-center justify-between px-5 py-4">
-            <MobileStatusBadge />
+          <div className="flex items-center justify-end px-4 pt-3 pb-1">
             <button
               onClick={onClose}
               className="p-1.5 rounded-full text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60 transition-fluid"
@@ -139,6 +122,7 @@ export default function Layout() {
   useSSE()
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
+  const closeMore = useCallback(() => setMoreOpen(false), [])
 
   const activeRouteIsOverflow = overflowNavItems.some(
     (item) => item.to === location.pathname,
@@ -184,7 +168,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — z-50 stays above the sheet (z-49) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
         <div className="flex items-center justify-around py-2">
           {primaryNavItems.map(({ to, icon: Icon, label }) => (
@@ -219,7 +203,7 @@ export default function Layout() {
       </nav>
 
       {/* Mobile overflow sheet */}
-      <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <MobileMoreSheet open={moreOpen} onClose={closeMore} />
     </div>
   )
 }
