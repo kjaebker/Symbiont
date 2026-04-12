@@ -776,7 +776,7 @@ func (s *SQLiteDB) listDeviceProbeNames(ctx context.Context, deviceID int64) ([]
 // ListDashboardItems returns all dashboard items ordered by sort_order.
 func (s *SQLiteDB) ListDashboardItems(ctx context.Context) ([]DashboardItem, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, item_type, reference_id, label, sort_order FROM dashboard_items ORDER BY sort_order",
+		"SELECT id, item_type, reference_id, label, sort_order, display_mode FROM dashboard_items ORDER BY sort_order",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing dashboard items: %w", err)
@@ -786,7 +786,7 @@ func (s *SQLiteDB) ListDashboardItems(ctx context.Context) ([]DashboardItem, err
 	var items []DashboardItem
 	for rows.Next() {
 		var item DashboardItem
-		if err := rows.Scan(&item.ID, &item.ItemType, &item.ReferenceID, &item.Label, &item.SortOrder); err != nil {
+		if err := rows.Scan(&item.ID, &item.ItemType, &item.ReferenceID, &item.Label, &item.SortOrder, &item.DisplayMode); err != nil {
 			return nil, fmt.Errorf("scanning dashboard item: %w", err)
 		}
 		items = append(items, item)
@@ -807,9 +807,13 @@ func (s *SQLiteDB) ReplaceDashboardLayout(ctx context.Context, items []Dashboard
 	}
 
 	for i, item := range items {
+		mode := item.DisplayMode
+		if mode == "" {
+			mode = "normal"
+		}
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES (?, ?, ?, ?)",
-			item.ItemType, item.ReferenceID, item.Label, i+1,
+			"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order, display_mode) VALUES (?, ?, ?, ?, ?)",
+			item.ItemType, item.ReferenceID, item.Label, i+1, mode,
 		); err != nil {
 			return fmt.Errorf("inserting dashboard item %d: %w", i, err)
 		}
@@ -823,9 +827,13 @@ func (s *SQLiteDB) AddDashboardItem(ctx context.Context, item DashboardItem) (in
 	var maxOrder int
 	_ = s.db.QueryRowContext(ctx, "SELECT COALESCE(MAX(sort_order), 0) FROM dashboard_items").Scan(&maxOrder)
 
+	mode := item.DisplayMode
+	if mode == "" {
+		mode = "normal"
+	}
 	res, err := s.db.ExecContext(ctx,
-		"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order) VALUES (?, ?, ?, ?)",
-		item.ItemType, item.ReferenceID, item.Label, maxOrder+1,
+		"INSERT INTO dashboard_items (item_type, reference_id, label, sort_order, display_mode) VALUES (?, ?, ?, ?, ?)",
+		item.ItemType, item.ReferenceID, item.Label, maxOrder+1, mode,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("adding dashboard item: %w", err)

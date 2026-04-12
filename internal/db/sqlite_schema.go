@@ -167,6 +167,14 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		return err
 	}
 
+	// Add display_mode after structural migrations so the table-recreation
+	// migrations don't have to account for this column.
+	if _, err := db.Exec(`ALTER TABLE dashboard_items ADD COLUMN display_mode TEXT NOT NULL DEFAULT 'normal'`); err != nil {
+		if !isDuplicateColumn(err) {
+			return fmt.Errorf("adding display_mode column: %w", err)
+		}
+	}
+
 	// Post-migration indexes (depend on columns added above).
 	postIndexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,

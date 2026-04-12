@@ -53,6 +53,7 @@ type DashboardItem struct {
 	ReferenceID *string `json:"reference_id"`
 	Label       *string `json:"label"`
 	SortOrder   int     `json:"sort_order"`
+	DisplayMode string  `json:"display_mode"` // "normal" or "compact"
 }
 
 // AlertRule represents a row in the alert_rules table.

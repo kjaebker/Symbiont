@@ -168,6 +168,7 @@ export interface DashboardItem {
   reference_id: string | null
   label: string | null
   sort_order: number
+  display_mode: 'normal' | 'compact'
 }
 
 export interface DeviceSuggestion {
