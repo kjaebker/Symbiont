@@ -1320,7 +1320,7 @@ func (s *SQLiteDB) DeleteLivestockItem(ctx context.Context, id int64) error {
 // ListLivestockObservations returns all observations for a livestock item, newest first.
 func (s *SQLiteDB) ListLivestockObservations(ctx context.Context, livestockID int64) ([]LivestockObservation, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, livestock_id, ts, status, note FROM livestock_observations WHERE livestock_id = ? ORDER BY ts DESC",
+		"SELECT id, livestock_id, ts, status, note, image_path FROM livestock_observations WHERE livestock_id = ? ORDER BY ts DESC",
 		livestockID,
 	)
 	if err != nil {
@@ -1331,7 +1331,7 @@ func (s *SQLiteDB) ListLivestockObservations(ctx context.Context, livestockID in
 	var obs []LivestockObservation
 	for rows.Next() {
 		var o LivestockObservation
-		if err := rows.Scan(&o.ID, &o.LivestockID, &o.TS, &o.Status, &o.Note); err != nil {
+		if err := rows.Scan(&o.ID, &o.LivestockID, &o.TS, &o.Status, &o.Note, &o.ImagePath); err != nil {
 			return nil, fmt.Errorf("scanning livestock observation: %w", err)
 		}
 		obs = append(obs, o)
@@ -1340,6 +1340,31 @@ func (s *SQLiteDB) ListLivestockObservations(ctx context.Context, livestockID in
 		obs = []LivestockObservation{}
 	}
 	return obs, rows.Err()
+}
+
+// GetLivestockObservation returns a single observation by ID.
+func (s *SQLiteDB) GetLivestockObservation(ctx context.Context, id int64) (*LivestockObservation, error) {
+	var o LivestockObservation
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, livestock_id, ts, status, note, image_path FROM livestock_observations WHERE id = ?",
+		id,
+	).Scan(&o.ID, &o.LivestockID, &o.TS, &o.Status, &o.Note, &o.ImagePath)
+	if err != nil {
+		return nil, fmt.Errorf("getting livestock observation: %w", err)
+	}
+	return &o, nil
+}
+
+// UpdateLivestockObservationImagePath sets or clears the image_path for an observation.
+func (s *SQLiteDB) UpdateLivestockObservationImagePath(ctx context.Context, id int64, imagePath *string) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE livestock_observations SET image_path = ? WHERE id = ?",
+		imagePath, id,
+	)
+	if err != nil {
+		return fmt.Errorf("updating livestock observation image: %w", err)
+	}
+	return nil
 }
 
 // InsertLivestockObservation inserts a new observation and returns its ID.

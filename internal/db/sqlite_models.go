@@ -166,6 +166,7 @@ type LivestockObservation struct {
 	TS          time.Time `json:"ts"`
 	Status      *string   `json:"status"`
 	Note        *string   `json:"note"`
+	ImagePath   *string   `json:"image_path"`
 }
 
 // LivestockFilter is used to filter ListLivestock queries.

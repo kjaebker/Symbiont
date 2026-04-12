@@ -173,6 +173,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 	// "duplicate column" to be idempotent.
 	migrations := []string{
 		`ALTER TABLE probe_config ADD COLUMN device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL`,
+		`ALTER TABLE livestock_observations ADD COLUMN image_path TEXT`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

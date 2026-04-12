@@ -227,4 +227,5 @@ export interface LivestockObservation {
   ts: string
   status: LivestockStatus | null
   note: string | null
+  image_path: string | null
 }

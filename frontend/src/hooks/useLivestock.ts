@@ -5,8 +5,12 @@ import {
   createLivestockItem,
   updateLivestockItem,
   deleteLivestockItem,
+  uploadLivestockImage,
+  deleteLivestockImage,
   getLivestockObservations,
   createLivestockObservation,
+  uploadObservationImage,
+  deleteObservationImage,
 } from '@/api/client'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 
@@ -61,6 +65,59 @@ export function useDeleteLivestockItem() {
     mutationFn: (id: number) => deleteLivestockItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['livestock'] })
+    },
+  })
+}
+
+export function useUploadLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) => uploadLivestockImage(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+    },
+  })
+}
+
+export function useDeleteLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteLivestockImage(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+    },
+  })
+}
+
+export function useUploadObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      livestockId,
+      obsId,
+      file,
+    }: {
+      livestockId: number
+      obsId: number
+      file: File
+    }) => uploadObservationImage(livestockId, obsId, file),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
+    },
+  })
+}
+
+export function useDeleteObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
+      deleteObservationImage(livestockId, obsId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
     },
   })
 }

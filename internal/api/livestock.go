@@ -437,3 +437,103 @@ func (s *Server) HandleLivestockObservationCreate(w http.ResponseWriter, r *http
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"id": obsID})
 }
+
+func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	obsID, err := strconv.ParseInt(pathValue(r, "obs_id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid observation id", "invalid_param")
+		return
+	}
+
+	obs, err := s.sqlite.GetLivestockObservation(ctx, obsID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "observation not found", "not_found")
+		return
+	}
+
+	const maxImageSize = 5 << 20 // 5MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
+	if err := r.ParseMultipartForm(maxImageSize); err != nil {
+		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "missing image field", "missing_field")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	validExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+	if !validExts[ext] {
+		writeError(w, http.StatusBadRequest, "image must be JPEG, PNG, or WebP", "invalid_file_type")
+		return
+	}
+
+	imagesDir := s.dataFilePath("images")
+	if err := os.MkdirAll(imagesDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create images directory", "io_error")
+		return
+	}
+
+	filename := fmt.Sprintf("obs-%d-%d%s", obsID, time.Now().Unix(), ext)
+	relPath := filepath.Join("images", filename)
+	absPath := s.dataFilePath(relPath)
+
+	dst, err := os.Create(absPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		os.Remove(absPath)
+		writeError(w, http.StatusInternalServerError, "failed to write image", "io_error")
+		return
+	}
+
+	// Remove old image if present.
+	if obs.ImagePath != nil {
+		os.Remove(s.dataFilePath(*obs.ImagePath))
+	}
+
+	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, &relPath); err != nil {
+		os.Remove(absPath)
+		writeError(w, http.StatusInternalServerError, "failed to update observation image", "db_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"image_path": relPath})
+}
+
+func (s *Server) HandleObservationImageDelete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	obsID, err := strconv.ParseInt(pathValue(r, "obs_id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid observation id", "invalid_param")
+		return
+	}
+
+	obs, err := s.sqlite.GetLivestockObservation(ctx, obsID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "observation not found", "not_found")
+		return
+	}
+
+	if obs.ImagePath != nil {
+		os.Remove(s.dataFilePath(*obs.ImagePath))
+	}
+
+	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, nil); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update observation", "db_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}

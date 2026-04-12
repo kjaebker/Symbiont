@@ -158,6 +158,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/livestock/{id}/image", s.HandleLivestockImageDelete)
 	mux.HandleFunc("GET /api/livestock/{id}/observations", s.HandleLivestockObservationList)
 	mux.HandleFunc("POST /api/livestock/{id}/observations", s.HandleLivestockObservationCreate)
+	mux.HandleFunc("POST /api/livestock/{id}/observations/{obs_id}/image", s.HandleObservationImageUpload)
+	mux.HandleFunc("DELETE /api/livestock/{id}/observations/{obs_id}/image", s.HandleObservationImageDelete)
 
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
