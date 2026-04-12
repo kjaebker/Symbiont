@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { Fish, Plus, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Fish, Plus, X, ImagePlus } from 'lucide-react'
 import {
   useLivestock,
   useLivestockSpecies,
   useCreateLivestockItem,
   useUpdateLivestockItem,
   useDeleteLivestockItem,
+  useUploadLivestockImage,
 } from '@/hooks/useLivestock'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
@@ -52,19 +53,39 @@ const defaultForm = (): FormData => ({
 
 interface LivestockFormProps {
   initial?: FormData
+  currentImagePath?: string | null
   speciesSuggestions: string[]
-  onSubmit: (data: FormData) => Promise<void>
+  onSubmit: (data: FormData) => Promise<number>
   onClose: () => void
   title: string
 }
 
-function LivestockForm({ initial, speciesSuggestions, onSubmit, onClose, title }: LivestockFormProps) {
+function LivestockForm({ initial, currentImagePath, speciesSuggestions, onSubmit, onClose, title }: LivestockFormProps) {
   const [form, setForm] = useState<FormData>(initial ?? defaultForm())
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const uploadImage = useUploadLivestockImage()
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  function clearImage() {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImageFile(null)
+    setImagePreview(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -76,7 +97,10 @@ function LivestockForm({ initial, speciesSuggestions, onSubmit, onClose, title }
     }
     setSubmitting(true)
     try {
-      await onSubmit(form)
+      const itemId = await onSubmit(form)
+      if (imageFile) {
+        await uploadImage.mutateAsync({ id: itemId, file: imageFile })
+      }
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -205,6 +229,53 @@ function LivestockForm({ initial, speciesSuggestions, onSubmit, onClose, title }
           />
         </div>
 
+        {/* Photo */}
+        <div>
+          <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
+            Photo
+          </label>
+          {imagePreview ? (
+            <div className="relative w-24 h-24">
+              <img src={imagePreview} alt="Preview" className="w-24 h-24 rounded-xl object-cover" />
+              <button
+                type="button"
+                onClick={clearImage}
+                className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-surface-container-highest text-on-surface-faint hover:text-tertiary transition-fluid"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : currentImagePath ? (
+            <div className="flex items-center gap-3">
+              <img src={`/data/${currentImagePath}`} alt="Current" className="w-24 h-24 rounded-xl object-cover" />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-surface-container-high text-on-surface-dim hover:bg-surface-container-highest transition-fluid"
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                Replace
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-surface-container-high text-on-surface-dim hover:bg-surface-container-highest transition-fluid"
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
+              Attach photo
+            </button>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
+          />
+        </div>
+
         {error && <p className="text-xs text-tertiary">{error}</p>}
 
         <div className="flex gap-2 pt-1">
@@ -269,8 +340,8 @@ export default function Livestock() {
   }
   const nonHealthyCount = allItems.filter((i) => i.status !== 'healthy').length
 
-  async function handleCreate(form: FormData) {
-    await createItem.mutateAsync({
+  async function handleCreate(form: FormData): Promise<number> {
+    const item = await createItem.mutateAsync({
       name:       form.name.trim(),
       species:    form.species.trim() || null,
       type:       form.type,
@@ -279,10 +350,11 @@ export default function Livestock() {
       date_added: form.date_added || null,
       notes:      form.notes.trim() || null,
     })
+    return item.id
   }
 
-  async function handleUpdate(form: FormData) {
-    if (!editing) return
+  async function handleUpdate(form: FormData): Promise<number> {
+    if (!editing) return 0
     await updateItem.mutateAsync({
       id: editing.id,
       data: {
@@ -296,6 +368,7 @@ export default function Livestock() {
       },
     })
     setEditing(null)
+    return editing.id
   }
 
   function handleDelete(id: number) {
@@ -340,6 +413,7 @@ export default function Livestock() {
       {editing && (
         <LivestockForm
           initial={itemToFormData(editing)}
+          currentImagePath={editing.image_path}
           speciesSuggestions={speciesSuggestions}
           onSubmit={handleUpdate}
           onClose={() => setEditing(null)}
