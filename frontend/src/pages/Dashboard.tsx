@@ -11,6 +11,13 @@ import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard } from '@/components/DeviceCard'
 import { FeedCard } from '@/components/FeedCard'
 import { MeasurementCard } from '@/components/MeasurementCard'
+import {
+  ProbeCompactCard,
+  OutletCompactCard,
+  MeasurementCompactCard,
+  FeedCompactCard,
+  DeviceCompactCard,
+} from '@/components/CompactCard'
 import { cn, relativeTime } from '@/lib/utils'
 import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
@@ -74,40 +81,107 @@ function renderCard(
   controlsLocked: boolean,
 ) {
   const ref = item.reference_id
+  const compact = item.display_mode === 'compact'
+
+  // Compact mode: read-only app-icon tiles
+  if (compact) {
+    switch (item.item_type) {
+      case 'probe': {
+        const probe = probeMap.get(ref ?? '')
+        if (!probe) return null
+        return (
+          <div key={`probe:${ref}`} className="col-span-1">
+            <ProbeCompactCard probe={probe} />
+          </div>
+        )
+      }
+      case 'outlet': {
+        const outlet = outletMap.get(ref ?? '')
+        if (!outlet) return null
+        return (
+          <div key={`outlet:${ref}`} className="col-span-1">
+            <OutletCompactCard outlet={outlet} />
+          </div>
+        )
+      }
+      case 'device': {
+        const device = deviceMap.get(Number(ref))
+        if (!device) return null
+        const primaryProbe = device.probe_names.map((n) => probeMap.get(n)).find(Boolean)
+        return (
+          <div key={`device:${ref}`} className="col-span-1">
+            <DeviceCompactCard device={device} primaryProbe={primaryProbe} />
+          </div>
+        )
+      }
+      case 'feed_mode':
+        return (
+          <div key="feed_mode" className="col-span-1">
+            <FeedCompactCard />
+          </div>
+        )
+      case 'measurement':
+        if (!ref) return null
+        return (
+          <div key={`measurement:${ref}`} className="col-span-1">
+            <MeasurementCompactCard parameter={ref} />
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
+  // Normal mode
   if (!ref) return null
 
   switch (item.item_type) {
     case 'probe': {
       const probe = probeMap.get(ref)
       if (!probe) return null
-      return <ProbeCard key={`probe:${ref}`} probe={probe} />
+      return (
+        <div key={`probe:${ref}`} className="col-span-2">
+          <ProbeCard probe={probe} />
+        </div>
+      )
     }
     case 'outlet': {
       const outlet = outletMap.get(ref)
       if (!outlet) return null
-      return <OutletCard key={`outlet:${ref}`} outlet={outlet} controlsLocked={controlsLocked} />
+      return (
+        <div key={`outlet:${ref}`} className="col-span-2">
+          <OutletCard outlet={outlet} controlsLocked={controlsLocked} />
+        </div>
+      )
     }
     case 'device': {
       const device = deviceMap.get(Number(ref))
       if (!device) return null
       return (
-        <DeviceCard
-          key={`device:${ref}`}
-          device={device}
-          probes={device.probe_names
-            .map((name) => probeMap.get(name))
-            .filter((p): p is NonNullable<typeof p> => !!p)}
-          outlet={device.outlet_id ? outletMap.get(device.outlet_id) : undefined}
-          controlsLocked={controlsLocked}
-        />
+        <div key={`device:${ref}`} className="col-span-2">
+          <DeviceCard
+            device={device}
+            probes={device.probe_names
+              .map((name) => probeMap.get(name))
+              .filter((p): p is NonNullable<typeof p> => !!p)}
+            outlet={device.outlet_id ? outletMap.get(device.outlet_id) : undefined}
+            controlsLocked={controlsLocked}
+          />
+        </div>
       )
     }
     case 'feed_mode':
-      return <FeedCard key="feed_mode" controlsLocked={controlsLocked} />
-    case 'measurement': {
-      if (!ref) return null
-      return <MeasurementCard key={`measurement:${ref}`} parameter={ref} />
-    }
+      return (
+        <div key="feed_mode" className="col-span-2">
+          <FeedCard controlsLocked={controlsLocked} />
+        </div>
+      )
+    case 'measurement':
+      return (
+        <div key={`measurement:${ref}`} className="col-span-2">
+          <MeasurementCard parameter={ref} />
+        </div>
+      )
     default:
       return null
   }
@@ -203,9 +277,9 @@ export default function Dashboard() {
 
       {/* Dashboard sections driven by dashboard_items */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} />
+            <div key={i} className="col-span-2"><SkeletonCard /></div>
           ))}
         </div>
       ) : dashboardItems.length === 0 ? (
@@ -230,7 +304,7 @@ export default function Dashboard() {
                 </h2>
               )}
               {cards.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                   {cards}
                 </div>
               )}

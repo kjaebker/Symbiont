@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList } from 'lucide-react'
 import { cn, relativeTime, formatBytes } from '@/lib/utils'
 import {
   useProbeConfigs,
@@ -221,11 +221,13 @@ function SortableDashboardRow({
   displayName,
   onRemove,
   onLabelChange,
+  onDisplayModeChange,
 }: {
   item: DashboardItem
   displayName: string
   onRemove: (id: number) => void
   onLabelChange?: (id: number, label: string) => void
+  onDisplayModeChange?: (id: number, mode: 'normal' | 'compact') => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(item.id),
@@ -275,6 +277,22 @@ function SortableDashboardRow({
         <span className="flex-1 text-sm font-medium text-on-surface truncate">
           {displayName}
         </span>
+      )}
+      {item.item_type !== 'separator' && onDisplayModeChange && (
+        <button
+          onClick={() =>
+            onDisplayModeChange(item.id, item.display_mode === 'compact' ? 'normal' : 'compact')
+          }
+          title={item.display_mode === 'compact' ? 'Switch to normal' : 'Switch to compact'}
+          className={cn(
+            'p-1.5 rounded-lg transition-fluid cursor-pointer',
+            item.display_mode === 'compact'
+              ? 'text-primary bg-primary/10 hover:bg-primary/20'
+              : 'text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-high',
+          )}
+        >
+          {item.display_mode === 'compact' ? <LayoutGrid size={16} /> : <LayoutList size={16} />}
+        </button>
       )}
       <button
         onClick={() => onRemove(item.id)}
@@ -350,6 +368,7 @@ function DashboardTab() {
         item_type: i.item_type,
         reference_id: i.reference_id,
         label: i.label,
+        display_mode: i.display_mode,
       })),
       { onSettled: () => setTimeout(() => setLocalItems(null), 300) },
     )
@@ -364,6 +383,7 @@ function DashboardTab() {
       item_type: itemType,
       reference_id: referenceId,
       label: null,
+      display_mode: 'normal',
     })
     setShowPicker(false)
   }
@@ -373,6 +393,7 @@ function DashboardTab() {
       item_type: 'separator',
       reference_id: null,
       label: 'New Section',
+      display_mode: 'normal',
     })
   }
 
@@ -382,6 +403,17 @@ function DashboardTab() {
       item_type: i.item_type,
       reference_id: i.reference_id,
       label: i.id === id ? label : i.label,
+      display_mode: i.display_mode,
+    }))
+    replaceMutation.mutate(updated)
+  }
+
+  function handleDisplayModeChange(id: number, mode: 'normal' | 'compact') {
+    const updated = items.map((i) => ({
+      item_type: i.item_type,
+      reference_id: i.reference_id,
+      label: i.label,
+      display_mode: i.id === id ? mode : i.display_mode,
     }))
     replaceMutation.mutate(updated)
   }
@@ -512,6 +544,7 @@ function DashboardTab() {
                 displayName={getDisplayName(item)}
                 onRemove={handleRemove}
                 onLabelChange={item.item_type === 'separator' ? handleLabelChange : undefined}
+                onDisplayModeChange={item.item_type !== 'separator' ? handleDisplayModeChange : undefined}
               />
             ))}
           </SortableContext>
