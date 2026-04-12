@@ -26,6 +26,15 @@ import type {
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
+const BUBBLES_KEY = 'ui:bubbles'
+
+export function getBubblesEnabled(): boolean {
+  try { return localStorage.getItem(BUBBLES_KEY) !== 'false' } catch { return true }
+}
+
+export function setBubblesEnabled(value: boolean): void {
+  try { localStorage.setItem(BUBBLES_KEY, String(value)) } catch {}
+}
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)

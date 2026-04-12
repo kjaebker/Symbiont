@@ -1,10 +1,8 @@
-import { Lock, Power, Zap } from 'lucide-react'
+import { Power, Zap } from 'lucide-react'
 import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
 
-// Apex reports AON (Auto On) and AOF (Auto Off) for outlets under program control.
-// We display both as "Auto" variants since the ON/OFF is the program's decision, not the user's.
 const stateLabels: Record<string, string> = {
   ON: 'On',
   OFF: 'Off',
@@ -20,8 +18,8 @@ const stateLabels: Record<string, string> = {
 const stateColors: Record<string, string> = {
   ON: 'text-secondary',
   AON: 'text-primary',
-  OFF: 'text-on-surface-dim',
-  AOF: 'text-on-surface-dim',
+  OFF: 'text-on-surface-faint',
+  AOF: 'text-on-surface-faint',
   TBL: 'text-primary',
 }
 
@@ -41,12 +39,20 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
   }
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 transition-fluid">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+    <div
+      className="rounded-2xl p-5 transition-fluid"
+      style={{
+        background: isOn
+          ? 'linear-gradient(135deg, var(--color-surface-container) 40%, rgba(58,223,250,0.07))'
+          : 'var(--color-surface-container)',
+      }}
+    >
+      {/* Header: icon + name + state label */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center',
+              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
               isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
             )}
           >
@@ -56,63 +62,62 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
               <Power size={18} className="text-on-surface-faint" />
             )}
           </div>
-          <div>
-            <div className="text-sm font-semibold text-on-surface">
-              {outlet.display_name || outlet.name}
-            </div>
-            <div
-              className={cn(
-                'text-xs font-medium uppercase tracking-wider',
-                stateColors[outlet.state] ?? 'text-on-surface-dim',
-              )}
-            >
-              {stateLabels[outlet.state] ?? outlet.state}
-            </div>
-          </div>
+          <span className="text-sm font-semibold text-on-surface truncate">
+            {outlet.display_name || outlet.name}
+          </span>
         </div>
+        <span
+          className={cn(
+            'text-xs font-semibold uppercase tracking-wider shrink-0 ml-2 mt-0.5',
+            stateColors[outlet.state] ?? 'text-on-surface-dim',
+          )}
+        >
+          {stateLabels[outlet.state] ?? outlet.state}
+        </span>
       </div>
 
-      <div className="relative">
-        <div className="flex gap-1.5">
-          {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-            const active =
-              (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-              (s === 'ON' && outlet.state === 'ON') ||
-              (s === 'AUTO' && isAuto)
+      {/* Controls — revealed when unlocked via grid-template-rows animation */}
+      <div
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateRows: controlsLocked ? '0fr' : '1fr',
+          transition: 'grid-template-rows 250ms cubic-bezier(0.65, 0, 0.35, 1)',
+        }}
+      >
+        <div className="min-h-0">
+          <div className="flex gap-1.5 pt-4">
+            {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
+              const active =
+                (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
+                (s === 'ON' && outlet.state === 'ON') ||
+                (s === 'AUTO' && isAuto)
 
-            return (
-              <button
-                key={s}
-                onClick={() => handleControl(s)}
-                disabled={mutation.isPending || controlsLocked}
-                className={cn(
-                  'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                  active
-                    ? s === 'AUTO'
-                      ? 'bg-primary text-on-primary'
-                      : s === 'ON'
-                        ? 'bg-secondary text-on-secondary'
-                        : 'bg-surface-container-highest text-on-surface'
-                    : 'bg-surface-container-high text-on-surface-faint',
-                  !controlsLocked && !active && 'hover:text-on-surface-dim',
-                )}
-              >
-                {s}
-              </button>
-            )
-          })}
-        </div>
-        {controlsLocked && (
-          <div className="absolute inset-0 rounded-lg bg-surface-container/75 flex items-center justify-center pointer-events-none">
-            <Lock size={18} className="text-on-surface" />
+              return (
+                <button
+                  key={s}
+                  onClick={() => handleControl(s)}
+                  disabled={mutation.isPending}
+                  className={cn(
+                    'flex-1 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid',
+                    active
+                      ? s === 'AUTO'
+                        ? 'bg-primary text-on-primary'
+                        : s === 'ON'
+                          ? 'bg-secondary text-on-secondary'
+                          : 'bg-surface-container-highest text-on-surface'
+                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-highest',
+                  )}
+                >
+                  {s}
+                </button>
+              )
+            })}
           </div>
-        )}
+          {mutation.isError && (
+            <p className="text-xs text-tertiary mt-2">Failed to set state. Try again.</p>
+          )}
+        </div>
       </div>
-      {mutation.isError && !controlsLocked && (
-        <p className="text-xs text-tertiary mt-2">
-          Failed to set state. Try again.
-        </p>
-      )}
     </div>
   )
 }

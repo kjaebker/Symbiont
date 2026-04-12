@@ -23,6 +23,7 @@ const categoryConfig: Record<
     sparklineColor: string
     glowClass: string
     hoverGlow: string
+    tint: string
   }
 > = {
   temperature: {
@@ -31,6 +32,7 @@ const categoryConfig: Record<
     sparklineColor: '#ff8796',
     glowClass: 'text-glow-tertiary',
     hoverGlow: 'hover:shadow-glow-tertiary',
+    tint: 'rgba(255, 135, 150, 0.05)',
   },
   chemistry: {
     icon: FlaskConical,
@@ -38,6 +40,7 @@ const categoryConfig: Record<
     sparklineColor: '#6dfe9c',
     glowClass: 'text-glow-secondary',
     hoverGlow: 'hover:shadow-glow-secondary',
+    tint: 'rgba(109, 254, 156, 0.05)',
   },
   power: {
     icon: Zap,
@@ -45,6 +48,7 @@ const categoryConfig: Record<
     sparklineColor: '#3adffa',
     glowClass: 'text-glow-primary',
     hoverGlow: 'hover:shadow-glow-primary',
+    tint: 'rgba(58, 223, 250, 0.05)',
   },
   digital: {
     icon: ToggleLeft,
@@ -52,6 +56,7 @@ const categoryConfig: Record<
     sparklineColor: '#8a90a8',
     glowClass: '',
     hoverGlow: 'hover:shadow-glow-primary',
+    tint: 'transparent',
   },
 }
 
@@ -97,9 +102,12 @@ export function ProbeCard({ probe }: ProbeCardProps) {
     <button
       onClick={() => navigate(`/history?probe=${encodeURIComponent(probe.name)}`)}
       className={cn(
-        'bg-surface-container rounded-2xl p-5 text-left transition-fluid hover:bg-surface-container-high cursor-pointer w-full',
+        'rounded-2xl p-5 text-left transition-fluid cursor-pointer w-full',
         config.hoverGlow,
       )}
+      style={{
+        background: `linear-gradient(135deg, var(--color-surface-container) 45%, ${config.tint})`,
+      }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -118,7 +126,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
       </div>
 
       <div className="flex items-baseline gap-1.5 mb-1">
-        <span className={cn('text-4xl font-bold text-on-surface tracking-tight', config.glowClass)}>
+        <span className={`text-4xl font-bold tracking-tight ${config.color} ${config.glowClass}`}>
           {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
         </span>
         <span className="text-lg text-on-surface-dim font-light">
