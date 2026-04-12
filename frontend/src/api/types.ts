@@ -203,3 +203,28 @@ export interface APIError {
   error: string
   code: string
 }
+
+export type LivestockType = 'fish' | 'coral' | 'invertebrate' | 'other'
+export type LivestockStatus = 'healthy' | 'sick' | 'quarantine' | 'deceased'
+
+export interface LivestockItem {
+  id: number
+  name: string
+  species: string | null
+  type: LivestockType
+  quantity: number
+  status: LivestockStatus
+  date_added: string | null
+  notes: string | null
+  image_path: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LivestockObservation {
+  id: number
+  livestock_id: number
+  ts: string
+  status: LivestockStatus | null
+  note: string | null
+}

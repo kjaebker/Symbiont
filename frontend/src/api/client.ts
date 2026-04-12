@@ -19,6 +19,10 @@ import type {
   DashboardItem,
   MeasurementParameter,
   Measurement,
+  LivestockItem,
+  LivestockObservation,
+  LivestockType,
+  LivestockStatus,
 } from './types'
 
 const TOKEN_KEY = 'symbiont_token'
@@ -388,4 +392,81 @@ export function updateMeasurement(
 
 export function deleteMeasurement(id: number) {
   return apiFetch<void>(`/api/measurements/${id}`, { method: 'DELETE' })
+}
+
+// Livestock
+export function getLivestock(params?: { type?: LivestockType; status?: LivestockStatus }) {
+  const search = new URLSearchParams()
+  if (params?.type) search.set('type', params.type)
+  if (params?.status) search.set('status', params.status)
+  const qs = search.toString()
+  return apiFetch<{ livestock: LivestockItem[] }>(`/api/livestock${qs ? `?${qs}` : ''}`)
+}
+
+export function getLivestockSpecies() {
+  return apiFetch<{ species: string[] }>('/api/livestock/species')
+}
+
+export function getLivestockItem(id: number) {
+  return apiFetch<LivestockItem>(`/api/livestock/${id}`)
+}
+
+export function createLivestockItem(
+  data: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path'>,
+) {
+  return apiFetch<LivestockItem>('/api/livestock', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateLivestockItem(
+  id: number,
+  data: Partial<Omit<LivestockItem, 'id' | 'created_at' | 'updated_at'>>,
+) {
+  return apiFetch<LivestockItem>(`/api/livestock/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteLivestockItem(id: number) {
+  return apiFetch<void>(`/api/livestock/${id}`, { method: 'DELETE' })
+}
+
+export function uploadLivestockImage(id: number, file: File) {
+  const token = getToken()
+  const form = new FormData()
+  form.append('image', file)
+  return fetch(`/api/livestock/${id}/image`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  }).then(async (res) => {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'upload failed', code: 'upload_error' }))
+      throw new Error(err.error ?? 'upload failed')
+    }
+    return res.json() as Promise<{ image_path: string }>
+  })
+}
+
+export function deleteLivestockImage(id: number) {
+  return apiFetch<{ status: string }>(`/api/livestock/${id}/image`, { method: 'DELETE' })
+}
+
+export function getLivestockObservations(livestockId: number) {
+  return apiFetch<{ observations: LivestockObservation[] }>(
+    `/api/livestock/${livestockId}/observations`,
+  )
+}
+
+export function createLivestockObservation(
+  livestockId: number,
+  data: { status?: LivestockStatus | null; note?: string | null },
+) {
+  return apiFetch<LivestockObservation>(`/api/livestock/${livestockId}/observations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
 }

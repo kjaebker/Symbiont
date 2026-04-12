@@ -143,3 +143,33 @@ type BackupJob struct {
 	SizeBytes *int64    `json:"size_bytes"`
 	Error     *string   `json:"error"`
 }
+
+// LivestockItem represents a row in the livestock table.
+type LivestockItem struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Species   *string   `json:"species"`
+	Type      string    `json:"type"`
+	Quantity  int       `json:"quantity"`
+	Status    string    `json:"status"`
+	DateAdded *string   `json:"date_added"` // YYYY-MM-DD text
+	Notes     *string   `json:"notes"`
+	ImagePath *string   `json:"image_path"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// LivestockObservation represents a row in the livestock_observations table.
+type LivestockObservation struct {
+	ID          int64     `json:"id"`
+	LivestockID int64     `json:"livestock_id"`
+	TS          time.Time `json:"ts"`
+	Status      *string   `json:"status"`
+	Note        *string   `json:"note"`
+}
+
+// LivestockFilter is used to filter ListLivestock queries.
+type LivestockFilter struct {
+	Type   string // empty = all
+	Status string // empty = all
+}

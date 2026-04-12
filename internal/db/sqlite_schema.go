@@ -123,6 +123,26 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			raw_value     REAL,
 			created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS livestock (
+			id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+			name       TEXT     NOT NULL,
+			species    TEXT,
+			type       TEXT     NOT NULL CHECK(type IN ('fish','coral','invertebrate','other')),
+			quantity   INTEGER  NOT NULL DEFAULT 1,
+			status     TEXT     NOT NULL DEFAULT 'healthy' CHECK(status IN ('healthy','sick','quarantine','deceased')),
+			date_added DATE,
+			notes      TEXT,
+			image_path TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS livestock_observations (
+			id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+			livestock_id INTEGER  NOT NULL REFERENCES livestock(id) ON DELETE CASCADE,
+			ts           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			status       TEXT     CHECK(status IN ('healthy','sick','quarantine','deceased')),
+			note         TEXT
+		)`,
 	}
 
 	indexes := []string{
@@ -133,6 +153,9 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_items_sort ON dashboard_items(sort_order)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_param ON measurements(parameter_id, measured_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_date ON measurements(measured_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_livestock_type ON livestock(type)`,
+		`CREATE INDEX IF NOT EXISTS idx_livestock_status ON livestock(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_livestock_obs ON livestock_observations(livestock_id, ts DESC)`,
 	}
 
 	for _, stmt := range tables {
