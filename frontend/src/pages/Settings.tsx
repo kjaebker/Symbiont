@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList, Activity } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList, Activity, Droplets } from 'lucide-react'
 import { cn, relativeTime, formatBytes } from '@/lib/utils'
 import {
   useProbeConfigs,
@@ -34,6 +34,7 @@ import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import { useSystemStatus, useSystemLog } from '@/hooks/useSystem'
+import { getBubblesEnabled, setBubblesEnabled } from '@/api/client'
 import {
   useNotificationTargets,
   useUpsertNotificationTarget,
@@ -1839,6 +1840,33 @@ function SystemTab() {
         <div className="bg-surface-container-high/40 rounded-xl divide-y divide-surface-container-highest/50">
           {stat('Telemetry (DuckDB)', formatBytes(data.db.duckdb_size_bytes))}
           {stat('App state (SQLite)', formatBytes(data.db.sqlite_size_bytes))}
+        </div>
+      </div>
+
+      {/* Interface */}
+      <div>
+        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Interface</p>
+        <div className="bg-surface-container-high/40 rounded-xl">
+          <div className="py-3 px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Droplets size={16} className="text-primary/60" />
+              <div>
+                <p className="text-sm text-on-surface font-medium">Floating bubbles</p>
+                <p className="text-xs text-on-surface-faint">Decorative background animation</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setBubblesEnabled(!getBubblesEnabled()); window.location.reload() }}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-fluid cursor-pointer',
+                getBubblesEnabled()
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-surface-container-highest text-on-surface-faint',
+              )}
+            >
+              {getBubblesEnabled() ? 'On' : 'Off'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

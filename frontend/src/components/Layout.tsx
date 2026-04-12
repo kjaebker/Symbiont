@@ -14,6 +14,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSSE } from '@/hooks/useSSE'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { cn, relativeTime } from '@/lib/utils'
+import { getBubblesEnabled } from '@/api/client'
+import { Bubbles } from '@/components/Bubbles'
 
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -123,6 +125,7 @@ export default function Layout() {
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
   const closeMore = useCallback(() => setMoreOpen(false), [])
+  const bubblesEnabled = getBubblesEnabled()
 
   const activeRouteIsOverflow = overflowNavItems.some(
     (item) => item.to === location.pathname,
@@ -130,6 +133,8 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {bubblesEnabled && <Bubbles />}
+
       {/* Desktop sidebar */}
       <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0">
         <div className="flex items-center gap-3 px-2 py-3 mb-4">
