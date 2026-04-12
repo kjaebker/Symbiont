@@ -8,7 +8,7 @@ import {
   getLivestockObservations,
   createLivestockObservation,
 } from '@/api/client'
-import type { LivestockItem, LivestockObservation, LivestockType, LivestockStatus } from '@/api/types'
+import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 
 export function useLivestock(params?: { type?: LivestockType; status?: LivestockStatus }) {
   return useQuery({
