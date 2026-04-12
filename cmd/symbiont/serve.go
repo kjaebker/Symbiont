@@ -14,6 +14,8 @@ import (
 	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
+	"github.com/kjaebker/symbiont/internal/journal"
 	"github.com/kjaebker/symbiont/internal/kits"
 	"github.com/kjaebker/symbiont/internal/notify"
 	"github.com/kjaebker/symbiont/internal/poller"
@@ -96,7 +98,22 @@ func runServe(frontendFS fs.FS) error {
 	}
 	go p.Run(sigCtx)
 
-	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS, catalog)
+	journalCatalog, err := journal.Load()
+	if err != nil {
+		return fmt.Errorf("loading journal templates: %w", err)
+	}
+	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
+
+	bus := events.NewBus()
+	bus.Subscribe(func(ctx context.Context, e events.SystemEvent) {
+		if entry, ok := journal.EntryFromEvent(e); ok {
+			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
+				logger.Error("journal auto-log failed", "err", err, "event", e.Type)
+			}
+		}
+	})
+
+	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS, catalog, bus, journalCatalog)
 
 	targets, err := sqliteDB.ListEnabledNotificationTargets(ctx, "ntfy")
 	if err != nil {
