@@ -18,6 +18,7 @@ func NewLivestockCmd(client *APIClient) *cobra.Command {
 	cmd.AddCommand(newLivestockUpdateCmd(client))
 	cmd.AddCommand(newLivestockDeleteCmd(client))
 	cmd.AddCommand(newLivestockObserveCmd(client))
+	cmd.AddCommand(newLivestockObservationsCmd(client))
 	return cmd
 }
 
@@ -324,4 +325,58 @@ func newLivestockObserveCmd(client *APIClient) *cobra.Command {
 	cmd.Flags().String("status", "", "health status: healthy, sick, quarantine, deceased")
 	cmd.Flags().String("note", "", "observation note")
 	return cmd
+}
+
+func newLivestockObservationsCmd(client *APIClient) *cobra.Command {
+	return &cobra.Command{
+		Use:   "observations <id>",
+		Short: "List health observations for a livestock item",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id := args[0]
+
+			var resp struct {
+				Observations []struct {
+					ID     int64   `json:"id"`
+					TS     string  `json:"ts"`
+					Status *string `json:"status"`
+					Note   *string `json:"note"`
+				} `json:"observations"`
+			}
+			if err := client.Get(cmd.Context(), "/api/livestock/"+id+"/observations", &resp); err != nil {
+				return err
+			}
+
+			if IsJSON(cmd) {
+				PrintJSON(resp)
+				return nil
+			}
+
+			if len(resp.Observations) == 0 {
+				fmt.Printf("No observations for livestock #%s.\n", id)
+				return nil
+			}
+
+			headers := []string{"ID", "TIMESTAMP", "STATUS", "NOTE"}
+			rows := make([][]string, 0, len(resp.Observations))
+			for _, o := range resp.Observations {
+				status := "-"
+				if o.Status != nil {
+					status = *o.Status
+				}
+				note := "-"
+				if o.Note != nil {
+					note = *o.Note
+				}
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", o.ID),
+					o.TS,
+					status,
+					note,
+				})
+			}
+			PrintTable(headers, rows)
+			return nil
+		},
+	}
 }

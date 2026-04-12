@@ -71,6 +71,8 @@ func main() {
 	rootCmd.AddCommand(cli.NewAuthCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewNotifyCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewConfigCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewFeedCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewDevicesCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewMeasurementsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewLivestockCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewJournalCmd(sharedClient))

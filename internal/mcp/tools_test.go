@@ -70,7 +70,33 @@ func setupMockAPI(t *testing.T) (*httptest.Server, *cli.APIClient) {
 	})
 
 	mux.HandleFunc("GET /api/alerts", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{"alerts": []map[string]any{}})
+		json.NewEncoder(w).Encode(map[string]any{
+			"rules": []map[string]any{
+				{
+					"id": float64(10), "probe_name": "Tmp", "condition": "above",
+					"threshold_high": 82.0, "severity": "warning", "cooldown_minutes": 15, "enabled": true,
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/alerts", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 11, "probe_name": "Tmp", "condition": "above", "threshold_high": 82.0,
+			"severity": "warning", "cooldown_minutes": 15, "enabled": true,
+		})
+	})
+
+	mux.HandleFunc("PUT /api/alerts/{id}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		body["id"] = 10
+		json.NewEncoder(w).Encode(body)
+	})
+
+	mux.HandleFunc("DELETE /api/alerts/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	mux.HandleFunc("GET /api/alerts/events", func(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +154,100 @@ func setupMockAPI(t *testing.T) (*httptest.Server, *cli.APIClient) {
 		})
 	})
 
+	mux.HandleFunc("GET /api/measurements/parameters", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"parameters": []map[string]any{
+				{"id": 1, "name": "Alkalinity", "canonical_unit": "dKH"},
+				{"id": 2, "name": "Calcium", "canonical_unit": "ppm"},
+				{"id": 3, "name": "Magnesium", "canonical_unit": "ppm"},
+			},
+		})
+	})
+
+	mux.HandleFunc("GET /api/measurements", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"measurements": []map[string]any{
+				{"id": 1, "measured_at": "2026-03-22T10:00:00Z", "parameter": "Alkalinity", "canonical_unit": "dKH", "value": 9.5},
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/measurements", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 2, "measured_at": "2026-03-22T10:00:00Z", "parameter": "Alkalinity", "canonical_unit": "dKH", "value": 9.5,
+		})
+	})
+
+	mux.HandleFunc("DELETE /api/measurements/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("GET /api/livestock/{id}/observations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"observations": []map[string]any{
+				{"id": 1, "ts": "2026-03-22T10:00:00Z", "status": "healthy", "note": "Looking good"},
+				{"id": 2, "ts": "2026-03-23T10:00:00Z", "status": "sick", "note": "Possible ich"},
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/livestock/{id}/observations", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"id": 3, "ts": "2026-03-24T10:00:00Z", "status": "sick", "note": "Still showing spots"})
+	})
+
+	mux.HandleFunc("GET /api/feed", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"name": 0, "active": false})
+	})
+
+	mux.HandleFunc("PUT /api/feed", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		json.NewEncoder(w).Encode(body)
+	})
+
+	mux.HandleFunc("GET /api/journal", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"entries": []map[string]any{
+				{"id": 1, "ts": "2026-03-22T10:00:00Z", "category": "maintenance", "title": "Water change", "source": "manual"},
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/journal", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 2, "ts": "2026-03-22T10:00:00Z", "category": "observation", "title": "pH stable", "source": "ai",
+		})
+	})
+
+	mux.HandleFunc("GET /api/journal/templates", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"templates": map[string]any{
+				"maintenance": []map[string]any{
+					{"title": "Water Change", "body": "Changed X% water"},
+					{"title": "Skimmer Cleaned"},
+				},
+				"observation": []map[string]any{
+					{"title": "Parameter Check"},
+				},
+			},
+		})
+	})
+
+	mux.HandleFunc("GET /api/tank/profile", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"display": map[string]any{
+				"section": "display", "volume_gallons": 90.0, "tank_type": "reef",
+				"setup_date": "2023-01-15",
+			},
+			"sump": map[string]any{
+				"section": "sump", "volume_gallons": 30.0,
+			},
+		})
+	})
+
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	client := cli.NewAPIClient(ts.URL, "test-token")
@@ -147,13 +267,28 @@ func setupTools(t *testing.T, client *cli.APIClient) handlerMap {
 	handlers["get_outlet_event_log"] = getOutletEventLogHandler(client)
 	handlers["get_alert_rules"] = getAlertRulesHandler(client)
 	handlers["get_alert_events"] = getAlertEventsHandler(client)
+	handlers["create_alert_rule"] = createAlertRuleHandler(client)
+	handlers["update_alert_rule"] = updateAlertRuleHandler(client)
+	handlers["delete_alert_rule"] = deleteAlertRuleHandler(client)
 	handlers["get_system_status"] = getSystemStatusHandler(client)
 	handlers["get_system_log"] = getSystemLogHandler(client)
 	handlers["get_devices"] = getDevicesHandler(client)
 	handlers["summarize_tank_health"] = summarizeTankHealthHandler(client)
+	handlers["get_measurement_parameters"] = getMeasurementParametersHandler(client)
+	handlers["get_measurements"] = getMeasurementsHandler(client)
+	handlers["add_measurement"] = addMeasurementHandler(client)
+	handlers["delete_measurement"] = deleteMeasurementHandler(client)
 	handlers["get_livestock"] = getLivestockHandler(client)
 	handlers["add_livestock"] = addLivestockHandler(client)
 	handlers["update_livestock"] = updateLivestockHandler(client)
+	handlers["get_livestock_observations"] = getLivestockObservationsHandler(client)
+	handlers["add_livestock_observation"] = addLivestockObservationHandler(client)
+	handlers["get_feed_mode"] = getFeedModeHandler(client)
+	handlers["set_feed_mode"] = setFeedModeHandler(client)
+	handlers["get_journal_entries"] = getJournalEntriesHandler(client)
+	handlers["add_journal_entry"] = addJournalEntryHandler(client)
+	handlers["get_journal_templates"] = getJournalTemplatesHandler(client)
+	handlers["get_tank_profile"] = getTankProfileHandler(client)
 	return handlers
 }
 
@@ -461,5 +596,336 @@ func TestSummarizeTankHealthIncludesLivestock(t *testing.T) {
 	}
 	if !strings.Contains(text, "by_type") {
 		t.Fatalf("expected 'by_type' in livestock summary, got: %s", text)
+	}
+}
+
+func TestGetMeasurementParameters(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_measurement_parameters", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "Alkalinity") {
+		t.Fatalf("expected 'Alkalinity' in result, got: %s", text)
+	}
+	if !strings.Contains(text, "dKH") {
+		t.Fatalf("expected unit 'dKH' in result, got: %s", text)
+	}
+}
+
+func TestGetMeasurements(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_measurements", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "measurements") {
+		t.Fatalf("expected 'measurements' in result, got: %s", text)
+	}
+}
+
+func TestAddMeasurement(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_measurement", map[string]any{
+		"parameter": "Alkalinity",
+		"value":     float64(9.5),
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestDeleteMeasurement(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "delete_measurement", map[string]any{"id": float64(1)})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "deleted") {
+		t.Fatalf("expected 'deleted' in result, got: %s", text)
+	}
+}
+
+func TestDeleteMeasurementMissingID(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "delete_measurement", nil)
+	if !result.IsError {
+		t.Fatal("expected error when id is missing")
+	}
+}
+
+func TestGetLivestockObservations(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_livestock_observations", map[string]any{"id": float64(1)})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "observations") {
+		t.Fatalf("expected 'observations' in result, got: %s", text)
+	}
+	if !strings.Contains(text, "Looking good") {
+		t.Fatalf("expected observation note in result, got: %s", text)
+	}
+}
+
+func TestGetLivestockObservationsMissingID(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_livestock_observations", nil)
+	if !result.IsError {
+		t.Fatal("expected error when id is missing")
+	}
+}
+
+func TestAddLivestockObservation(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_livestock_observation", map[string]any{
+		"id":   float64(1),
+		"note": "Still showing spots",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestAddLivestockObservationWithStatus(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_livestock_observation", map[string]any{
+		"id":     float64(1),
+		"status": "sick",
+		"note":   "Clamped fins",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestAddLivestockObservationMissingFields(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_livestock_observation", map[string]any{"id": float64(1)})
+	if !result.IsError {
+		t.Fatal("expected error when neither status nor note provided")
+	}
+	if !strings.Contains(resultText(t, result), "required") {
+		t.Fatalf("expected 'required' in error, got: %s", resultText(t, result))
+	}
+}
+
+func TestGetFeedMode(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_feed_mode", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "active") {
+		t.Fatalf("expected 'active' in result, got: %s", text)
+	}
+}
+
+func TestSetFeedMode(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "set_feed_mode", map[string]any{"name": float64(1)})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestSetFeedModeCancel(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "set_feed_mode", map[string]any{"name": float64(0)})
+	if result.IsError {
+		t.Fatalf("unexpected error cancelling feed mode: %s", resultText(t, result))
+	}
+}
+
+func TestSetFeedModeInvalidName(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "set_feed_mode", map[string]any{"name": float64(5)})
+	if !result.IsError {
+		t.Fatal("expected error for out-of-range feed mode name")
+	}
+}
+
+func TestSetFeedModeMissingName(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "set_feed_mode", nil)
+	if !result.IsError {
+		t.Fatal("expected error when name is missing")
+	}
+}
+
+func TestCreateAlertRule(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "create_alert_rule", map[string]any{
+		"probe_name":      "Tmp",
+		"condition":       "above",
+		"threshold_high":  float64(82),
+		"severity":        "warning",
+		"cooldown_minutes": float64(15),
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "probe_name") {
+		t.Fatalf("expected 'probe_name' in result, got: %s", text)
+	}
+}
+
+func TestCreateAlertRuleMissingProbe(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "create_alert_rule", map[string]any{"condition": "above"})
+	if !result.IsError {
+		t.Fatal("expected error when probe_name is missing")
+	}
+}
+
+func TestUpdateAlertRule(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "update_alert_rule", map[string]any{
+		"id":       float64(10),
+		"severity": "critical",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestUpdateAlertRuleNotFound(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "update_alert_rule", map[string]any{
+		"id":       float64(999),
+		"severity": "critical",
+	})
+	if !result.IsError {
+		t.Fatal("expected error for non-existent rule ID")
+	}
+}
+
+func TestDeleteAlertRule(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "delete_alert_rule", map[string]any{"id": float64(10)})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "deleted") {
+		t.Fatalf("expected 'deleted' in result, got: %s", text)
+	}
+}
+
+func TestDeleteAlertRuleMissingID(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "delete_alert_rule", nil)
+	if !result.IsError {
+		t.Fatal("expected error when id is missing")
+	}
+}
+
+func TestGetJournalEntries(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_journal_entries", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "entries") {
+		t.Fatalf("expected 'entries' in result, got: %s", text)
+	}
+}
+
+func TestAddJournalEntry(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_journal_entry", map[string]any{
+		"title":    "pH stable this week",
+		"category": "observation",
+		"sentiment": "good",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestGetJournalTemplates(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_journal_templates", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "templates") {
+		t.Fatalf("expected 'templates' in result, got: %s", text)
+	}
+	if !strings.Contains(text, "Water Change") {
+		t.Fatalf("expected template title in result, got: %s", text)
+	}
+}
+
+func TestGetTankProfile(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_tank_profile", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "display") {
+		t.Fatalf("expected 'display' section in result, got: %s", text)
+	}
+	if !strings.Contains(text, "90") {
+		t.Fatalf("expected tank volume in result, got: %s", text)
 	}
 }

@@ -22,17 +22,27 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(getOutletEventLogTool(), getOutletEventLogHandler(client))
 	s.AddTool(getAlertRulesTool(), getAlertRulesHandler(client))
 	s.AddTool(getAlertEventsTool(), getAlertEventsHandler(client))
+	s.AddTool(createAlertRuleTool(), createAlertRuleHandler(client))
+	s.AddTool(updateAlertRuleTool(), updateAlertRuleHandler(client))
+	s.AddTool(deleteAlertRuleTool(), deleteAlertRuleHandler(client))
 	s.AddTool(getSystemStatusTool(), getSystemStatusHandler(client))
 	s.AddTool(getSystemLogTool(), getSystemLogHandler(client))
 	s.AddTool(getDevicesTool(), getDevicesHandler(client))
 	s.AddTool(summarizeTankHealthTool(), summarizeTankHealthHandler(client))
+	s.AddTool(getMeasurementParametersTool(), getMeasurementParametersHandler(client))
 	s.AddTool(getMeasurementsTool(), getMeasurementsHandler(client))
 	s.AddTool(addMeasurementTool(), addMeasurementHandler(client))
+	s.AddTool(deleteMeasurementTool(), deleteMeasurementHandler(client))
 	s.AddTool(getLivestockTool(), getLivestockHandler(client))
 	s.AddTool(addLivestockTool(), addLivestockHandler(client))
 	s.AddTool(updateLivestockTool(), updateLivestockHandler(client))
+	s.AddTool(getLivestockObservationsTool(), getLivestockObservationsHandler(client))
+	s.AddTool(addLivestockObservationTool(), addLivestockObservationHandler(client))
+	s.AddTool(getFeedModeTool(), getFeedModeHandler(client))
+	s.AddTool(setFeedModeTool(), setFeedModeHandler(client))
 	s.AddTool(getJournalEntriesTool(), getJournalEntriesHandler(client))
 	s.AddTool(addJournalEntryTool(), addJournalEntryHandler(client))
+	s.AddTool(getJournalTemplatesTool(), getJournalTemplatesHandler(client))
 	s.AddTool(getTankProfileTool(), getTankProfileHandler(client))
 }
 
@@ -910,6 +920,477 @@ func getTankProfileHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
 		if err := apiCall(client, "/api/tank/profile", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_measurement_parameters ---
+
+func getMeasurementParametersTool() mcp.Tool {
+	return mcp.NewTool("get_measurement_parameters",
+		mcp.WithDescription("List all known water chemistry measurement parameters (alkalinity, calcium, magnesium, etc.) with their canonical units. Use this to discover valid parameter names before calling add_measurement."),
+	)
+}
+
+func getMeasurementParametersHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(client, "/api/measurements/parameters", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- delete_measurement ---
+
+func deleteMeasurementTool() mcp.Tool {
+	return mcp.NewTool("delete_measurement",
+		mcp.WithDescription("Delete a manual measurement entry. Use to correct data entry mistakes. Use get_measurements to find the measurement ID."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Measurement ID from get_measurements"),
+		),
+	)
+}
+
+func deleteMeasurementHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		idStr := fmt.Sprintf("%d", int64(idFloat))
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		if err := client.Delete(timeoutCtx, "/api/measurements/"+idStr); err != nil {
+			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
+				return toolError(fmt.Sprintf("Measurement %s not found", idStr)), nil
+			}
+			return toolError(fmt.Sprintf("Failed to delete measurement: %v", err)), nil
+		}
+		return mcp.NewToolResultText("Measurement " + idStr + " deleted"), nil
+	}
+}
+
+// --- get_livestock_observations ---
+
+func getLivestockObservationsTool() mcp.Tool {
+	return mcp.NewTool("get_livestock_observations",
+		mcp.WithDescription("Get the health observation history for a specific livestock item — timestamped entries with health status and notes. Use the id from get_livestock. Useful for tracking how a fish or coral has been doing over time."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Livestock item ID from get_livestock"),
+		),
+	)
+}
+
+func getLivestockObservationsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		idStr := fmt.Sprintf("%d", int64(idFloat))
+
+		var resp any
+		if err := apiCall(client, "/api/livestock/"+idStr+"/observations", &resp); err != nil {
+			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
+				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
+			}
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- add_livestock_observation ---
+
+func addLivestockObservationTool() mcp.Tool {
+	return mcp.NewTool("add_livestock_observation",
+		mcp.WithDescription("Log a health observation for a livestock item. Provide a status change, a note, or both. Use the id from get_livestock."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Livestock item ID from get_livestock"),
+		),
+		mcp.WithString("status",
+			mcp.Description("Health status at time of observation"),
+			mcp.Enum("healthy", "sick", "quarantine", "deceased"),
+		),
+		mcp.WithString("note",
+			mcp.Description("Observation note — describe what you observed"),
+		),
+	)
+}
+
+func addLivestockObservationHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		idStr := fmt.Sprintf("%d", int64(idFloat))
+
+		status := request.GetString("status", "")
+		note := request.GetString("note", "")
+		if status == "" && note == "" {
+			return toolError("At least one of 'status' or 'note' is required"), nil
+		}
+
+		body := map[string]any{}
+		if status != "" {
+			body["status"] = status
+		}
+		if note != "" {
+			body["note"] = note
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Post(timeoutCtx, "/api/livestock/"+idStr+"/observations", body, &resp); err != nil {
+			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
+				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
+			}
+			return toolError(fmt.Sprintf("Failed to add observation: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_feed_mode ---
+
+func getFeedModeTool() mcp.Tool {
+	return mcp.NewTool("get_feed_mode",
+		mcp.WithDescription("Get the current feed mode status. Feed modes temporarily suspend certain equipment (e.g. powerheads) to allow feeding without livestock getting caught. Name values: 0=off, 1=Feed A, 2=Feed B, 3=Feed C, 4=Feed D."),
+	)
+}
+
+func getFeedModeHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(client, "/api/feed", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- set_feed_mode ---
+
+func setFeedModeTool() mcp.Tool {
+	return mcp.NewTool("set_feed_mode",
+		mcp.WithDescription("Activate or cancel a feed mode on the Apex controller. Feed modes suspend equipment during feeding. Use name 0 or active=false to cancel. Use with care — this affects equipment operation."),
+		mcp.WithNumber("name",
+			mcp.Required(),
+			mcp.Description("Feed mode: 0=cancel, 1=Feed A, 2=Feed B, 3=Feed C, 4=Feed D"),
+		),
+		mcp.WithBoolean("active",
+			mcp.Description("Whether to activate (true) or cancel (false) the feed mode. Defaults to true when name is 1–4."),
+		),
+	)
+}
+
+func setFeedModeHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Use -1 sentinel so name=0 (cancel) is distinguishable from absent.
+		nameFloat := request.GetFloat("name", -1)
+		if nameFloat < 0 {
+			return toolError("Parameter 'name' is required (0=cancel, 1–4=Feed A–D)"), nil
+		}
+		name := int(nameFloat)
+		if name > 4 {
+			return toolError("Parameter 'name' must be 0–4 (0=cancel, 1=Feed A, 2=Feed B, 3=Feed C, 4=Feed D)"), nil
+		}
+
+		active := name > 0 // default: active if a feed mode is named
+		if args, ok := request.Params.Arguments.(map[string]any); ok {
+			if v, ok := args["active"]; ok {
+				if b, ok := v.(bool); ok {
+					active = b
+				}
+			}
+		}
+
+		body := map[string]any{
+			"name":   name,
+			"active": active,
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Put(timeoutCtx, "/api/feed", body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to set feed mode: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- create_alert_rule ---
+
+func createAlertRuleTool() mcp.Tool {
+	return mcp.NewTool("create_alert_rule",
+		mcp.WithDescription("Create an alert threshold rule for a probe. The rule fires when the condition is met and sends a notification. Use get_current_parameters to find valid probe names. Conditions: 'above' requires threshold_high; 'below' requires threshold_low; 'outside_range' requires both."),
+		mcp.WithString("probe_name",
+			mcp.Required(),
+			mcp.Description("Probe name exactly as returned by get_current_parameters"),
+		),
+		mcp.WithString("condition",
+			mcp.Required(),
+			mcp.Description("Trigger condition: above/below fires when value crosses a threshold; outside_range fires when value leaves the band"),
+			mcp.Enum("above", "below", "outside_range"),
+		),
+		mcp.WithNumber("threshold_low",
+			mcp.Description("Low threshold — required for 'below' and 'outside_range' conditions"),
+		),
+		mcp.WithNumber("threshold_high",
+			mcp.Description("High threshold — required for 'above' and 'outside_range' conditions"),
+		),
+		mcp.WithString("severity",
+			mcp.Description("Notification severity (default: warning)"),
+			mcp.Enum("warning", "critical"),
+		),
+		mcp.WithNumber("cooldown_minutes",
+			mcp.Description("Minimum minutes between repeat notifications for the same rule (default: 15)"),
+		),
+		mcp.WithBoolean("enabled",
+			mcp.Description("Whether the rule is active immediately (default: true)"),
+		),
+	)
+}
+
+func createAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		probeName, err := request.RequireString("probe_name")
+		if err != nil {
+			return toolError("Parameter 'probe_name' is required"), nil
+		}
+		condition, err := request.RequireString("condition")
+		if err != nil {
+			return toolError("Parameter 'condition' is required"), nil
+		}
+
+		body := map[string]any{
+			"probe_name": probeName,
+			"condition":  condition,
+		}
+		if args, ok := request.Params.Arguments.(map[string]any); ok {
+			if v, ok := args["threshold_low"]; ok {
+				body["threshold_low"] = v
+			}
+			if v, ok := args["threshold_high"]; ok {
+				body["threshold_high"] = v
+			}
+			if v, ok := args["enabled"]; ok {
+				if b, ok := v.(bool); ok {
+					body["enabled"] = b
+				}
+			}
+		}
+		if v := request.GetString("severity", ""); v != "" {
+			body["severity"] = v
+		}
+		if v := request.GetInt("cooldown_minutes", 0); v > 0 {
+			body["cooldown_minutes"] = v
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Post(timeoutCtx, "/api/alerts", body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to create alert rule: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- update_alert_rule ---
+
+func updateAlertRuleTool() mcp.Tool {
+	return mcp.NewTool("update_alert_rule",
+		mcp.WithDescription("Update an existing alert rule. Only provide the fields you want to change — other fields are preserved. Use get_alert_rules to find the rule ID."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Alert rule ID from get_alert_rules"),
+		),
+		mcp.WithString("probe_name",
+			mcp.Description("Probe name"),
+		),
+		mcp.WithString("condition",
+			mcp.Description("Trigger condition"),
+			mcp.Enum("above", "below", "outside_range"),
+		),
+		mcp.WithNumber("threshold_low",
+			mcp.Description("Low threshold"),
+		),
+		mcp.WithNumber("threshold_high",
+			mcp.Description("High threshold"),
+		),
+		mcp.WithString("severity",
+			mcp.Description("Notification severity"),
+			mcp.Enum("warning", "critical"),
+		),
+		mcp.WithNumber("cooldown_minutes",
+			mcp.Description("Minimum minutes between repeat notifications"),
+		),
+		mcp.WithBoolean("enabled",
+			mcp.Description("Whether the rule is active"),
+		),
+	)
+}
+
+func updateAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		targetID := int64(idFloat)
+		idStr := fmt.Sprintf("%d", targetID)
+
+		// Fetch the full list and find the rule — no single-item GET endpoint exists.
+		var listResp struct {
+			Rules []struct {
+				ID              int64    `json:"id"`
+				ProbeName       string   `json:"probe_name"`
+				Condition       string   `json:"condition"`
+				ThresholdLow    *float64 `json:"threshold_low"`
+				ThresholdHigh   *float64 `json:"threshold_high"`
+				Severity        string   `json:"severity"`
+				CooldownMinutes int      `json:"cooldown_minutes"`
+				Enabled         bool     `json:"enabled"`
+			} `json:"rules"`
+		}
+		if err := apiCall(client, "/api/alerts", &listResp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+
+		var existing *struct {
+			ID              int64    `json:"id"`
+			ProbeName       string   `json:"probe_name"`
+			Condition       string   `json:"condition"`
+			ThresholdLow    *float64 `json:"threshold_low"`
+			ThresholdHigh   *float64 `json:"threshold_high"`
+			Severity        string   `json:"severity"`
+			CooldownMinutes int      `json:"cooldown_minutes"`
+			Enabled         bool     `json:"enabled"`
+		}
+		for i := range listResp.Rules {
+			if listResp.Rules[i].ID == targetID {
+				existing = &listResp.Rules[i]
+				break
+			}
+		}
+		if existing == nil {
+			return toolError(fmt.Sprintf("Alert rule %s not found", idStr)), nil
+		}
+
+		// Start with existing values.
+		body := map[string]any{
+			"probe_name":       existing.ProbeName,
+			"condition":        existing.Condition,
+			"severity":         existing.Severity,
+			"cooldown_minutes": existing.CooldownMinutes,
+			"enabled":          existing.Enabled,
+		}
+		if existing.ThresholdLow != nil {
+			body["threshold_low"] = *existing.ThresholdLow
+		}
+		if existing.ThresholdHigh != nil {
+			body["threshold_high"] = *existing.ThresholdHigh
+		}
+
+		// Apply overrides.
+		if v := request.GetString("probe_name", ""); v != "" {
+			body["probe_name"] = v
+		}
+		if v := request.GetString("condition", ""); v != "" {
+			body["condition"] = v
+		}
+		if args, ok := request.Params.Arguments.(map[string]any); ok {
+			if v, ok := args["threshold_low"]; ok {
+				body["threshold_low"] = v
+			}
+			if v, ok := args["threshold_high"]; ok {
+				body["threshold_high"] = v
+			}
+			if v, ok := args["enabled"]; ok {
+				if b, ok := v.(bool); ok {
+					body["enabled"] = b
+				}
+			}
+		}
+		if v := request.GetString("severity", ""); v != "" {
+			body["severity"] = v
+		}
+		if v := request.GetInt("cooldown_minutes", 0); v > 0 {
+			body["cooldown_minutes"] = v
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Put(timeoutCtx, "/api/alerts/"+idStr, body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to update alert rule: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- delete_alert_rule ---
+
+func deleteAlertRuleTool() mcp.Tool {
+	return mcp.NewTool("delete_alert_rule",
+		mcp.WithDescription("Delete an alert rule permanently. Use get_alert_rules to find the rule ID."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Alert rule ID from get_alert_rules"),
+		),
+	)
+}
+
+func deleteAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		idStr := fmt.Sprintf("%d", int64(idFloat))
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		if err := client.Delete(timeoutCtx, "/api/alerts/"+idStr); err != nil {
+			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
+				return toolError(fmt.Sprintf("Alert rule %s not found", idStr)), nil
+			}
+			return toolError(fmt.Sprintf("Failed to delete alert rule: %v", err)), nil
+		}
+		return mcp.NewToolResultText("Alert rule " + idStr + " deleted"), nil
+	}
+}
+
+// --- get_journal_templates ---
+
+func getJournalTemplatesTool() mcp.Tool {
+	return mcp.NewTool("get_journal_templates",
+		mcp.WithDescription("Get available journal entry templates grouped by category (observation, maintenance, event, milestone). Templates provide suggested titles and formats for common tank events — use them to create consistent, well-formed journal entries."),
+	)
+}
+
+func getJournalTemplatesHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(client, "/api/journal/templates", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
