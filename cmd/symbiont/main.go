@@ -72,6 +72,7 @@ func main() {
 	rootCmd.AddCommand(cli.NewNotifyCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewConfigCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewMeasurementsCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewLivestockCmd(sharedClient))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)

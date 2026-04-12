@@ -100,6 +100,34 @@ func setupMockAPI(t *testing.T) (*httptest.Server, *cli.APIClient) {
 		})
 	})
 
+	mux.HandleFunc("GET /api/livestock", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"livestock": []map[string]any{
+				{"id": 1, "name": "Ocellaris Clownfish", "type": "fish", "quantity": 2, "status": "healthy"},
+				{"id": 2, "name": "Acropora millepora", "type": "coral", "quantity": 1, "status": "sick"},
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /api/livestock", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 3, "name": "Test Fish", "type": "fish", "quantity": 1, "status": "healthy",
+		})
+	})
+
+	mux.HandleFunc("GET /api/livestock/{id}", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 1, "name": "Ocellaris Clownfish", "type": "fish", "quantity": 2, "status": "healthy",
+		})
+	})
+
+	mux.HandleFunc("PUT /api/livestock/{id}", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": 1, "name": "Ocellaris Clownfish", "type": "fish", "quantity": 2, "status": "sick",
+		})
+	})
+
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	client := cli.NewAPIClient(ts.URL, "test-token")
@@ -123,6 +151,9 @@ func setupTools(t *testing.T, client *cli.APIClient) handlerMap {
 	handlers["get_system_log"] = getSystemLogHandler(client)
 	handlers["get_devices"] = getDevicesHandler(client)
 	handlers["summarize_tank_health"] = summarizeTankHealthHandler(client)
+	handlers["get_livestock"] = getLivestockHandler(client)
+	handlers["add_livestock"] = addLivestockHandler(client)
+	handlers["update_livestock"] = updateLivestockHandler(client)
 	return handlers
 }
 
@@ -283,6 +314,10 @@ func TestSummarizeTankHealth(t *testing.T) {
 	if !strings.Contains(text, "pH") {
 		t.Fatalf("expected 'pH' in warnings, got: %s", text)
 	}
+	// Livestock summary should be present.
+	if !strings.Contains(text, "livestock") {
+		t.Fatalf("expected 'livestock' in health summary, got: %s", text)
+	}
 }
 
 func TestToolWithAPIDown(t *testing.T) {
@@ -359,5 +394,72 @@ func TestGetDevices(t *testing.T) {
 	text := resultText(t, result)
 	if !strings.Contains(text, "Return Pump") {
 		t.Fatalf("expected device in result, got: %s", text)
+	}
+}
+
+func TestGetLivestock(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_livestock", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "Ocellaris Clownfish") {
+		t.Fatalf("expected livestock in result, got: %s", text)
+	}
+}
+
+func TestGetLivestockFiltered(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "get_livestock", map[string]any{"type": "fish"})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestAddLivestock(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "add_livestock", map[string]any{
+		"name": "Test Fish",
+		"type": "fish",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestUpdateLivestock(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "update_livestock", map[string]any{
+		"id":     float64(1),
+		"status": "sick",
+	})
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+}
+
+func TestSummarizeTankHealthIncludesLivestock(t *testing.T) {
+	_, client := setupMockAPI(t)
+	handlers := setupTools(t, client)
+
+	result := callTool(t, handlers, "summarize_tank_health", nil)
+	if result.IsError {
+		t.Fatalf("unexpected error: %s", resultText(t, result))
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "livestock") {
+		t.Fatalf("expected 'livestock' in health summary, got: %s", text)
+	}
+	if !strings.Contains(text, "by_type") {
+		t.Fatalf("expected 'by_type' in livestock summary, got: %s", text)
 	}
 }
