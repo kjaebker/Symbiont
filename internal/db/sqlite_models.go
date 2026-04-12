@@ -174,3 +174,42 @@ type LivestockFilter struct {
 	Type   string // empty = all
 	Status string // empty = all
 }
+
+// TankProfile represents a row in the tank_profile table.
+// Section is "display" or "sump" and serves as the primary key.
+type TankProfile struct {
+	Section       string    `json:"section"`
+	DisplayName   *string   `json:"display_name"`
+	VolumeGallons *float64  `json:"volume_gallons"`
+	LengthIn      *float64  `json:"length_in"`
+	WidthIn       *float64  `json:"width_in"`
+	HeightIn      *float64  `json:"height_in"`
+	TankType      *string   `json:"tank_type"`
+	Manufacturer  *string   `json:"manufacturer"`
+	Model         *string   `json:"model"`
+	SetupDate     *string   `json:"setup_date"` // YYYY-MM-DD
+	Notes         *string   `json:"notes"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// JournalEntry represents a row in the journal_entries table.
+type JournalEntry struct {
+	ID        int64     `json:"id"`
+	TS        time.Time `json:"ts"`
+	Category  string    `json:"category"`  // observation | maintenance | event | milestone
+	Sentiment *string   `json:"sentiment"` // good | neutral | bad | critical
+	Title     string    `json:"title"`
+	Body      *string   `json:"body"`
+	Source    string    `json:"source"`     // manual | system | ai
+	SourceRef *string   `json:"source_ref"` // e.g. "feed_mode:1" for system entries
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// JournalFilter is used to filter ListJournalEntries queries.
+type JournalFilter struct {
+	Category  string
+	Sentiment string
+	From      *time.Time
+	To        *time.Time
+	Limit     int // defaults to 50 if <= 0
+}

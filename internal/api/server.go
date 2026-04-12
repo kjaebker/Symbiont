@@ -14,39 +14,53 @@ import (
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
+	"github.com/kjaebker/symbiont/internal/journal"
 	"github.com/kjaebker/symbiont/internal/kits"
 )
 
 
 // Server is the HTTP API server.
 type Server struct {
-	duck        *db.DuckDB
-	sqlite      *db.SQLiteDB
-	apex        apex.Client
-	cfg         *config.Config
-	logger      *slog.Logger
-	http        *http.Server
-	broadcaster *Broadcaster
-	frontendFS  fs.FS
-	catalog     *kits.Catalog
+	duck             *db.DuckDB
+	sqlite           *db.SQLiteDB
+	apex             apex.Client
+	cfg              *config.Config
+	logger           *slog.Logger
+	http             *http.Server
+	broadcaster      *Broadcaster
+	frontendFS       fs.FS
+	catalog          *kits.Catalog
+	events           *events.Bus
+	journalTemplates *journal.Catalog
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the
 // frontend from; if nil, falls back to os.DirFS(cfg.FrontendPath).
 // catalog is the test kit catalog; if nil, kit-ref validation is skipped.
-func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger, frontendFS fs.FS, catalog *kits.Catalog) *Server {
+// bus is the system event bus; if nil, event publishing is a no-op.
+// journalCatalog is the journal template catalog; if nil, templates return empty.
+func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient apex.Client, logger *slog.Logger, frontendFS fs.FS, catalog *kits.Catalog, bus *events.Bus, journalCatalog *journal.Catalog) *Server {
 	if frontendFS == nil {
 		frontendFS = os.DirFS(cfg.FrontendPath)
 	}
+	if bus == nil {
+		bus = events.NewBus()
+	}
+	if journalCatalog == nil {
+		journalCatalog = journal.NewEmptyCatalog()
+	}
 	s := &Server{
-		duck:        duck,
-		sqlite:      sqlite,
-		apex:        apexClient,
-		cfg:         cfg,
-		logger:      logger,
-		broadcaster: NewBroadcaster(),
-		frontendFS:  frontendFS,
-		catalog:     catalog,
+		duck:             duck,
+		sqlite:           sqlite,
+		apex:             apexClient,
+		cfg:              cfg,
+		logger:           logger,
+		broadcaster:      NewBroadcaster(),
+		frontendFS:       frontendFS,
+		catalog:          catalog,
+		events:           bus,
+		journalTemplates: journalCatalog,
 	}
 
 	mux := http.NewServeMux()
@@ -160,6 +174,19 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/livestock/{id}/observations", s.HandleLivestockObservationCreate)
 	mux.HandleFunc("POST /api/livestock/{id}/observations/{obs_id}/image", s.HandleObservationImageUpload)
 	mux.HandleFunc("DELETE /api/livestock/{id}/observations/{obs_id}/image", s.HandleObservationImageDelete)
+
+	// Tank profile.
+	mux.HandleFunc("GET /api/tank/profile", s.HandleTankProfileGet)
+	mux.HandleFunc("PUT /api/tank/profile/display", s.HandleTankProfileUpsert("display"))
+	mux.HandleFunc("PUT /api/tank/profile/sump", s.HandleTankProfileUpsert("sump"))
+
+	// Journal.
+	mux.HandleFunc("GET /api/journal/templates", s.HandleJournalTemplates) // must be before /{id}
+	mux.HandleFunc("GET /api/journal", s.HandleJournalList)
+	mux.HandleFunc("POST /api/journal", s.HandleJournalCreate)
+	mux.HandleFunc("GET /api/journal/{id}", s.HandleJournalGet)
+	mux.HandleFunc("PUT /api/journal/{id}", s.HandleJournalUpdate)
+	mux.HandleFunc("DELETE /api/journal/{id}", s.HandleJournalDelete)
 
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)

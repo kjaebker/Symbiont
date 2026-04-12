@@ -1378,3 +1378,179 @@ func (s *SQLiteDB) InsertLivestockObservation(ctx context.Context, o LivestockOb
 	}
 	return res.LastInsertId()
 }
+
+// --- Tank Profile ---
+
+// GetTankProfile returns the profile for the given section ("display" or "sump").
+// Returns nil, nil if no profile has been saved for that section yet.
+func (s *SQLiteDB) GetTankProfile(ctx context.Context, section string) (*TankProfile, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT section, display_name, volume_gallons, length_in, width_in, height_in,
+		        tank_type, manufacturer, model, setup_date, notes, updated_at
+		 FROM tank_profile WHERE section = ?`, section)
+	p := &TankProfile{}
+	err := row.Scan(
+		&p.Section, &p.DisplayName, &p.VolumeGallons,
+		&p.LengthIn, &p.WidthIn, &p.HeightIn,
+		&p.TankType, &p.Manufacturer, &p.Model,
+		&p.SetupDate, &p.Notes, &p.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting tank profile %q: %w", section, err)
+	}
+	return p, nil
+}
+
+// UpsertTankProfile inserts or replaces the tank profile for the given section.
+func (s *SQLiteDB) UpsertTankProfile(ctx context.Context, p TankProfile) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO tank_profile
+		    (section, display_name, volume_gallons, length_in, width_in, height_in,
+		     tank_type, manufacturer, model, setup_date, notes, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		 ON CONFLICT(section) DO UPDATE SET
+		    display_name   = excluded.display_name,
+		    volume_gallons = excluded.volume_gallons,
+		    length_in      = excluded.length_in,
+		    width_in       = excluded.width_in,
+		    height_in      = excluded.height_in,
+		    tank_type      = excluded.tank_type,
+		    manufacturer   = excluded.manufacturer,
+		    model          = excluded.model,
+		    setup_date     = excluded.setup_date,
+		    notes          = excluded.notes,
+		    updated_at     = CURRENT_TIMESTAMP`,
+		p.Section, p.DisplayName, p.VolumeGallons,
+		p.LengthIn, p.WidthIn, p.HeightIn,
+		p.TankType, p.Manufacturer, p.Model,
+		p.SetupDate, p.Notes,
+	)
+	if err != nil {
+		return fmt.Errorf("upserting tank profile %q: %w", p.Section, err)
+	}
+	return nil
+}
+
+// --- Journal Entries ---
+
+// ListJournalEntries returns journal entries matching the filter, newest first.
+func (s *SQLiteDB) ListJournalEntries(ctx context.Context, f JournalFilter) ([]JournalEntry, error) {
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	query := `SELECT id, ts, category, sentiment, title, body, source, source_ref, created_at
+	          FROM journal_entries WHERE 1=1`
+	args := []any{}
+
+	if f.Category != "" {
+		query += " AND category = ?"
+		args = append(args, f.Category)
+	}
+	if f.Sentiment != "" {
+		query += " AND sentiment = ?"
+		args = append(args, f.Sentiment)
+	}
+	if f.From != nil {
+		query += " AND ts >= ?"
+		args = append(args, f.From)
+	}
+	if f.To != nil {
+		query += " AND ts <= ?"
+		args = append(args, f.To)
+	}
+	query += " ORDER BY ts DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing journal entries: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []JournalEntry
+	for rows.Next() {
+		var e JournalEntry
+		if err := rows.Scan(
+			&e.ID, &e.TS, &e.Category, &e.Sentiment,
+			&e.Title, &e.Body, &e.Source, &e.SourceRef, &e.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning journal entry: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
+// GetJournalEntry returns a single journal entry by ID, or nil if not found.
+func (s *SQLiteDB) GetJournalEntry(ctx context.Context, id int64) (*JournalEntry, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT id, ts, category, sentiment, title, body, source, source_ref, created_at
+		 FROM journal_entries WHERE id = ?`, id)
+	e := &JournalEntry{}
+	err := row.Scan(
+		&e.ID, &e.TS, &e.Category, &e.Sentiment,
+		&e.Title, &e.Body, &e.Source, &e.SourceRef, &e.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting journal entry %d: %w", id, err)
+	}
+	return e, nil
+}
+
+// InsertJournalEntry inserts a new journal entry and returns its ID.
+func (s *SQLiteDB) InsertJournalEntry(ctx context.Context, e JournalEntry) (int64, error) {
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO journal_entries (category, sentiment, title, body, source, source_ref)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		e.Category, e.Sentiment, e.Title, e.Body, e.Source, e.SourceRef,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting journal entry: %w", err)
+	}
+	return res.LastInsertId()
+}
+
+// UpdateJournalEntry updates the editable fields of an existing journal entry.
+func (s *SQLiteDB) UpdateJournalEntry(ctx context.Context, id int64, e JournalEntry) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE journal_entries SET category = ?, sentiment = ?, title = ?, body = ?
+		 WHERE id = ?`,
+		e.Category, e.Sentiment, e.Title, e.Body, id,
+	)
+	if err != nil {
+		return fmt.Errorf("updating journal entry %d: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected for journal entry %d: %w", id, err)
+	}
+	if n == 0 {
+		return fmt.Errorf("journal entry %d not found", id)
+	}
+	return nil
+}
+
+// DeleteJournalEntry deletes a journal entry by ID.
+func (s *SQLiteDB) DeleteJournalEntry(ctx context.Context, id int64) error {
+	res, err := s.db.ExecContext(ctx,
+		"DELETE FROM journal_entries WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("deleting journal entry %d: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected for journal entry %d: %w", id, err)
+	}
+	if n == 0 {
+		return fmt.Errorf("journal entry %d not found", id)
+	}
+	return nil
+}

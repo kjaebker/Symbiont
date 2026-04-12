@@ -1,6 +1,11 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+
+	"github.com/kjaebker/symbiont/internal/events"
+)
 
 func (s *Server) HandleFeedGet(w http.ResponseWriter, r *http.Request) {
 	status, err := s.apex.Status(r.Context())
@@ -34,6 +39,18 @@ func (s *Server) HandleFeedSet(w http.ResponseWriter, r *http.Request) {
 	if err := s.apex.SetFeedMode(r.Context(), body.Name, body.Active); err != nil {
 		writeError(w, http.StatusBadGateway, "failed to set feed mode: "+err.Error(), "apex_error")
 		return
+	}
+
+	if body.Active && body.Name >= 1 && body.Name <= 4 {
+		feedNames := map[int]string{1: "A", 2: "B", 3: "C", 4: "D"}
+		s.events.Publish(r.Context(), events.SystemEvent{
+			Type: events.FeedModeActivated,
+			TS:   time.Now(),
+			Payload: map[string]any{
+				"feed_name":   feedNames[body.Name],
+				"feed_number": body.Name,
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{

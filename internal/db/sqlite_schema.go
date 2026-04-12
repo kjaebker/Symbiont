@@ -143,6 +143,31 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			status       TEXT     CHECK(status IN ('healthy','sick','quarantine','deceased')),
 			note         TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS tank_profile (
+			section         TEXT NOT NULL PRIMARY KEY CHECK(section IN ('display','sump')),
+			display_name    TEXT,
+			volume_gallons  REAL,
+			length_in       REAL,
+			width_in        REAL,
+			height_in       REAL,
+			tank_type       TEXT,
+			manufacturer    TEXT,
+			model           TEXT,
+			setup_date      DATE,
+			notes           TEXT,
+			updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS journal_entries (
+			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+			ts          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			category    TEXT     NOT NULL CHECK(category IN ('observation','maintenance','event','milestone')),
+			sentiment   TEXT     CHECK(sentiment IN ('good','neutral','bad','critical')),
+			title       TEXT     NOT NULL,
+			body        TEXT,
+			source      TEXT     NOT NULL DEFAULT 'manual' CHECK(source IN ('manual','system','ai')),
+			source_ref  TEXT,
+			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	indexes := []string{
@@ -156,6 +181,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_livestock_type ON livestock(type)`,
 		`CREATE INDEX IF NOT EXISTS idx_livestock_status ON livestock(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_livestock_obs ON livestock_observations(livestock_id, ts DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_journal_entries_ts ON journal_entries(ts DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_journal_entries_category ON journal_entries(category, ts DESC)`,
 	}
 
 	for _, stmt := range tables {

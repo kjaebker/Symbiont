@@ -13,6 +13,8 @@ import (
 	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
+	"github.com/kjaebker/symbiont/internal/journal"
 	"github.com/kjaebker/symbiont/internal/kits"
 	"github.com/kjaebker/symbiont/internal/notify"
 	"github.com/kjaebker/symbiont/internal/poller"
@@ -91,8 +93,26 @@ func main() {
 	}
 	go p.Run(sigCtx)
 
+	// Load journal template catalog.
+	journalCatalog, err := journal.Load()
+	if err != nil {
+		logger.Error("failed to load journal templates", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
+
+	// Create event bus and wire the journal auto-log subscriber.
+	bus := events.NewBus()
+	bus.Subscribe(func(ctx context.Context, e events.SystemEvent) {
+		if entry, ok := journal.EntryFromEvent(e); ok {
+			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
+				logger.Error("journal auto-log failed", "err", err, "event", e.Type)
+			}
+		}
+	})
+
 	// Create API server (nil FS falls back to cfg.FrontendPath).
-	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog)
+	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog, bus, journalCatalog)
 
 	// Build notification system from enabled targets.
 	var notifier notify.Notifier
@@ -122,6 +142,7 @@ func main() {
 
 	logger.Info("api server shut down cleanly")
 }
+
 
 func parseLogLevel(s string) slog.Level {
 	switch s {

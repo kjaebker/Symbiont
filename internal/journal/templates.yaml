@@ -1,0 +1,153 @@
+templates:
+  # Observations — Good
+  - category: observation
+    sentiment: good
+    title: "Water Clarity Good"
+  - category: observation
+    sentiment: good
+    title: "Fish Activity Good"
+  - category: observation
+    sentiment: good
+    title: "Fish Color Good"
+  - category: observation
+    sentiment: good
+    title: "Fish Eating Well"
+  - category: observation
+    sentiment: good
+    title: "Fish Spawning"
+  - category: observation
+    sentiment: good
+    title: "Coral Polyp Extension Good"
+  - category: observation
+    sentiment: good
+    title: "Coral Color Good"
+  - category: observation
+    sentiment: good
+    title: "Coral Growth Good"
+  - category: observation
+    sentiment: good
+    title: "No Algae Present"
+
+  # Observations — Bad
+  - category: observation
+    sentiment: bad
+    title: "Water Clarity Poor"
+  - category: observation
+    sentiment: bad
+    title: "Fish Activity Low"
+  - category: observation
+    sentiment: bad
+    title: "Fish Color Poor"
+  - category: observation
+    sentiment: bad
+    title: "Fish Not Eating"
+  - category: observation
+    sentiment: bad
+    title: "Fish Behavior Abnormal"
+  - category: observation
+    sentiment: bad
+    title: "Fish Has Disease"
+  - category: observation
+    sentiment: bad
+    title: "Fish Aggression Issue"
+  - category: observation
+    sentiment: bad
+    title: "Coral Polyp Extension Poor"
+  - category: observation
+    sentiment: bad
+    title: "Coral Color Poor"
+  - category: observation
+    sentiment: bad
+    title: "Coral Growth Poor"
+  - category: observation
+    sentiment: bad
+    title: "Coral Has Disease"
+  - category: observation
+    sentiment: bad
+    title: "Coral Has Pest"
+  - category: observation
+    sentiment: bad
+    title: "Coral Warfare"
+  - category: observation
+    sentiment: bad
+    title: "Cyano on Sand"
+  - category: observation
+    sentiment: bad
+    title: "Cyano on Rocks"
+  - category: observation
+    sentiment: bad
+    title: "Hair Algae"
+  - category: observation
+    sentiment: bad
+    title: "Bubble Algae"
+
+  # Events — Good
+  - category: event
+    sentiment: good
+    title: "Added Fish"
+  - category: event
+    sentiment: good
+    title: "Added Coral"
+  - category: event
+    sentiment: good
+    title: "Added Invertebrate"
+
+  # Events — Bad
+  - category: event
+    sentiment: bad
+    title: "Fish Died"
+  - category: event
+    sentiment: bad
+    title: "Coral Died"
+  - category: event
+    sentiment: bad
+    title: "Invertebrate Died"
+
+  # Events — Critical
+  - category: event
+    sentiment: critical
+    title: "Major System Malfunction"
+  - category: event
+    sentiment: critical
+    title: "Tank Leak"
+
+  # Maintenance — Neutral
+  - category: maintenance
+    sentiment: neutral
+    title: "Water Change"
+  - category: maintenance
+    sentiment: neutral
+    title: "Added Supplements"
+  - category: maintenance
+    sentiment: neutral
+    title: "Removed Nuisance Algae"
+  - category: maintenance
+    sentiment: neutral
+    title: "Changed Filter Socks"
+  - category: maintenance
+    sentiment: neutral
+    title: "Stirred Sand"
+  - category: maintenance
+    sentiment: neutral
+    title: "Cleaned Rocks"
+  - category: maintenance
+    sentiment: neutral
+    title: "Cleaned Return Pump"
+  - category: maintenance
+    sentiment: neutral
+    title: "Cleaned Powerhead"
+  - category: maintenance
+    sentiment: neutral
+    title: "Changed Carbon"
+  - category: maintenance
+    sentiment: neutral
+    title: "Changed GFO"
+  - category: maintenance
+    sentiment: neutral
+    title: "Added Biopellets"
+  - category: maintenance
+    sentiment: neutral
+    title: "Emptied Skimmer"
+  - category: maintenance
+    sentiment: neutral
+    title: "Cleaned Skimmer"
