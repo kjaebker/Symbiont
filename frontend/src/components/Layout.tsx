@@ -9,6 +9,7 @@ import {
   Settings,
   LayoutGrid,
   X,
+  ScrollText,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useSSE } from '@/hooks/useSSE'
@@ -25,6 +26,7 @@ const primaryNavItems = [
 ]
 
 const overflowNavItems = [
+  { to: '/journal', icon: ScrollText, label: 'Journal' },
   { to: '/history', icon: Clock, label: 'History' },
   { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
   { to: '/settings', icon: Settings, label: 'Settings' },

@@ -4,6 +4,7 @@ import Layout from '@/components/Layout'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import History from '@/pages/History'
+import Journal from '@/pages/Journal'
 import Measurements from '@/pages/Measurements'
 import Livestock from '@/pages/Livestock'
 import Outlets from '@/pages/Outlets'
@@ -31,6 +32,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="history" element={<History />} />
         <Route path="measurements" element={<Measurements />} />
+        <Route path="journal" element={<Journal />} />
         <Route path="livestock" element={<Livestock />} />
         <Route path="outlets" element={<Outlets />} />
         <Route path="alerts" element={<Alerts />} />
