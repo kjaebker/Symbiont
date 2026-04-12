@@ -9,7 +9,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDashboardLayout } from '@/hooks/useDashboardLayout'
 import { ProbeCard } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
-import { DeviceCard } from '@/components/DeviceCard'
+import { DeviceCard, pickPrimaryProbe } from '@/components/DeviceCard'
 import { FeedCard } from '@/components/FeedCard'
 import { MeasurementCard } from '@/components/MeasurementCard'
 import {
@@ -210,7 +210,8 @@ function renderCard(
       case 'device': {
         const device = deviceMap.get(Number(ref))
         if (!device) return null
-        const primaryProbe = device.probe_names.map((n) => probeMap.get(n)).find(Boolean)
+        const allProbes = device.probe_names.map((n) => probeMap.get(n)).filter((p): p is NonNullable<typeof p> => !!p)
+        const primaryProbe = pickPrimaryProbe(allProbes)
         return (
           <div key={`device:${ref}`} className="col-span-1 lg:col-span-2">
             <DeviceCompactCard device={device} primaryProbe={primaryProbe} />

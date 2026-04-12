@@ -66,7 +66,7 @@ function worstProbeStatus(probes: Probe[]): ProbeStatus {
 }
 
 /** Pick the primary probe — prefer the "monitoring" probe (temp, pH, ORP) over power probes. */
-function pickPrimaryProbe(probes: Probe[]): Probe | undefined {
+export function pickPrimaryProbe(probes: Probe[]): Probe | undefined {
   const powerTypes = new Set(['pwr', 'Amps'])
   return (
     probes.find((p) => !powerTypes.has(p.type)) ??

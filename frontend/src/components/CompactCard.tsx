@@ -71,7 +71,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1 mb-0.5">
-          <span className={`text-base font-bold text-on-surface leading-none ${config.glowClass}`}>
+          <span className={`text-base font-bold leading-none ${config.color} ${config.glowClass}`}>
             {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
           </span>
           <span className="text-xs text-on-surface-dim font-normal leading-none">{probe.unit}</span>
@@ -191,7 +191,7 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
           <div className="h-4 w-12 bg-surface-container-high rounded animate-pulse mb-0.5" />
         ) : (
           <div className="flex items-baseline gap-1 mb-0.5">
-            <span className="text-base font-bold text-on-surface text-glow-secondary leading-none">
+            <span className="text-base font-bold leading-none text-secondary text-glow-secondary">
               {displayValue}
             </span>
             {latest?.canonical_unit && (
@@ -292,7 +292,7 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
       <div className="min-w-0 flex-1">
         {primaryProbe ? (
           <div className="flex items-baseline gap-1 mb-0.5">
-            <span className={`text-base font-bold text-on-surface leading-none ${config.glowClass}`}>
+            <span className={`text-base font-bold leading-none ${config.color} ${config.glowClass}`}>
               {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
             </span>
             <span className="text-xs text-on-surface-dim font-normal leading-none">{primaryProbe.unit}</span>
