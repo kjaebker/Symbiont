@@ -1,4 +1,4 @@
-import { Lock, Utensils, X } from 'lucide-react'
+import { Utensils, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useFeedStatus, useSetFeedMode } from '@/hooks/useFeed'
 
@@ -36,11 +36,12 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
 
   return (
     <div className="bg-surface-container rounded-2xl p-5 transition-fluid">
-      <div className="flex items-start justify-between mb-4">
+      {/* Header: icon + name + status */}
+      <div className="flex items-start justify-between mb-1">
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center',
+              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
               isActive ? 'bg-primary/10' : 'bg-surface-container-highest',
             )}
           >
@@ -49,77 +50,76 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
               className={isActive ? 'text-primary' : 'text-on-surface-faint'}
             />
           </div>
-          <div>
-            <div className="text-sm font-semibold text-on-surface">Feed Mode</div>
-            <div
-              className={cn(
-                'text-xs font-medium uppercase tracking-wider',
-                isError
-                  ? 'text-tertiary'
-                  : isActive
-                    ? 'text-primary'
-                    : 'text-on-surface-dim',
-              )}
-            >
-              {isError ? 'Unavailable' : isActive ? activeFeedLabel : 'Inactive'}
-            </div>
-          </div>
+          <span className="text-sm font-semibold text-on-surface">Feed Mode</span>
         </div>
 
-        {isActive && !isError && (
-          <span className="flex h-2 w-2 relative mt-2 shrink-0">
-            <span className="animate-bio-pulse absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-          </span>
-        )}
-      </div>
-
-      <div className="relative space-y-1.5">
-        <div className="flex gap-1.5">
-          {FEED_CYCLES.map(({ name, label }) => (
-            <button
-              key={name}
-              onClick={() => handleStart(name)}
-              disabled={mutation.isPending || controlsLocked}
-              className={cn(
-                'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                isActive && activeFeed === name
-                  ? 'bg-primary text-on-primary'
-                  : 'bg-surface-container-high text-on-surface-faint',
-                !controlsLocked && !(isActive && activeFeed === name) && 'hover:text-on-surface-dim',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {isActive && (
-          <button
-            onClick={handleCancel}
-            disabled={mutation.isPending || controlsLocked}
+        <div className="flex items-center gap-2 mt-0.5">
+          {isActive && !isError && (
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-bio-pulse absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
+          )}
+          <span
             className={cn(
-              'w-full py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid flex items-center justify-center gap-1.5',
-              controlsLocked
-                ? 'bg-tertiary/15 text-tertiary'
-                : 'bg-tertiary/15 text-tertiary hover:bg-tertiary/25',
+              'text-xs font-semibold uppercase tracking-wider shrink-0',
+              isError
+                ? 'text-tertiary'
+                : isActive
+                  ? 'text-primary'
+                  : 'text-on-surface-faint',
             )}
           >
-            <X size={12} />
-            Cancel Feed
-          </button>
-        )}
-
-        {controlsLocked && (
-          <div className="absolute inset-0 rounded-lg bg-surface-container/75 flex items-center justify-center pointer-events-none">
-            <Lock size={18} className="text-on-surface" />
-          </div>
-        )}
+            {isError ? 'Unavailable' : isActive ? activeFeedLabel : 'Inactive'}
+          </span>
+        </div>
       </div>
 
-      {mutation.isError && !controlsLocked && (
-        <p className="text-xs text-tertiary mt-2">Failed to set feed mode. Try again.</p>
-      )}
+      {/* Controls — revealed when unlocked */}
+      <div
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateRows: controlsLocked ? '0fr' : '1fr',
+          transition: 'grid-template-rows 250ms cubic-bezier(0.65, 0, 0.35, 1)',
+        }}
+      >
+        <div className="min-h-0">
+          <div className="pt-4 space-y-1.5">
+            <div className="flex gap-1.5">
+              {FEED_CYCLES.map(({ name, label }) => (
+                <button
+                  key={name}
+                  onClick={() => handleStart(name)}
+                  disabled={mutation.isPending}
+                  className={cn(
+                    'flex-1 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid',
+                    isActive && activeFeed === name
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-highest',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {isActive && (
+              <button
+                onClick={handleCancel}
+                disabled={mutation.isPending}
+                className="w-full py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid flex items-center justify-center gap-1.5 bg-tertiary/15 text-tertiary hover:bg-tertiary/25"
+              >
+                <X size={12} />
+                Cancel Feed
+              </button>
+            )}
+
+            {mutation.isError && (
+              <p className="text-xs text-tertiary">Failed to set feed mode. Try again.</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

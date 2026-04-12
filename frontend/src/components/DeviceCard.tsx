@@ -10,7 +10,6 @@ import {
   Droplet,
   Snowflake,
   Fan,
-  Lock,
   Zap,
   Box,
   Power,
@@ -216,64 +215,64 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       {/* Outlet controls */}
       {outlet && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              {isOn ? (
-                <Zap size={12} className="text-primary" />
-              ) : (
-                <Power size={12} className="text-on-surface-faint" />
-              )}
-              <span
-                className={cn(
-                  'text-xs font-medium uppercase tracking-wider',
-                  stateColors[outlet.state] ?? 'text-on-surface-dim',
-                )}
-              >
-                {stateLabels[outlet.state] ?? outlet.state}
-              </span>
-            </div>
-          </div>
-          <div className="relative">
-            <div className="flex gap-1.5">
-              {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-                const active =
-                  (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-                  (s === 'ON' && outlet.state === 'ON') ||
-                  (s === 'AUTO' && isAuto)
-
-                return (
-                  <button
-                    key={s}
-                    onClick={() => handleControl(s)}
-                    disabled={mutation.isPending || controlsLocked}
-                    className={cn(
-                      'flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid',
-                      active
-                        ? s === 'AUTO'
-                          ? 'bg-primary text-on-primary'
-                          : s === 'ON'
-                            ? 'bg-secondary text-on-secondary'
-                            : 'bg-surface-container-highest text-on-surface'
-                        : 'bg-surface-container-high text-on-surface-faint',
-                      !controlsLocked && !active && 'hover:text-on-surface-dim',
-                    )}
-                  >
-                    {s}
-                  </button>
-                )
-              })}
-            </div>
-            {controlsLocked && (
-              <div className="absolute inset-0 rounded-lg bg-surface-container/75 flex items-center justify-center pointer-events-none">
-                <Lock size={18} className="text-on-surface" />
-              </div>
+          <div className="flex items-center gap-1.5 mb-1">
+            {isOn ? (
+              <Zap size={12} className="text-primary" />
+            ) : (
+              <Power size={12} className="text-on-surface-faint" />
             )}
+            <span
+              className={cn(
+                'text-xs font-semibold uppercase tracking-wider',
+                stateColors[outlet.state] ?? 'text-on-surface-dim',
+              )}
+            >
+              {stateLabels[outlet.state] ?? outlet.state}
+            </span>
           </div>
-          {mutation.isError && !controlsLocked && (
-            <p className="text-xs text-tertiary mt-2">
-              Failed to set state. Try again.
-            </p>
-          )}
+
+          {/* Controls — revealed when unlocked */}
+          <div
+            className="grid overflow-hidden"
+            style={{
+              gridTemplateRows: controlsLocked ? '0fr' : '1fr',
+              transition: 'grid-template-rows 250ms cubic-bezier(0.65, 0, 0.35, 1)',
+            }}
+          >
+            <div className="min-h-0">
+              <div className="flex gap-1.5 pt-2">
+                {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
+                  const active =
+                    (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
+                    (s === 'ON' && outlet.state === 'ON') ||
+                    (s === 'AUTO' && isAuto)
+
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => handleControl(s)}
+                      disabled={mutation.isPending}
+                      className={cn(
+                        'flex-1 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid',
+                        active
+                          ? s === 'AUTO'
+                            ? 'bg-primary text-on-primary'
+                            : s === 'ON'
+                              ? 'bg-secondary text-on-secondary'
+                              : 'bg-surface-container-highest text-on-surface'
+                          : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-highest',
+                      )}
+                    >
+                      {s}
+                    </button>
+                  )
+                })}
+              </div>
+              {mutation.isError && (
+                <p className="text-xs text-tertiary mt-2">Failed to set state. Try again.</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
