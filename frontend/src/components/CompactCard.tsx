@@ -6,7 +6,7 @@ import { useFeedStatus } from '@/hooks/useFeed'
 import type { Probe, Outlet, Device } from '@/api/types'
 import { getCategory } from './ProbeCard'
 
-// --- Probe ---
+// --- Category config ---
 
 const statusDot = {
   normal: 'bg-secondary',
@@ -20,31 +20,33 @@ const categoryCompact = {
     icon: Thermometer,
     color: 'text-tertiary',
     bg: 'bg-tertiary/10',
-    hoverGlow: 'hover:shadow-glow-tertiary',
     glowClass: 'text-glow-tertiary',
+    tint: 'rgba(255, 135, 150, 0.06)',
   },
   chemistry: {
     icon: FlaskConical,
     color: 'text-secondary',
     bg: 'bg-secondary/10',
-    hoverGlow: 'hover:shadow-glow-secondary',
     glowClass: 'text-glow-secondary',
+    tint: 'rgba(109, 254, 156, 0.06)',
   },
   power: {
     icon: Zap,
     color: 'text-primary',
     bg: 'bg-primary/10',
-    hoverGlow: 'hover:shadow-glow-primary',
     glowClass: 'text-glow-primary',
+    tint: 'rgba(58, 223, 250, 0.06)',
   },
   digital: {
     icon: ToggleLeft,
     color: 'text-on-surface-dim',
     bg: 'bg-surface-container-high',
-    hoverGlow: 'hover:shadow-glow-primary',
     glowClass: '',
+    tint: 'transparent',
   },
 }
+
+// --- Probe ---
 
 interface ProbeCompactCardProps {
   probe: Probe
@@ -59,24 +61,28 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
   return (
     <button
       onClick={() => navigate(`/history?probe=${encodeURIComponent(probe.name)}`)}
-      className={cn(
-        'aspect-square bg-surface-container rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition-fluid hover:bg-surface-container-high cursor-pointer w-full',
-        config.hoverGlow,
-      )}
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
+      style={{
+        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
+      }}
     >
-      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', config.bg)}>
-        <Icon size={18} className={config.color} />
+      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', config.bg)}>
+        <Icon size={16} className={config.color} />
       </div>
-      <span className={cn('text-lg font-bold text-on-surface leading-none', config.glowClass)}>
-        {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
-        <span className="text-xs font-normal text-on-surface-dim ml-0.5">{probe.unit}</span>
-      </span>
-      <span className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate w-full text-center">
-        {probe.display_name}
-      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1 mb-0.5">
+          <span className={`text-base font-bold text-on-surface leading-none ${config.glowClass}`}>
+            {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
+          </span>
+          <span className="text-xs text-on-surface-dim font-normal leading-none">{probe.unit}</span>
+        </div>
+        <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
+          {probe.display_name}
+        </p>
+      </div>
       <span
         className={cn(
-          'h-1.5 w-1.5 rounded-full',
+          'h-1.5 w-1.5 rounded-full shrink-0',
           statusDot[probe.status],
           probe.status === 'normal' && 'animate-bio-pulse',
         )}
@@ -116,34 +122,38 @@ export function OutletCompactCard({ outlet }: OutletCompactCardProps) {
 
   return (
     <div
-      className={cn(
-        'aspect-square bg-surface-container rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition-fluid w-full',
-        isOn ? 'hover:shadow-glow-primary' : '',
-      )}
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid"
+      style={{
+        background: isOn
+          ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(58,223,250,0.06))'
+          : 'var(--color-surface-container)',
+      }}
     >
       <div
         className={cn(
-          'w-9 h-9 rounded-xl flex items-center justify-center',
+          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
           isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
         )}
       >
         {isOn ? (
-          <Zap size={18} className="text-primary" />
+          <Zap size={16} className="text-primary" />
         ) : (
-          <Power size={18} className="text-on-surface-faint" />
+          <Power size={16} className="text-on-surface-faint" />
         )}
       </div>
-      <span
-        className={cn(
-          'text-sm font-bold leading-none',
-          stateColors[outlet.state] ?? 'text-on-surface-dim',
-        )}
-      >
-        {stateLabels[outlet.state] ?? outlet.state}
-      </span>
-      <span className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate w-full text-center">
-        {outlet.display_name || outlet.name}
-      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'text-base font-bold leading-none mb-0.5',
+            stateColors[outlet.state] ?? 'text-on-surface-dim',
+          )}
+        >
+          {stateLabels[outlet.state] ?? outlet.state}
+        </p>
+        <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
+          {outlet.display_name || outlet.name}
+        </p>
+      </div>
     </div>
   )
 }
@@ -168,26 +178,33 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
   return (
     <button
       onClick={() => navigate('/measurements')}
-      className="aspect-square bg-surface-container rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition-fluid hover:bg-surface-container-high hover:shadow-glow-secondary cursor-pointer w-full"
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
+      style={{
+        background: 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.06))',
+      }}
     >
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/10">
-        <FlaskConical size={18} className="text-secondary" />
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-secondary/10">
+        <FlaskConical size={16} className="text-secondary" />
       </div>
-      {isLoading ? (
-        <div className="h-5 w-10 bg-surface-container-high rounded animate-pulse" />
-      ) : (
-        <span className="text-lg font-bold text-on-surface text-glow-secondary leading-none">
-          {displayValue}
-          {latest?.canonical_unit && (
-            <span className="text-xs font-normal text-on-surface-dim ml-0.5">
-              {latest.canonical_unit}
+      <div className="min-w-0 flex-1">
+        {isLoading ? (
+          <div className="h-4 w-12 bg-surface-container-high rounded animate-pulse mb-0.5" />
+        ) : (
+          <div className="flex items-baseline gap-1 mb-0.5">
+            <span className="text-base font-bold text-on-surface text-glow-secondary leading-none">
+              {displayValue}
             </span>
-          )}
-        </span>
-      )}
-      <span className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate w-full text-center">
-        {parameter}
-      </span>
+            {latest?.canonical_unit && (
+              <span className="text-xs text-on-surface-dim font-normal leading-none">
+                {latest.canonical_unit}
+              </span>
+            )}
+          </div>
+        )}
+        <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
+          {parameter}
+        </p>
+      </div>
     </button>
   )
 }
@@ -200,45 +217,49 @@ export function FeedCompactCard() {
   const activeFeed = data?.name ?? 0
   const feedLabel =
     isActive && activeFeed >= 1 && activeFeed <= 4
-      ? ['A', 'B', 'C', 'D'][activeFeed - 1]
+      ? `Feed ${['A', 'B', 'C', 'D'][activeFeed - 1]}`
       : isActive
-        ? 'On'
-        : 'Off'
+        ? 'Active'
+        : 'Inactive'
 
   return (
     <div
-      className={cn(
-        'aspect-square bg-surface-container rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition-fluid w-full',
-        isActive && 'hover:shadow-glow-primary',
-      )}
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid"
+      style={{
+        background: isActive
+          ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(58,223,250,0.06))'
+          : 'var(--color-surface-container)',
+      }}
     >
       <div
         className={cn(
-          'w-9 h-9 rounded-xl flex items-center justify-center',
+          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
           isActive ? 'bg-primary/10' : 'bg-surface-container-highest',
         )}
       >
-        <Utensils size={18} className={isActive ? 'text-primary' : 'text-on-surface-faint'} />
+        <Utensils size={16} className={isActive ? 'text-primary' : 'text-on-surface-faint'} />
       </div>
-      <span
-        className={cn(
-          'text-sm font-bold leading-none',
-          isActive ? 'text-primary' : 'text-on-surface-faint',
-        )}
-      >
-        {feedLabel}
-      </span>
-      <span className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate w-full text-center">
-        Feed
-      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'text-base font-bold leading-none mb-0.5',
+            isActive ? 'text-primary' : 'text-on-surface-faint',
+          )}
+        >
+          {feedLabel}
+        </p>
+        <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium">
+          Feed Mode
+        </p>
+      </div>
       {isActive && (
-        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bio-pulse" />
+        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bio-pulse shrink-0" />
       )}
     </div>
   )
 }
 
-// --- Device (shows primary probe value) ---
+// --- Device ---
 
 interface DeviceCompactCardProps {
   device: Device
@@ -248,38 +269,45 @@ interface DeviceCompactCardProps {
 export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardProps) {
   const navigate = useNavigate()
 
-  const Icon = primaryProbe ? categoryCompact[getCategory(primaryProbe.type)].icon : Zap
-  const config = primaryProbe ? categoryCompact[getCategory(primaryProbe.type)] : categoryCompact.power
+  const config = primaryProbe
+    ? categoryCompact[getCategory(primaryProbe.type)]
+    : categoryCompact.power
+  const Icon = config.icon
 
   return (
     <button
-      onClick={() => primaryProbe
-        ? navigate(`/history?probe=${encodeURIComponent(primaryProbe.name)}`)
-        : undefined
+      onClick={() =>
+        primaryProbe
+          ? navigate(`/history?probe=${encodeURIComponent(primaryProbe.name)}`)
+          : undefined
       }
-      className={cn(
-        'aspect-square bg-surface-container rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition-fluid hover:bg-surface-container-high cursor-pointer w-full',
-        config.hoverGlow,
-      )}
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
+      style={{
+        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
+      }}
     >
-      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', config.bg)}>
-        <Icon size={18} className={config.color} />
+      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', config.bg)}>
+        <Icon size={16} className={config.color} />
       </div>
-      {primaryProbe ? (
-        <span className={cn('text-lg font-bold text-on-surface leading-none', config.glowClass)}>
-          {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
-          <span className="text-xs font-normal text-on-surface-dim ml-0.5">{primaryProbe.unit}</span>
-        </span>
-      ) : (
-        <span className="text-sm font-bold text-on-surface-faint leading-none">—</span>
-      )}
-      <span className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate w-full text-center">
-        {device.name}
-      </span>
+      <div className="min-w-0 flex-1">
+        {primaryProbe ? (
+          <div className="flex items-baseline gap-1 mb-0.5">
+            <span className={`text-base font-bold text-on-surface leading-none ${config.glowClass}`}>
+              {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
+            </span>
+            <span className="text-xs text-on-surface-dim font-normal leading-none">{primaryProbe.unit}</span>
+          </div>
+        ) : (
+          <p className="text-base font-bold text-on-surface-faint leading-none mb-0.5">—</p>
+        )}
+        <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
+          {device.name}
+        </p>
+      </div>
       {primaryProbe && (
         <span
           className={cn(
-            'h-1.5 w-1.5 rounded-full',
+            'h-1.5 w-1.5 rounded-full shrink-0',
             statusDot[primaryProbe.status],
             primaryProbe.status === 'normal' && 'animate-bio-pulse',
           )}

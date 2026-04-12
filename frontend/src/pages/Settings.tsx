@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList, Activity } from 'lucide-react'
 import { cn, relativeTime, formatBytes } from '@/lib/utils'
 import {
   useProbeConfigs,
@@ -33,7 +33,7 @@ import {
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
-import { useSystemLog } from '@/hooks/useSystem'
+import { useSystemStatus, useSystemLog } from '@/hooks/useSystem'
 import {
   useNotificationTargets,
   useUpsertNotificationTarget,
@@ -64,7 +64,7 @@ const unitOptions = [
   { value: '%', label: '% (Percent)' },
 ]
 
-type Tab = 'dashboard' | 'devices' | 'probes' | 'outlets' | 'tokens' | 'notifications' | 'backup' | 'log'
+type Tab = 'dashboard' | 'devices' | 'probes' | 'outlets' | 'tokens' | 'notifications' | 'backup' | 'log' | 'system'
 
 const tabs: { key: Tab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -75,6 +75,7 @@ const tabs: { key: Tab; label: string }[] = [
   { key: 'notifications', label: 'Notifications' },
   { key: 'backup', label: 'Backup' },
   { key: 'log', label: 'Log' },
+  { key: 'system', label: 'System' },
 ]
 
 // --- Shared drag sensors ---
@@ -82,7 +83,7 @@ const tabs: { key: Tab; label: string }[] = [
 function useDragSensors() {
   return useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 20 } }),
   )
 }
 
@@ -1766,6 +1767,85 @@ function SystemLogTab() {
 }
 
 // =============================================================================
+// System Tab
+// =============================================================================
+
+function SystemTab() {
+  const { data, isLoading, refetch, isFetching } = useSystemStatus()
+
+  if (isLoading) return <LoadingState label="Loading system status..." />
+
+  if (!data) {
+    return (
+      <EmptyState
+        icon={<Activity size={32} />}
+        message="System status unavailable. The API server may not be reachable."
+      />
+    )
+  }
+
+  const stat = (label: string, value: string) => (
+    <div className="py-3 px-4 flex items-center justify-between">
+      <span className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">{label}</span>
+      <span className="text-sm text-on-surface font-mono">{value}</span>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6 p-4">
+      {/* Poller status banner */}
+      <div
+        className={cn(
+          'flex items-center gap-3 rounded-2xl px-4 py-3',
+          data.poller.poll_ok ? 'bg-secondary/10' : 'bg-tertiary/10',
+        )}
+      >
+        <span
+          className={cn(
+            'h-2.5 w-2.5 rounded-full shrink-0',
+            data.poller.poll_ok ? 'bg-secondary animate-bio-pulse' : 'bg-tertiary',
+          )}
+        />
+        <div className="flex-1">
+          <p className={cn('text-sm font-semibold', data.poller.poll_ok ? 'text-secondary' : 'text-tertiary')}>
+            {data.poller.poll_ok ? 'Poller running' : 'Poller degraded'}
+          </p>
+          <p className="text-xs text-on-surface-dim mt-0.5">
+            Last poll {relativeTime(data.poller.last_poll_ts)} · every {data.poller.poll_interval_seconds}s
+          </p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Controller */}
+      <div>
+        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Controller</p>
+        <div className="bg-surface-container-high/40 rounded-xl divide-y divide-surface-container-highest/50">
+          {stat('Serial', data.controller.serial)}
+          {stat('Firmware', data.controller.firmware)}
+          {stat('Hardware', data.controller.hardware)}
+        </div>
+      </div>
+
+      {/* Databases */}
+      <div>
+        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Databases</p>
+        <div className="bg-surface-container-high/40 rounded-xl divide-y divide-surface-container-highest/50">
+          {stat('Telemetry (DuckDB)', formatBytes(data.db.duckdb_size_bytes))}
+          {stat('App state (SQLite)', formatBytes(data.db.sqlite_size_bytes))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // Shared components
 // =============================================================================
 
@@ -1834,6 +1914,7 @@ export default function Settings() {
         {activeTab === 'notifications' && <NotificationsTab />}
         {activeTab === 'backup' && <BackupTab />}
         {activeTab === 'log' && <SystemLogTab />}
+        {activeTab === 'system' && <SystemTab />}
       </div>
     </div>
   )

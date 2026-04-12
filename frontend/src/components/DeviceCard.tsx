@@ -19,6 +19,7 @@ import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
+import { getCategory } from './ProbeCard'
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
   heater: Flame,
@@ -101,6 +102,15 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
+  const probeCategory = primaryProbe ? getCategory(primaryProbe.type) : 'power'
+  const probeCategoryColors = {
+    temperature: { value: 'text-tertiary', glow: 'text-glow-tertiary', sparkline: '#ff8796' },
+    chemistry:   { value: 'text-secondary', glow: 'text-glow-secondary', sparkline: '#6dfe9c' },
+    power:       { value: 'text-primary', glow: 'text-glow-primary', sparkline: '#3adffa' },
+    digital:     { value: 'text-on-surface-dim', glow: '', sparkline: '#8a90a8' },
+  }
+  const probeColors = probeCategoryColors[probeCategory]
+
   const isOn = outlet
     ? outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
     : false
@@ -113,7 +123,14 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   }
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 transition-fluid flex flex-col">
+    <div
+      className="rounded-2xl p-5 transition-fluid flex flex-col"
+      style={{
+        background: outlet && isOn
+          ? 'linear-gradient(135deg, var(--color-surface-container) 40%, rgba(58,223,250,0.07))'
+          : 'var(--color-surface-container)',
+      }}
+    >
       {/* Header: icon + name + type badge + status */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -161,7 +178,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                 className="text-left group"
               >
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold text-on-surface tracking-tight text-glow-primary group-hover:text-primary transition-fluid">
+                  <span className={`text-4xl font-bold tracking-tight transition-fluid ${probeColors.value} ${probeColors.glow}`}>
                     {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
                   </span>
                   <span className="text-lg text-on-surface-dim font-light">
@@ -203,7 +220,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           {/* Sparkline for primary probe */}
           {primaryProbe && (
             <div className="h-10">
-              <Sparkline data={sparklineData} color="#3adffa" />
+              <Sparkline data={sparklineData} color={probeColors.sparkline} />
             </div>
           )}
         </div>

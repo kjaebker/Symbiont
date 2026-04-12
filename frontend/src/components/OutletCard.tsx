@@ -39,9 +39,16 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
   }
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 transition-fluid">
+    <div
+      className="rounded-2xl p-5 transition-fluid"
+      style={{
+        background: isOn
+          ? 'linear-gradient(135deg, var(--color-surface-container) 40%, rgba(58,223,250,0.07))'
+          : 'var(--color-surface-container)',
+      }}
+    >
       {/* Header: icon + name + state label */}
-      <div className="flex items-start justify-between mb-1">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
