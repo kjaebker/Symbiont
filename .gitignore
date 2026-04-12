@@ -44,3 +44,10 @@ Thumbs.db
 # Nix
 result
 result-*
+
+# direnv (local shell environment, may contain secrets)
+.direnv/
+.envrc
+
+# Uploaded images (runtime data)
+images/
