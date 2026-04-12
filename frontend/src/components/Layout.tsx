@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Clock,
@@ -7,20 +7,28 @@ import {
   Power,
   Bell,
   Settings,
+  LayoutGrid,
+  X,
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useSSE } from '@/hooks/useSSE'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { cn, relativeTime } from '@/lib/utils'
 
-const navItems = [
+const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/history', icon: Clock, label: 'History' },
-  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
-  { to: '/livestock', icon: Fish, label: 'Livestock' },
   { to: '/outlets', icon: Power, label: 'Outlets' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
+  { to: '/livestock', icon: Fish, label: 'Livestock' },
+]
+
+const overflowNavItems = [
+  { to: '/history', icon: Clock, label: 'History' },
+  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
+
+const allNavItems = [...primaryNavItems, ...overflowNavItems]
 
 function StatusBadge() {
   const { data } = useSystemStatus()
@@ -44,8 +52,97 @@ function StatusBadge() {
   )
 }
 
+function MobileStatusBadge() {
+  const { data } = useSystemStatus()
+  const pollOk = data?.poller.poll_ok ?? false
+  const lastPoll = data?.poller.last_poll_ts
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-on-surface-dim">
+      <span
+        className={cn(
+          'h-2 w-2 rounded-full shrink-0',
+          pollOk ? 'bg-secondary animate-bio-pulse' : 'bg-tertiary',
+        )}
+      />
+      <span>{lastPoll ? relativeTime(lastPoll) : 'Connecting...'}</span>
+    </div>
+  )
+}
+
+function MobileMoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const location = useLocation()
+
+  // Close sheet when route changes
+  useEffect(() => {
+    onClose()
+  }, [location.pathname, onClose])
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={cn(
+          'md:hidden fixed inset-0 z-40 bg-surface/60 backdrop-blur-sm transition-fluid',
+          open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        )}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div
+        className={cn(
+          'md:hidden fixed bottom-[4.5rem] inset-x-0 z-50 transition-fluid',
+          open ? 'translate-y-0' : 'translate-y-full',
+        )}
+      >
+        <div className="mx-3 mb-2 rounded-2xl bg-surface-container-low/95 backdrop-blur-xl overflow-hidden"
+          style={{ boxShadow: '0 -4px 40px rgba(58, 223, 250, 0.08)' }}>
+          {/* Sheet header */}
+          <div className="flex items-center justify-between px-5 py-4">
+            <MobileStatusBadge />
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60 transition-fluid"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Overflow nav items */}
+          <div className="px-3 pb-4 flex flex-col gap-1">
+            {overflowNavItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-fluid',
+                    isActive
+                      ? 'bg-surface-container-high text-primary shadow-glow-primary'
+                      : 'text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60',
+                  )
+                }
+              >
+                <Icon size={20} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function Layout() {
   useSSE()
+  const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const activeRouteIsOverflow = overflowNavItems.some(
+    (item) => item.to === location.pathname,
+  )
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -58,7 +155,7 @@ export default function Layout() {
           <span className="text-lg font-bold text-on-surface tracking-tight">Symbiont</span>
         </div>
 
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {allNavItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
@@ -90,7 +187,7 @@ export default function Layout() {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
         <div className="flex items-center justify-around py-2">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {primaryNavItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -98,9 +195,7 @@ export default function Layout() {
               className={({ isActive }) =>
                 cn(
                   'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-on-surface-dim',
+                  isActive ? 'text-primary' : 'text-on-surface-dim',
                 )
               }
             >
@@ -108,8 +203,23 @@ export default function Layout() {
               <span>{label}</span>
             </NavLink>
           ))}
+
+          {/* More button */}
+          <button
+            onClick={() => setMoreOpen((v) => !v)}
+            className={cn(
+              'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
+              moreOpen || activeRouteIsOverflow ? 'text-primary' : 'text-on-surface-dim',
+            )}
+          >
+            <LayoutGrid size={20} />
+            <span>More</span>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile overflow sheet */}
+      <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
     </div>
   )
 }
