@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ScrollText, Plus, Pencil, Trash2, Bot, Cpu, Check, X } from 'lucide-react'
+import { ScrollText, Plus, Pencil, Trash2, Bot, Cpu, Check, X, Activity } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useJournalEntries, useJournalTemplates, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from '@/hooks/useJournal'
+import { useAuditEvents } from '@/hooks/useEvents'
 import { cn, relativeTime } from '@/lib/utils'
-import type { JournalEntry, JournalCategory, JournalSentiment, JournalTemplate } from '@/api/client'
+import type { JournalEntry, JournalCategory, JournalSentiment, JournalTemplate, AuditEvent } from '@/api/client'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -338,11 +339,152 @@ function EntryCard({
   )
 }
 
+// ─── Full Timeline ────────────────────────────────────────────────────────────
+
+const KIND_LABELS: Record<string, string> = {
+  feed_mode_activated: 'Feed Mode',
+  outlet_changed: 'Outlet',
+  alert_fired: 'Alert Fired',
+  alert_cleared: 'Alert Cleared',
+  observation_recorded: 'Observation',
+  livestock_added: 'Livestock Added',
+  livestock_updated: 'Livestock Updated',
+  journal_entry_created: 'Journal Entry',
+  poll_cycle_completed: 'Poll Cycle',
+  config_changed: 'Config',
+  auth_event: 'Auth',
+}
+
+const KIND_COLORS: Record<string, string> = {
+  feed_mode_activated: 'text-secondary bg-secondary/10',
+  outlet_changed: 'text-primary bg-primary/10',
+  alert_fired: 'text-red-400 bg-red-400/10',
+  alert_cleared: 'text-secondary bg-secondary/10',
+  observation_recorded: 'text-amber-400 bg-amber-400/10',
+  livestock_added: 'text-violet-400 bg-violet-400/10',
+  livestock_updated: 'text-violet-400 bg-violet-400/10',
+  journal_entry_created: 'text-on-surface-dim bg-surface-container-high',
+  poll_cycle_completed: 'text-on-surface-faint bg-surface-container-high',
+  config_changed: 'text-primary bg-primary/10',
+  auth_event: 'text-on-surface-dim bg-surface-container-high',
+}
+
+function AuditEventRow({ event }: { event: AuditEvent }) {
+  const [expanded, setExpanded] = useState(false)
+  let parsed: Record<string, unknown> | null = null
+  try { parsed = JSON.parse(event.payload_json) } catch { /* ignore */ }
+
+  const label = KIND_LABELS[event.kind] ?? event.kind
+  const color = KIND_COLORS[event.kind] ?? 'text-on-surface-dim bg-surface-container-high'
+
+  // Extract a human-readable summary from common payload fields.
+  let summary = ''
+  if (parsed?.data && typeof parsed.data === 'object') {
+    const d = parsed.data as Record<string, unknown>
+    if (event.kind === 'feed_mode_activated') summary = `Feed ${d.mode}`
+    else if (event.kind === 'outlet_changed') summary = `${d.name}: ${d.prev_state} → ${d.new_state}`
+    else if (event.kind === 'alert_fired') summary = `${d.rule_name} — ${String(d.probe_name)}`
+    else if (event.kind === 'alert_cleared') summary = `${d.rule_name} cleared`
+    else if (event.kind === 'observation_recorded') summary = String(d.livestock_name ?? '')
+    else if (event.kind === 'livestock_added') summary = `${d.name} (${d.type})`
+    else if (event.kind === 'livestock_updated') summary = String(d.name ?? '')
+    else if (event.kind === 'poll_cycle_completed') summary = `${d.duration_ms}ms · ${d.probe_count} probes`
+    else if (event.kind === 'auth_event') summary = `${d.auth_kind}: ${d.actor}`
+  }
+
+  return (
+    <div className="bg-surface-container-high/30 rounded-2xl px-4 py-3">
+      <div className="flex items-start gap-3">
+        <Activity size={12} className="shrink-0 mt-1.5 text-on-surface-faint/50" />
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', color)}>{label}</span>
+            {summary && <span className="text-sm text-on-surface-dim truncate">{summary}</span>}
+            <span className="text-xs text-on-surface-faint ml-auto">{relativeTime(event.ts)}</span>
+          </div>
+          {expanded && (
+            <pre className="mt-2 text-xs text-on-surface-faint font-mono bg-surface-container-highest/30 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">
+              {JSON.stringify(parsed ?? event.payload_json, null, 2)}
+            </pre>
+          )}
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-xs text-on-surface-faint/60 hover:text-on-surface-faint mt-1 transition-fluid"
+          >
+            {expanded ? 'Hide payload ↑' : 'Raw payload ↓'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FullTimeline() {
+  const [kindFilter, setKindFilter] = useState('')
+  const { data, isLoading, isError } = useAuditEvents({
+    kind: kindFilter || undefined,
+    limit: 100,
+  })
+
+  const events = data?.events ?? []
+  const allKinds = Array.from(new Set(events.map(e => e.kind))).sort()
+
+  return (
+    <div className="space-y-4">
+      {/* Kind filter */}
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setKindFilter('')}
+          className={cn(
+            'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
+            kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+          )}
+        >
+          All events
+        </button>
+        {allKinds.map(k => (
+          <button
+            key={k}
+            onClick={() => setKindFilter(kindFilter === k ? '' : k)}
+            className={cn(
+              'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
+              kindFilter === k
+                ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            {KIND_LABELS[k] ?? k}
+          </button>
+        ))}
+      </div>
+
+      {isLoading && (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-2xl bg-surface-container-high/30 animate-pulse" />)}
+        </div>
+      )}
+      {isError && <p className="text-sm text-tertiary">Failed to load event timeline.</p>}
+      {!isLoading && !isError && events.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <Activity size={36} className="text-on-surface-faint/40" />
+          <p className="text-sm text-on-surface-faint">No audit events recorded yet.</p>
+        </div>
+      )}
+      {!isLoading && events.length > 0 && (
+        <div className="space-y-2">
+          {events.map(e => <AuditEventRow key={e.id} event={e} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Journal() {
   usePageTitle('Journal')
 
+  const [view, setView] = useState<'journal' | 'timeline'>('journal')
   const [categoryFilter, setCategoryFilter] = useState<JournalCategory | ''>('')
   const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>('')
   const [showForm, setShowForm] = useState(false)
@@ -381,19 +523,50 @@ export default function Journal() {
           <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">Tank Log</p>
           <h1 className="text-2xl font-bold text-on-surface mt-0.5">Journal</h1>
         </div>
+        {view === 'journal' && (
+          <button
+            onClick={() => setShowForm(v => !v)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
+              showForm
+                ? 'bg-surface-container-high text-on-surface'
+                : 'bg-primary/10 text-primary hover:bg-primary/20',
+            )}
+          >
+            {showForm ? <X size={14} /> : <Plus size={14} />}
+            {showForm ? 'Cancel' : 'New Entry'}
+          </button>
+        )}
+      </div>
+
+      {/* View tabs */}
+      <div className="flex gap-1.5">
         <button
-          onClick={() => setShowForm(v => !v)}
+          onClick={() => setView('journal')}
           className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
-            showForm
-              ? 'bg-surface-container-high text-on-surface'
-              : 'bg-primary/10 text-primary hover:bg-primary/20',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+            view === 'journal' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
           )}
         >
-          {showForm ? <X size={14} /> : <Plus size={14} />}
-          {showForm ? 'Cancel' : 'New Entry'}
+          <ScrollText size={13} />
+          Journal
+        </button>
+        <button
+          onClick={() => setView('timeline')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+            view === 'timeline' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+          )}
+        >
+          <Activity size={13} />
+          Full Timeline
         </button>
       </div>
+
+      {/* Full timeline view */}
+      {view === 'timeline' && <FullTimeline />}
+      {view === 'journal' && <>
+
 
       {/* New entry form */}
       {showForm && (
@@ -507,6 +680,7 @@ export default function Journal() {
           ))}
         </div>
       )}
+      </>}
     </div>
   )
 }
