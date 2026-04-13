@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 var validLivestockTypes = map[string]bool{
@@ -128,6 +129,14 @@ func (s *Server) HandleLivestockCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to fetch created item", "db_error")
 		return
 	}
+
+	// Publish post-commit.
+	species := ""
+	if item.Species != nil {
+		species = *item.Species
+	}
+	s.events.Publish(events.NewLivestockAdded(id, item.Name, species, item.Type))
+
 	writeJSON(w, http.StatusCreated, created)
 }
 
@@ -187,10 +196,25 @@ func (s *Server) HandleLivestockUpdate(w http.ResponseWriter, r *http.Request) {
 		ImagePath: existing.ImagePath, // preserve image
 	}
 
+	// Detect changed fields for the event payload.
+	var changedFields []string
+	if body.Name != existing.Name {
+		changedFields = append(changedFields, "name")
+	}
+	if body.Status != existing.Status {
+		changedFields = append(changedFields, "status")
+	}
+	if body.Quantity != existing.Quantity {
+		changedFields = append(changedFields, "quantity")
+	}
+
 	if err := s.sqlite.UpdateLivestockItem(ctx, id, updated); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update livestock item", "db_error")
 		return
 	}
+
+	// Publish post-commit.
+	s.events.Publish(events.NewLivestockUpdated(id, body.Name, changedFields))
 
 	item, err := s.sqlite.GetLivestockItem(ctx, id)
 	if err != nil {
@@ -415,12 +439,20 @@ func (s *Server) HandleLivestockObservationCreate(w http.ResponseWriter, r *http
 	}
 
 	// Auto-update item status if the observation specifies a different one.
+	prevStatus := item.Status
 	if body.Status != nil && *body.Status != item.Status {
 		item.Status = *body.Status
 		if err := s.sqlite.UpdateLivestockItem(ctx, id, *item); err != nil {
 			s.logger.Error("failed to update livestock status from observation", "err", err, "livestock_id", id)
 		}
 	}
+
+	// Publish post-commit.
+	newStatus := ""
+	if body.Status != nil {
+		newStatus = *body.Status
+	}
+	s.events.Publish(events.NewObservationRecorded(obsID, id, item.Name, newStatus, prevStatus, false))
 
 	// Return the created observation.
 	obs, err := s.sqlite.ListLivestockObservations(ctx, id)

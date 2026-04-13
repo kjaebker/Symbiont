@@ -97,7 +97,6 @@ func runServe(frontendFS fs.FS) error {
 	if cfg.HeartbeatPath != "" {
 		p.SetHeartbeatPath(cfg.HeartbeatPath)
 	}
-	go p.Run(sigCtx)
 
 	journalCatalog, err := journal.Load()
 	if err != nil {
@@ -115,8 +114,10 @@ func runServe(frontendFS fs.FS) error {
 		}
 	})
 
-	// Start the event bus dispatchers.
+	// Wire bus to poller and start bus dispatchers before the poller runs.
+	p.SetBus(bus)
 	bus.Start(sigCtx)
+	go p.Run(sigCtx)
 
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS, catalog, bus, journalCatalog)
 

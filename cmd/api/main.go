@@ -92,7 +92,6 @@ func main() {
 	if cfg.HeartbeatPath != "" {
 		p.SetHeartbeatPath(cfg.HeartbeatPath)
 	}
-	go p.Run(sigCtx)
 
 	// Load journal template catalog.
 	journalCatalog, err := journal.Load()
@@ -113,8 +112,10 @@ func main() {
 		}
 	})
 
-	// Start the event bus dispatchers.
+	// Wire bus to poller and start bus dispatchers before the poller runs.
+	p.SetBus(bus)
 	bus.Start(sigCtx)
+	go p.Run(sigCtx)
 
 	// Create API server (nil FS falls back to cfg.FrontendPath).
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog, bus, journalCatalog)

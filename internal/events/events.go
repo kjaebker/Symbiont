@@ -112,6 +112,11 @@ type EvtLivestockAdded struct {
 
 func (e EvtLivestockAdded) Kind() string { return "livestock_added" }
 
+// NewLivestockAdded constructs an EvtLivestockAdded with At = now.
+func NewLivestockAdded(id int64, name, species, livestockType string) EvtLivestockAdded {
+	return EvtLivestockAdded{base: base{At: now()}, LivestockID: id, Name: name, Species: species, Type: livestockType}
+}
+
 // EvtLivestockUpdated is published after a livestock item's fields change.
 type EvtLivestockUpdated struct {
 	base
@@ -121,6 +126,11 @@ type EvtLivestockUpdated struct {
 }
 
 func (e EvtLivestockUpdated) Kind() string { return "livestock_updated" }
+
+// NewLivestockUpdated constructs an EvtLivestockUpdated with At = now.
+func NewLivestockUpdated(id int64, name string, changedFields []string) EvtLivestockUpdated {
+	return EvtLivestockUpdated{base: base{At: now()}, LivestockID: id, Name: name, ChangedFields: changedFields}
+}
 
 // EvtJournalEntryCreated is published after a journal entry is inserted.
 type EvtJournalEntryCreated struct {
@@ -132,6 +142,11 @@ type EvtJournalEntryCreated struct {
 
 func (e EvtJournalEntryCreated) Kind() string { return "journal_entry_created" }
 
+// NewJournalEntryCreated constructs an EvtJournalEntryCreated with At = now.
+func NewJournalEntryCreated(entryID int64, category, source string) EvtJournalEntryCreated {
+	return EvtJournalEntryCreated{base: base{At: now()}, EntryID: entryID, Category: category, Source: source}
+}
+
 // EvtPollCycleCompleted is published after each successful Apex poll cycle.
 type EvtPollCycleCompleted struct {
 	base
@@ -140,6 +155,11 @@ type EvtPollCycleCompleted struct {
 }
 
 func (e EvtPollCycleCompleted) Kind() string { return "poll_cycle_completed" }
+
+// NewPollCycleCompleted constructs an EvtPollCycleCompleted with At = now.
+func NewPollCycleCompleted(durationMs int64, probeCount int) EvtPollCycleCompleted {
+	return EvtPollCycleCompleted{base: base{At: now()}, DurationMs: durationMs, ProbeCount: probeCount}
+}
 
 // EvtConfigChanged is published when a probe or outlet config is updated.
 type EvtConfigChanged struct {
@@ -150,6 +170,11 @@ type EvtConfigChanged struct {
 
 func (e EvtConfigChanged) Kind() string { return "config_changed" }
 
+// NewConfigChanged constructs an EvtConfigChanged with At = now.
+func NewConfigChanged(key, changedBy string) EvtConfigChanged {
+	return EvtConfigChanged{base: base{At: now()}, Key: key, ChangedBy: changedBy}
+}
+
 // EvtAuthEvent is published on token creation, deletion, or validation failure.
 type EvtAuthEvent struct {
 	base
@@ -158,3 +183,51 @@ type EvtAuthEvent struct {
 }
 
 func (e EvtAuthEvent) Kind() string { return "auth_event" }
+
+// NewAuthEvent constructs an EvtAuthEvent with At = now.
+func NewAuthEvent(authKind, actor string) EvtAuthEvent {
+	return EvtAuthEvent{base: base{At: now()}, AuthKind: authKind, Actor: actor}
+}
+
+// EvtObservationRecorded constructors.
+
+// NewObservationRecorded constructs an EvtObservationRecorded with At = now.
+func NewObservationRecorded(obsID, livestockID int64, livestockName, status, prevStatus string, hasImage bool) EvtObservationRecorded {
+	return EvtObservationRecorded{
+		base:          base{At: now()},
+		ObservationID: obsID,
+		LivestockID:   livestockID,
+		LivestockName: livestockName,
+		Status:        status,
+		PrevStatus:    prevStatus,
+		HasImage:      hasImage,
+	}
+}
+
+// EvtAlertFired constructors.
+
+// NewAlertFired constructs an EvtAlertFired with At = now.
+func NewAlertFired(ruleID int64, ruleName, probeName string, value, threshold float64, severity, condition string, eventID int64) EvtAlertFired {
+	return EvtAlertFired{
+		base:      base{At: now()},
+		RuleID:    ruleID,
+		RuleName:  ruleName,
+		ProbeName: probeName,
+		Value:     value,
+		Threshold: threshold,
+		Severity:  severity,
+		Condition: condition,
+		EventID:   eventID,
+	}
+}
+
+// NewAlertCleared constructs an EvtAlertCleared with At = now.
+func NewAlertCleared(ruleID int64, ruleName, probeName string, eventID int64) EvtAlertCleared {
+	return EvtAlertCleared{
+		base:      base{At: now()},
+		RuleID:    ruleID,
+		RuleName:  ruleName,
+		ProbeName: probeName,
+		EventID:   eventID,
+	}
+}

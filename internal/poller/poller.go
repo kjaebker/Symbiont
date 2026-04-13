@@ -9,6 +9,7 @@ import (
 
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 // Poller periodically fetches status from the Apex controller and writes
@@ -19,6 +20,7 @@ type Poller struct {
 	interval      time.Duration
 	logger        *slog.Logger
 	heartbeatPath string
+	bus           *events.Bus // optional; nil disables event publishing
 }
 
 // New creates a new Poller.
@@ -29,6 +31,12 @@ func New(apexClient apex.Client, duckDB *db.DuckDB, interval time.Duration, logg
 		interval: interval,
 		logger:   logger,
 	}
+}
+
+// SetBus wires an event bus so the poller publishes EvtPollCycleCompleted
+// after each successful cycle. Pass nil to disable publishing.
+func (p *Poller) SetBus(bus *events.Bus) {
+	p.bus = bus
 }
 
 // SetHeartbeatPath configures a file path where the poller writes a heartbeat
@@ -81,6 +89,10 @@ func (p *Poller) poll(ctx context.Context) {
 		"probes", len(status.Inputs),
 		"outlets", len(status.Outputs),
 	)
+
+	if p.bus != nil {
+		p.bus.Publish(events.NewPollCycleCompleted(elapsed.Milliseconds(), len(status.Inputs)))
+	}
 
 	p.writeHeartbeat()
 }

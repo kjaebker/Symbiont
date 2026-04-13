@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 var validJournalCategories = map[string]bool{
@@ -138,6 +139,12 @@ func (s *Server) HandleJournalCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to fetch journal entry", "db_error")
 		return
 	}
+
+	// Publish post-commit. Only manual entries are published here; system
+	// entries written directly via InsertJournalEntry (e.g. by autolog) do
+	// not go through this handler, so there is no publish loop.
+	s.events.Publish(events.NewJournalEntryCreated(id, body.Category, "manual"))
+
 	writeJSON(w, http.StatusCreated, created)
 }
 

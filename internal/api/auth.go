@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"strconv"
+
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 func (s *Server) HandleTokenList(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +35,8 @@ func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.events.Publish(events.NewAuthEvent("token_created", body.Label))
+
 	writeJSON(w, http.StatusCreated, map[string]string{
 		"token": token,
 		"label": body.Label,
@@ -51,6 +55,8 @@ func (s *Server) HandleTokenDelete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "token not found", "not_found")
 		return
 	}
+
+	s.events.Publish(events.NewAuthEvent("token_deleted", idStr))
 
 	w.WriteHeader(http.StatusNoContent)
 }
