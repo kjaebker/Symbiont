@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getLivestock,
+  getLivestockItem,
   getLivestockSpecies,
   createLivestockItem,
   updateLivestockItem,
@@ -18,6 +19,14 @@ export function useLivestock(params?: { type?: LivestockType; status?: Livestock
   return useQuery({
     queryKey: ['livestock', params],
     queryFn: () => getLivestock(params),
+    staleTime: 10_000,
+  })
+}
+
+export function useLivestockItem(id: number) {
+  return useQuery({
+    queryKey: ['livestock-item', id],
+    queryFn: () => getLivestockItem(id),
     staleTime: 10_000,
   })
 }
@@ -52,8 +61,9 @@ export function useUpdateLivestockItem() {
       id: number
       data: Partial<Omit<LivestockItem, 'id' | 'created_at' | 'updated_at'>>
     }) => updateLivestockItem(id, data),
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['livestock-species'] })
     },
   })
@@ -73,8 +83,9 @@ export function useUploadLivestockImage() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) => uploadLivestockImage(id, file),
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
     },
   })
 }
@@ -85,6 +96,7 @@ export function useDeleteLivestockImage() {
     mutationFn: (id: number) => deleteLivestockImage(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item'] })
     },
   })
 }
@@ -122,7 +134,7 @@ export function useDeleteObservationImage() {
   })
 }
 
-export function useLivestockObservations(livestockId: number, enabled = false) {
+export function useLivestockObservations(livestockId: number, enabled = true) {
   return useQuery({
     queryKey: ['livestock-observations', livestockId],
     queryFn: () => getLivestockObservations(livestockId),

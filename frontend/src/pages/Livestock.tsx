@@ -1,315 +1,16 @@
-import { useState, useRef } from 'react'
-import { Fish, Plus, X, ImagePlus } from 'lucide-react'
+import { useState } from 'react'
+import { Fish, Plus } from 'lucide-react'
 import {
   useLivestock,
   useLivestockSpecies,
   useCreateLivestockItem,
-  useUpdateLivestockItem,
-  useDeleteLivestockItem,
-  useUploadLivestockImage,
 } from '@/hooks/useLivestock'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
-import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
+import type { LivestockType, LivestockStatus } from '@/api/types'
 import { LivestockCard } from '@/components/LivestockCard'
-
-const TYPE_OPTIONS: { value: LivestockType; label: string }[] = [
-  { value: 'fish', label: 'Fish' },
-  { value: 'coral', label: 'Coral' },
-  { value: 'invertebrate', label: 'Invertebrate' },
-  { value: 'other', label: 'Other' },
-]
-
-const STATUS_OPTIONS: { value: LivestockStatus; label: string }[] = [
-  { value: 'healthy', label: 'Healthy' },
-  { value: 'sick', label: 'Sick' },
-  { value: 'quarantine', label: 'Quarantine' },
-  { value: 'deceased', label: 'Deceased' },
-]
-
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-interface FormData {
-  name: string
-  species: string
-  type: LivestockType
-  quantity: number
-  status: LivestockStatus
-  date_added: string
-  notes: string
-}
-
-const defaultForm = (): FormData => ({
-  name: '',
-  species: '',
-  type: 'fish',
-  quantity: 1,
-  status: 'healthy',
-  date_added: todayString(),
-  notes: '',
-})
-
-interface LivestockFormProps {
-  initial?: FormData
-  currentImagePath?: string | null
-  speciesSuggestions: string[]
-  onSubmit: (data: FormData) => Promise<number>
-  onClose: () => void
-  title: string
-}
-
-function LivestockForm({ initial, currentImagePath, speciesSuggestions, onSubmit, onClose, title }: LivestockFormProps) {
-  const [form, setForm] = useState<FormData>(initial ?? defaultForm())
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const imageInputRef = useRef<HTMLInputElement>(null)
-  const uploadImage = useUploadLivestockImage()
-
-  function set<K extends keyof FormData>(key: K, value: FormData[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (imagePreview) URL.revokeObjectURL(imagePreview)
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-    e.target.value = ''
-  }
-
-  function clearImage() {
-    if (imagePreview) URL.revokeObjectURL(imagePreview)
-    setImageFile(null)
-    setImagePreview(null)
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    if (!form.name.trim()) {
-      setError('Name is required.')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const itemId = await onSubmit(form)
-      if (imageFile) {
-        await uploadImage.mutateAsync({ id: itemId, file: imageFile })
-      }
-      onClose()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="bg-surface-container rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Name */}
-        <div>
-          <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-            Name <span className="text-tertiary">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="e.g. Ocellaris Clownfish"
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none placeholder:text-on-surface-faint"
-          />
-        </div>
-
-        {/* Species (combobox via datalist) */}
-        <div>
-          <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-            Species
-          </label>
-          <input
-            type="text"
-            list="livestock-species-list"
-            value={form.species}
-            onChange={(e) => set('species', e.target.value)}
-            placeholder="e.g. Amphiprion ocellaris"
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none placeholder:text-on-surface-faint"
-          />
-          <datalist id="livestock-species-list">
-            {speciesSuggestions.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </div>
-
-        {/* Type + Status row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-              Type
-            </label>
-            <select
-              value={form.type}
-              onChange={(e) => set('type', e.target.value as LivestockType)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
-            >
-              {TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-              Status
-            </label>
-            <select
-              value={form.status}
-              onChange={(e) => set('status', e.target.value as LivestockStatus)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Quantity + Date Added row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-              Quantity
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={form.quantity}
-              onChange={(e) => set('quantity', Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-              Date Added
-            </label>
-            <input
-              type="date"
-              value={form.date_added}
-              onChange={(e) => set('date_added', e.target.value)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-            Notes
-          </label>
-          <textarea
-            value={form.notes}
-            onChange={(e) => set('notes', e.target.value)}
-            placeholder="Optional notes"
-            rows={2}
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none resize-none placeholder:text-on-surface-faint"
-          />
-        </div>
-
-        {/* Photo */}
-        <div>
-          <label className="block text-xs text-on-surface-dim uppercase tracking-wider mb-1">
-            Photo
-          </label>
-          {imagePreview ? (
-            <div className="relative w-24 h-24">
-              <img src={imagePreview} alt="Preview" className="w-24 h-24 rounded-xl object-cover" />
-              <button
-                type="button"
-                onClick={clearImage}
-                className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-surface-container-highest text-on-surface-faint hover:text-tertiary transition-fluid"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : currentImagePath ? (
-            <div className="flex items-center gap-3">
-              <img src={`/data/${currentImagePath}`} alt="Current" className="w-24 h-24 rounded-xl object-cover" />
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-surface-container-high text-on-surface-dim hover:bg-surface-container-highest transition-fluid"
-              >
-                <ImagePlus className="h-3.5 w-3.5" />
-                Replace
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-surface-container-high text-on-surface-dim hover:bg-surface-container-highest transition-fluid"
-            >
-              <ImagePlus className="h-3.5 w-3.5" />
-              Attach photo
-            </button>
-          )}
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageChange}
-          />
-        </div>
-
-        {error && <p className="text-xs text-tertiary">{error}</p>}
-
-        <div className="flex gap-2 pt-1">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-4 py-2 rounded-xl text-sm font-semibold bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-40 transition-fluid"
-          >
-            {submitting ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-semibold bg-surface-container-high text-on-surface-dim hover:bg-surface-container-highest transition-fluid"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-function itemToFormData(item: LivestockItem): FormData {
-  return {
-    name:       item.name,
-    species:    item.species ?? '',
-    type:       item.type,
-    quantity:   item.quantity,
-    status:     item.status,
-    date_added: item.date_added ?? todayString(),
-    notes:      item.notes ?? '',
-  }
-}
+import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/components/LivestockForm'
+import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
   usePageTitle('Livestock')
@@ -317,18 +18,14 @@ export default function Livestock() {
   const { data, isLoading, isError } = useLivestock()
   const { data: speciesData } = useLivestockSpecies()
   const createItem = useCreateLivestockItem()
-  const updateItem = useUpdateLivestockItem()
-  const deleteItem = useDeleteLivestockItem()
 
   const [typeFilter, setTypeFilter] = useState<LivestockType | ''>('')
   const [statusFilter, setStatusFilter] = useState<LivestockStatus | ''>('')
   const [showAddForm, setShowAddForm] = useState(false)
-  const [editing, setEditing] = useState<LivestockItem | null>(null)
 
   const allItems = data?.livestock ?? []
   const speciesSuggestions = speciesData?.species ?? []
 
-  // Filtered list for display; stats computed from full list.
   const filtered = allItems.filter((item) => {
     if (typeFilter && item.type !== typeFilter) return false
     if (statusFilter && item.status !== statusFilter) return false
@@ -340,7 +37,7 @@ export default function Livestock() {
   }
   const nonHealthyCount = allItems.filter((i) => i.status !== 'healthy').length
 
-  async function handleCreate(form: FormData): Promise<number> {
+  async function handleCreate(form: LivestockFormData): Promise<number> {
     const item = await createItem.mutateAsync({
       name:       form.name.trim(),
       species:    form.species.trim() || null,
@@ -351,28 +48,6 @@ export default function Livestock() {
       notes:      form.notes.trim() || null,
     })
     return item.id
-  }
-
-  async function handleUpdate(form: FormData): Promise<number> {
-    if (!editing) return 0
-    await updateItem.mutateAsync({
-      id: editing.id,
-      data: {
-        name:       form.name.trim(),
-        species:    form.species.trim() || null,
-        type:       form.type,
-        quantity:   form.quantity,
-        status:     form.status,
-        date_added: form.date_added || null,
-        notes:      form.notes.trim() || null,
-      },
-    })
-    setEditing(null)
-    return editing.id
-  }
-
-  function handleDelete(id: number) {
-    deleteItem.mutate(id)
   }
 
   return (
@@ -386,7 +61,7 @@ export default function Livestock() {
           </h1>
         </div>
         <button
-          onClick={() => { setShowAddForm((v) => !v); setEditing(null) }}
+          onClick={() => setShowAddForm((v) => !v)}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-fluid',
             showAddForm
@@ -402,22 +77,11 @@ export default function Livestock() {
       {/* Add form */}
       {showAddForm && (
         <LivestockForm
+          initial={defaultForm()}
           speciesSuggestions={speciesSuggestions}
           onSubmit={handleCreate}
           onClose={() => setShowAddForm(false)}
           title="Add Livestock"
-        />
-      )}
-
-      {/* Edit form */}
-      {editing && (
-        <LivestockForm
-          initial={itemToFormData(editing)}
-          currentImagePath={editing.image_path}
-          speciesSuggestions={speciesSuggestions}
-          onSubmit={handleUpdate}
-          onClose={() => setEditing(null)}
-          title={`Edit: ${editing.name}`}
         />
       )}
 
@@ -446,7 +110,7 @@ export default function Livestock() {
           )}
           {nonHealthyCount > 0 && (
             <span className="px-3 py-1.5 rounded-full bg-amber-400/10 text-amber-400 text-xs font-medium">
-              {nonHealthyCount} Non-healthy
+              {nonHealthyCount} Need attention
             </span>
           )}
         </div>
@@ -454,7 +118,6 @@ export default function Livestock() {
 
       {/* Filter bar */}
       <div className="space-y-2">
-        {/* Type filters */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setTypeFilter('')}
@@ -482,7 +145,6 @@ export default function Livestock() {
             </button>
           ))}
         </div>
-        {/* Status filters */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setStatusFilter('')}
@@ -514,9 +176,9 @@ export default function Livestock() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-48 bg-surface-container rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="aspect-[4/3] bg-surface-container rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : isError ? (
@@ -527,7 +189,7 @@ export default function Livestock() {
         <div className="text-center py-16 space-y-4">
           <Fish className="h-12 w-12 text-on-surface-faint mx-auto" />
           <p className="text-on-surface-dim">
-            {allItems.length === 0 ? 'No livestock yet.' : 'No livestock match the current filters.'}
+            {allItems.length === 0 ? 'Your tank is waiting for its first resident.' : 'No livestock match the current filters.'}
           </p>
           {allItems.length === 0 && (
             <button
@@ -539,14 +201,9 @@ export default function Livestock() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((item) => (
-            <LivestockCard
-              key={item.id}
-              item={item}
-              onEdit={(i) => { setEditing(i); setShowAddForm(false) }}
-              onDelete={handleDelete}
-            />
+            <LivestockCard key={item.id} item={item} />
           ))}
         </div>
       )}
