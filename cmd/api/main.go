@@ -102,14 +102,17 @@ func main() {
 	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
 
 	// Create event bus and wire the journal auto-log subscriber.
-	bus := events.NewBus()
-	bus.Subscribe(func(ctx context.Context, e events.SystemEvent) {
+	bus := events.NewBus(logger.With("component", "events"))
+	bus.Subscribe("journal_autolog", 256, func(ctx context.Context, e events.SystemEvent) {
 		if entry, ok := journal.EntryFromEvent(e); ok {
 			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
-				logger.Error("journal auto-log failed", "err", err, "event", e.Type)
+				logger.Error("journal auto-log failed", "err", err, "kind", e.Kind())
 			}
 		}
 	})
+
+	// Start the event bus dispatchers.
+	bus.Start(sigCtx)
 
 	// Create API server (nil FS falls back to cfg.FrontendPath).
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog, bus, journalCatalog)

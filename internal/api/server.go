@@ -45,7 +45,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		frontendFS = os.DirFS(cfg.FrontendPath)
 	}
 	if bus == nil {
-		bus = events.NewBus()
+		bus = events.NewBus(logger)
 	}
 	if journalCatalog == nil {
 		journalCatalog = journal.NewEmptyCatalog()
