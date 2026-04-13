@@ -65,7 +65,7 @@ func setupMockAPI(t *testing.T) (*httptest.Server, *cli.APIClient) {
 		})
 	})
 
-	mux.HandleFunc("GET /api/outlets/events", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/events", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"events": []map[string]any{}})
 	})
 

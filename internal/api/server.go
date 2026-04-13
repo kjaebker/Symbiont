@@ -33,6 +33,7 @@ type Server struct {
 	catalog          *kits.Catalog
 	events           *events.Bus
 	journalTemplates *journal.Catalog
+
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the

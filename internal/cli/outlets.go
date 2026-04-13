@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -102,9 +103,9 @@ func newOutletsEventsCmd(client *APIClient) *cobra.Command {
 			outletID, _ := cmd.Flags().GetString("outlet-id")
 			limit, _ := cmd.Flags().GetString("limit")
 
-			path := "/api/outlets/events?"
+			path := "/api/events?kind=outlet_changed&"
 			if outletID != "" {
-				path += "outlet_id=" + outletID + "&"
+				path += "correlation_id=" + outletID + "&"
 			}
 			if limit != "" {
 				path += "limit=" + limit + "&"
@@ -112,13 +113,9 @@ func newOutletsEventsCmd(client *APIClient) *cobra.Command {
 
 			var resp struct {
 				Events []struct {
-					ID         int64   `json:"id"`
-					OutletID   string  `json:"outlet_id"`
-					OutletName *string `json:"outlet_name"`
-					FromState  *string `json:"from_state"`
-					ToState    string  `json:"to_state"`
-					InitBy     string  `json:"initiated_by"`
-					CreatedAt  string  `json:"created_at"`
+					ID          int64  `json:"id"`
+					TS          string `json:"ts"`
+					PayloadJSON string `json:"payload_json"`
 				} `json:"events"`
 			}
 			if err := client.Get(cmd.Context(), path, &resp); err != nil {
@@ -130,24 +127,31 @@ func newOutletsEventsCmd(client *APIClient) *cobra.Command {
 				return nil
 			}
 
+			type payload struct {
+				Data struct {
+					Name        string `json:"name"`
+					PrevState   string `json:"prev_state"`
+					NewState    string `json:"new_state"`
+					InitiatedBy string `json:"initiated_by"`
+				} `json:"data"`
+			}
+
 			headers := []string{"ID", "OUTLET", "FROM", "TO", "BY", "TIME"}
 			rows := make([][]string, 0, len(resp.Events))
 			for _, e := range resp.Events {
-				name := e.OutletID
-				if e.OutletName != nil {
-					name = *e.OutletName
-				}
-				from := "-"
-				if e.FromState != nil {
-					from = *e.FromState
+				var p payload
+				_ = json.Unmarshal([]byte(e.PayloadJSON), &p)
+				from := p.Data.PrevState
+				if from == "" {
+					from = "-"
 				}
 				rows = append(rows, []string{
 					fmt.Sprintf("%d", e.ID),
-					name,
+					p.Data.Name,
 					from,
-					e.ToState,
-					e.InitBy,
-					formatTimestamp(e.CreatedAt),
+					p.Data.NewState,
+					p.Data.InitiatedBy,
+					formatTimestamp(e.TS),
 				})
 			}
 			PrintTable(headers, rows)
