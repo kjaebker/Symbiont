@@ -24,6 +24,8 @@ import type {
   LivestockStatus,
 } from './types'
 
+export type { Outlet }
+
 const TOKEN_KEY = 'symbiont_token'
 const BUBBLES_KEY = 'ui:bubbles'
 
