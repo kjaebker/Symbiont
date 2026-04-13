@@ -45,18 +45,21 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		frontendFS = os.DirFS(cfg.FrontendPath)
 	}
 	if bus == nil {
-		bus = events.NewBus()
+		bus = events.NewBus(logger)
 	}
 	if journalCatalog == nil {
 		journalCatalog = journal.NewEmptyCatalog()
 	}
+	broadcaster := NewBroadcaster()
+	broadcaster.RegisterSSESubscriber(bus)
+
 	s := &Server{
 		duck:             duck,
 		sqlite:           sqlite,
 		apex:             apexClient,
 		cfg:              cfg,
 		logger:           logger,
-		broadcaster:      NewBroadcaster(),
+		broadcaster:      broadcaster,
 		frontendFS:       frontendFS,
 		catalog:          catalog,
 		events:           bus,
@@ -179,6 +182,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/tank/profile", s.HandleTankProfileGet)
 	mux.HandleFunc("PUT /api/tank/profile/display", s.HandleTankProfileUpsert("display"))
 	mux.HandleFunc("PUT /api/tank/profile/sump", s.HandleTankProfileUpsert("sump"))
+
+	// Audit events.
+	mux.HandleFunc("GET /api/events/stats", s.HandleEventBusStats) // must be before /api/events
+	mux.HandleFunc("GET /api/events", s.HandleAuditEventList)
 
 	// Journal.
 	mux.HandleFunc("GET /api/journal/templates", s.HandleJournalTemplates) // must be before /{id}

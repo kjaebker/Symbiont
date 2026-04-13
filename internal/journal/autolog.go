@@ -7,21 +7,19 @@ import (
 	"github.com/kjaebker/symbiont/internal/events"
 )
 
-// EntryFromEvent maps a system event to a journal entry that should be
-// auto-logged. Returns false if the event type has no journal mapping.
+// EntryFromEvent maps a typed system event to a journal entry that should be
+// auto-logged. Returns false if this event kind has no journal mapping.
 // Adding support for a new auto-logged event type only requires adding a
 // case here — no changes to the event bus or the handlers that publish events.
 func EntryFromEvent(e events.SystemEvent) (db.JournalEntry, bool) {
-	switch e.Type {
-	case events.FeedModeActivated:
-		name, _ := e.Payload["feed_name"].(string)
-		num, _ := e.Payload["feed_number"].(int)
+	switch ev := e.(type) {
+	case events.EvtFeedModeActivated:
 		title := "Fed the fish"
-		if name != "" {
-			title = "Fed the fish (Feed Mode " + name + ")"
+		if ev.Mode != "" {
+			title = "Fed the fish (Feed Mode " + ev.Mode + ")"
 		}
 		neutral := "neutral"
-		sourceRef := fmt.Sprintf("feed_mode:%d", num)
+		sourceRef := fmt.Sprintf("feed_mode:%d", ev.FeedNum)
 		return db.JournalEntry{
 			Category:  "event",
 			Sentiment: &neutral,
@@ -29,6 +27,41 @@ func EntryFromEvent(e events.SystemEvent) (db.JournalEntry, bool) {
 			Source:    "system",
 			SourceRef: &sourceRef,
 		}, true
+
+	case events.EvtObservationRecorded:
+		// Only autolog significant observations:
+		//   - First observation (PrevStatus == ""), or
+		//   - Status transitions to "sick" or "deceased", or
+		//   - Image attached (HasImage == true)
+		significant := ev.PrevStatus == "" ||
+			ev.Status == "sick" || ev.Status == "deceased" ||
+			ev.HasImage
+		if !significant {
+			return db.JournalEntry{}, false
+		}
+
+		title := fmt.Sprintf("Observation: %s", ev.LivestockName)
+		if ev.Status != "" && ev.Status != ev.PrevStatus {
+			title = fmt.Sprintf("%s status changed to %s", ev.LivestockName, ev.Status)
+		}
+		bad := "bad"
+		good := "good"
+		neutral := "neutral"
+		sentiment := &neutral
+		if ev.Status == "sick" || ev.Status == "deceased" {
+			sentiment = &bad
+		} else if ev.Status == "healthy" && ev.PrevStatus != "" {
+			sentiment = &good
+		}
+		sourceRef := fmt.Sprintf("observation:%d", ev.ObservationID)
+		return db.JournalEntry{
+			Category:  "observation",
+			Sentiment: sentiment,
+			Title:     title,
+			Source:    "system",
+			SourceRef: &sourceRef,
+		}, true
+
 	default:
 		return db.JournalEntry{}, false
 	}

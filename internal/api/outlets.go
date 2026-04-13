@@ -8,6 +8,7 @@ import (
 
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 
@@ -142,6 +143,14 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		// Log but don't fail the request — the Apex command already succeeded.
 		s.logger.Error("failed to log outlet event", "err", err)
 	}
+
+	// Publish post-commit.
+	prevState := ""
+	if fromState != nil {
+		prevState = *fromState
+	}
+	name := derefStr(outletName, did)
+	s.events.Publish(events.NewOutletChanged(did, name, prevState, body.State, "api"))
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"id":        did,

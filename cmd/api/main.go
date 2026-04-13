@@ -11,6 +11,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/alerts"
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/api"
+	"github.com/kjaebker/symbiont/internal/audit"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/events"
@@ -91,7 +92,6 @@ func main() {
 	if cfg.HeartbeatPath != "" {
 		p.SetHeartbeatPath(cfg.HeartbeatPath)
 	}
-	go p.Run(sigCtx)
 
 	// Load journal template catalog.
 	journalCatalog, err := journal.Load()
@@ -101,15 +101,21 @@ func main() {
 	}
 	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
 
-	// Create event bus and wire the journal auto-log subscriber.
-	bus := events.NewBus()
-	bus.Subscribe(func(ctx context.Context, e events.SystemEvent) {
+	// Create event bus and wire subscribers.
+	bus := events.NewBus(logger.With("component", "events"))
+	audit.Register(bus, sqliteDB, logger.With("component", "audit"))
+	bus.Subscribe("journal_autolog", 256, func(ctx context.Context, e events.SystemEvent) {
 		if entry, ok := journal.EntryFromEvent(e); ok {
 			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
-				logger.Error("journal auto-log failed", "err", err, "event", e.Type)
+				logger.Error("journal auto-log failed", "err", err, "kind", e.Kind())
 			}
 		}
 	})
+
+	// Wire bus to poller and start bus dispatchers before the poller runs.
+	p.SetBus(bus)
+	bus.Start(sigCtx)
+	go p.Run(sigCtx)
 
 	// Create API server (nil FS falls back to cfg.FrontendPath).
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, nil, catalog, bus, journalCatalog)
@@ -131,7 +137,7 @@ func main() {
 
 	// Start alert engine.
 	alertLogger := logger.With("component", "alerts")
-	alertEngine := alerts.New(sqliteDB, duckDB, notifier, server.Broadcaster(), alertLogger)
+	alertEngine := alerts.New(sqliteDB, duckDB, notifier, bus, alertLogger)
 	go alertEngine.Start(sigCtx)
 
 	// Run API server — blocks until context is cancelled.

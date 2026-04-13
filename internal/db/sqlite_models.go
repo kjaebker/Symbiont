@@ -213,3 +213,20 @@ type JournalFilter struct {
 	To        *time.Time
 	Limit     int // defaults to 50 if <= 0
 }
+
+// AuditEvent represents a row in the events table — a forensic record of every
+// significant state change that flows through the system event bus.
+type AuditEvent struct {
+	ID            int64     `json:"id"`
+	TS            time.Time `json:"ts"`
+	Kind          string    `json:"kind"`
+	PayloadJSON   string    `json:"payload_json"`
+	CorrelationID *string   `json:"correlation_id,omitempty"`
+}
+
+// AuditFilter controls which rows ListAuditEvents returns.
+type AuditFilter struct {
+	Kind  string     // empty = all kinds
+	Since *time.Time // inclusive lower bound
+	Limit int        // defaults to 100 if <= 0; max 500
+}

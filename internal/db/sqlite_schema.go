@@ -168,6 +168,13 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			source_ref  TEXT,
 			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS events (
+			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
+			ts              DATETIME NOT NULL,
+			kind            TEXT     NOT NULL,
+			payload_json    TEXT     NOT NULL,
+			correlation_id  TEXT
+		)`,
 	}
 
 	indexes := []string{
@@ -183,6 +190,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_livestock_obs ON livestock_observations(livestock_id, ts DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_journal_entries_ts ON journal_entries(ts DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_journal_entries_category ON journal_entries(category, ts DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_kind_ts ON events(kind, ts DESC)`,
 	}
 
 	for _, stmt := range tables {

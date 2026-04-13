@@ -12,6 +12,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/alerts"
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/api"
+	"github.com/kjaebker/symbiont/internal/audit"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/events"
@@ -96,7 +97,6 @@ func runServe(frontendFS fs.FS) error {
 	if cfg.HeartbeatPath != "" {
 		p.SetHeartbeatPath(cfg.HeartbeatPath)
 	}
-	go p.Run(sigCtx)
 
 	journalCatalog, err := journal.Load()
 	if err != nil {
@@ -104,14 +104,20 @@ func runServe(frontendFS fs.FS) error {
 	}
 	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
 
-	bus := events.NewBus()
-	bus.Subscribe(func(ctx context.Context, e events.SystemEvent) {
+	bus := events.NewBus(logger.With("component", "events"))
+	audit.Register(bus, sqliteDB, logger.With("component", "audit"))
+	bus.Subscribe("journal_autolog", 256, func(ctx context.Context, e events.SystemEvent) {
 		if entry, ok := journal.EntryFromEvent(e); ok {
 			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
-				logger.Error("journal auto-log failed", "err", err, "event", e.Type)
+				logger.Error("journal auto-log failed", "err", err, "kind", e.Kind())
 			}
 		}
 	})
+
+	// Wire bus to poller and start bus dispatchers before the poller runs.
+	p.SetBus(bus)
+	bus.Start(sigCtx)
+	go p.Run(sigCtx)
 
 	server := api.New(cfg, duckDB, sqliteDB, apexClient, logger, frontendFS, catalog, bus, journalCatalog)
 
@@ -130,7 +136,7 @@ func runServe(frontendFS fs.FS) error {
 	}
 
 	alertLogger := logger.With("component", "alerts")
-	alertEngine := alerts.New(sqliteDB, duckDB, notifier, server.Broadcaster(), alertLogger)
+	alertEngine := alerts.New(sqliteDB, duckDB, notifier, bus, alertLogger)
 	go alertEngine.Start(sigCtx)
 
 	logger.Info("symbiont starting", "port", cfg.APIPort, "url", "http://localhost:"+cfg.APIPort)

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 	"github.com/kjaebker/symbiont/internal/notify"
 )
 
@@ -130,10 +130,10 @@ func setupTestEngine(t *testing.T) (*Engine, *db.SQLiteDB, *db.DuckDB, *recordin
 	t.Cleanup(func() { duckDB.Close() })
 
 	recorder := &recordingNotifier{}
-	broadcaster := api.NewBroadcaster()
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	bus := events.NewBus(logger)
 
-	engine := New(sqliteDB, duckDB, recorder, broadcaster, logger)
+	engine := New(sqliteDB, duckDB, recorder, bus, logger)
 
 	return engine, sqliteDB, duckDB, recorder
 }
