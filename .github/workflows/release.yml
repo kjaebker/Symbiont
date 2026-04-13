@@ -66,11 +66,13 @@ jobs:
           CC: ${{ matrix.cc }}
         run: |
           go build -tags release -o symbiont ./cmd/symbiont
+          CGO_ENABLED=0 go build -o symbiont-mcp ./cmd/mcp
 
       - name: Package
         run: |
           mkdir release
           cp symbiont release/
+          cp symbiont-mcp release/
           cp .env.example release/
           tar -czf symbiont-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C release .
 

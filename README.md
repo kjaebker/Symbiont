@@ -63,6 +63,7 @@ If you prefer not to pipe to bash:
 ```bash
 tar -xzf symbiont-*.tar.gz
 sudo mv symbiont /usr/local/bin/symbiont
+sudo mv symbiont-mcp /usr/local/bin/symbiont-mcp
 ```
 
 3. Configure (`.env.example` is included in the tarball):
@@ -145,8 +146,7 @@ Symbiont exposes an MCP server that lets Claude and other AI assistants query an
 {
   "mcpServers": {
     "symbiont": {
-      "command": "/usr/local/bin/symbiont",
-      "args": ["mcp"],
+      "command": "/usr/local/bin/symbiont-mcp",
       "env": {
         "SYMBIONT_API_URL": "http://localhost:8420",
         "SYMBIONT_TOKEN": "your-token-here"
@@ -159,7 +159,7 @@ Symbiont exposes an MCP server that lets Claude and other AI assistants query an
 **Claude Code:**
 
 ```bash
-claude mcp add symbiont /usr/local/bin/symbiont mcp \
+claude mcp add symbiont /usr/local/bin/symbiont-mcp \
   --env SYMBIONT_API_URL=http://localhost:8420 \
   --env SYMBIONT_TOKEN=your-token
 ```

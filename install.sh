@@ -58,14 +58,16 @@ fi
 # ── Install binary ────────────────────────────────────────────────────────────
 
 echo "==> Installing symbiont to ${INSTALL_DIR}..."
-tar -xzf "/tmp/${ASSET}" -C /tmp ./symbiont
+tar -xzf "/tmp/${ASSET}" -C /tmp ./symbiont ./symbiont-mcp
 
 if [ -w "$INSTALL_DIR" ]; then
   mv /tmp/symbiont "${INSTALL_DIR}/symbiont"
+  mv /tmp/symbiont-mcp "${INSTALL_DIR}/symbiont-mcp"
 else
   sudo mv /tmp/symbiont "${INSTALL_DIR}/symbiont"
+  sudo mv /tmp/symbiont-mcp "${INSTALL_DIR}/symbiont-mcp"
 fi
-chmod +x "${INSTALL_DIR}/symbiont"
+chmod +x "${INSTALL_DIR}/symbiont" "${INSTALL_DIR}/symbiont-mcp"
 rm -f "/tmp/${ASSET}"
 
 echo "    Installed: $(symbiont --version 2>/dev/null || echo "${INSTALL_DIR}/symbiont")"
