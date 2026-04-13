@@ -2,7 +2,6 @@ import type {
   Probe,
   ProbeHistory,
   Outlet,
-  OutletEvent,
   SystemStatus,
   FeedStatus,
   AlertRule,
@@ -128,14 +127,6 @@ export function setOutletState(id: string, state: 'ON' | 'OFF' | 'AUTO') {
   )
 }
 
-export function getOutletEvents(params?: { outlet_id?: string; initiated_by?: string; limit?: number }) {
-  const search = new URLSearchParams()
-  if (params?.outlet_id) search.set('outlet_id', params.outlet_id)
-  if (params?.initiated_by) search.set('initiated_by', params.initiated_by)
-  if (params?.limit) search.set('limit', String(params.limit))
-  const qs = search.toString()
-  return apiFetch<{ events: OutletEvent[] }>(`/api/outlets/events${qs ? `?${qs}` : ''}`)
-}
 
 // Feed mode
 export function getFeedStatus() {
@@ -634,6 +625,8 @@ export interface AuditEventListParams {
   kind?: string
   since?: string // RFC3339
   limit?: number
+  correlation_id?: string
+  initiated_by?: string
 }
 
 export function listAuditEvents(params?: AuditEventListParams) {
@@ -641,6 +634,8 @@ export function listAuditEvents(params?: AuditEventListParams) {
   if (params?.kind) q.set('kind', params.kind)
   if (params?.since) q.set('since', params.since)
   if (params?.limit) q.set('limit', String(params.limit))
+  if (params?.correlation_id) q.set('correlation_id', params.correlation_id)
+  if (params?.initiated_by) q.set('initiated_by', params.initiated_by)
   const qs = q.toString()
   return apiFetch<{ events: AuditEvent[] }>(`/api/events${qs ? `?${qs}` : ''}`)
 }

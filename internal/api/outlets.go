@@ -3,8 +3,6 @@ package api
 import (
 	"net/http"
 	"sort"
-	"strconv"
-	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/db"
@@ -131,19 +129,6 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log the event.
-	event := db.OutletEvent{
-		OutletID:    did,
-		OutletName:  outletName,
-		FromState:   fromState,
-		ToState:     body.State,
-		InitiatedBy: "api",
-	}
-	if err := s.sqlite.InsertOutletEvent(ctx, event); err != nil {
-		// Log but don't fail the request — the Apex command already succeeded.
-		s.logger.Error("failed to log outlet event", "err", err)
-	}
-
 	// Publish post-commit.
 	prevState := ""
 	if fromState != nil {
@@ -153,47 +138,8 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 	s.events.Publish(events.NewOutletChanged(did, name, prevState, body.State, "api"))
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"id":        did,
-		"name":      derefStr(outletName, did),
-		"state":     body.State,
-		"logged_at": time.Now().Format(time.RFC3339),
+		"id":    did,
+		"name":  derefStr(outletName, did),
+		"state": body.State,
 	})
-}
-
-func (s *Server) HandleOutletEvents(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	outletID := r.URL.Query().Get("outlet_id")
-	initiatedBy := r.URL.Query().Get("initiated_by")
-
-	limitStr := queryParam(r, "limit", "50")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit < 1 {
-		limit = 50
-	}
-	if limit > 200 {
-		limit = 200
-	}
-
-	events, err := s.sqlite.ListOutletEvents(ctx, outletID, initiatedBy, limit)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to fetch outlet events", "db_error")
-		return
-	}
-
-	displayNames := s.outletDisplayNames(ctx)
-
-	type eventWithDisplay struct {
-		db.OutletEvent
-		OutletDisplayName string `json:"outlet_display_name"`
-	}
-	out := make([]eventWithDisplay, len(events))
-	for i, e := range events {
-		dn := displayNames[e.OutletID]
-		if dn == "" && e.OutletName != nil {
-			dn = splitCamelCase(*e.OutletName)
-		}
-		out[i] = eventWithDisplay{OutletEvent: e, OutletDisplayName: dn}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{"events": out})
 }

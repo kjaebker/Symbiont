@@ -3,7 +3,17 @@
 // implement it, ensuring all event kinds are enumerable and auditable.
 package events
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
+
+// Correlatable is an optional interface for events associated with a specific
+// entity (outlet, livestock, alert rule, etc.). The audit subscriber uses it to
+// populate the correlation_id column so events can be queried by entity.
+type Correlatable interface {
+	CorrelationID() string
+}
 
 // SystemEvent is the sealed interface for all system events.
 // The unexported sealed() method prevents implementation outside this package.
@@ -48,7 +58,8 @@ type EvtOutletChanged struct {
 	InitiatedBy string `json:"initiated_by"` // "ui", "cli", "mcp", "api", "apex"
 }
 
-func (e EvtOutletChanged) Kind() string { return "outlet_changed" }
+func (e EvtOutletChanged) Kind() string          { return "outlet_changed" }
+func (e EvtOutletChanged) CorrelationID() string { return e.OutletID }
 
 // NewOutletChanged constructs an EvtOutletChanged with At = now.
 func NewOutletChanged(outletID, name, prevState, newState, initiatedBy string) EvtOutletChanged {
@@ -75,7 +86,8 @@ type EvtAlertFired struct {
 	EventID   int64   `json:"event_id"` // alert_events.id
 }
 
-func (e EvtAlertFired) Kind() string { return "alert_fired" }
+func (e EvtAlertFired) Kind() string          { return "alert_fired" }
+func (e EvtAlertFired) CorrelationID() string { return strconv.FormatInt(e.RuleID, 10) }
 
 // EvtAlertCleared is published when a previously fired alert resolves.
 type EvtAlertCleared struct {
@@ -86,7 +98,8 @@ type EvtAlertCleared struct {
 	EventID   int64  `json:"event_id"`
 }
 
-func (e EvtAlertCleared) Kind() string { return "alert_cleared" }
+func (e EvtAlertCleared) Kind() string          { return "alert_cleared" }
+func (e EvtAlertCleared) CorrelationID() string { return strconv.FormatInt(e.RuleID, 10) }
 
 // EvtObservationRecorded is published when a livestock observation is created.
 type EvtObservationRecorded struct {
@@ -99,7 +112,8 @@ type EvtObservationRecorded struct {
 	HasImage      bool   `json:"has_image"`
 }
 
-func (e EvtObservationRecorded) Kind() string { return "observation_recorded" }
+func (e EvtObservationRecorded) Kind() string          { return "observation_recorded" }
+func (e EvtObservationRecorded) CorrelationID() string { return strconv.FormatInt(e.LivestockID, 10) }
 
 // NewObservationRecorded constructs an EvtObservationRecorded with At = now.
 func NewObservationRecorded(obsID, livestockID int64, livestockName, status, prevStatus string, hasImage bool) EvtObservationRecorded {
@@ -123,7 +137,8 @@ type EvtLivestockAdded struct {
 	Type        string `json:"type"`    // fish, coral, invertebrate, other
 }
 
-func (e EvtLivestockAdded) Kind() string { return "livestock_added" }
+func (e EvtLivestockAdded) Kind() string          { return "livestock_added" }
+func (e EvtLivestockAdded) CorrelationID() string { return strconv.FormatInt(e.LivestockID, 10) }
 
 // NewLivestockAdded constructs an EvtLivestockAdded with At = now.
 func NewLivestockAdded(id int64, name, species, livestockType string) EvtLivestockAdded {
@@ -138,7 +153,8 @@ type EvtLivestockUpdated struct {
 	ChangedFields []string `json:"changed_fields"` // e.g. ["status", "quantity"]
 }
 
-func (e EvtLivestockUpdated) Kind() string { return "livestock_updated" }
+func (e EvtLivestockUpdated) Kind() string          { return "livestock_updated" }
+func (e EvtLivestockUpdated) CorrelationID() string { return strconv.FormatInt(e.LivestockID, 10) }
 
 // NewLivestockUpdated constructs an EvtLivestockUpdated with At = now.
 func NewLivestockUpdated(id int64, name string, changedFields []string) EvtLivestockUpdated {
@@ -153,7 +169,8 @@ type EvtJournalEntryCreated struct {
 	Source   string `json:"source"` // "manual", "system", "ai"
 }
 
-func (e EvtJournalEntryCreated) Kind() string { return "journal_entry_created" }
+func (e EvtJournalEntryCreated) Kind() string          { return "journal_entry_created" }
+func (e EvtJournalEntryCreated) CorrelationID() string { return strconv.FormatInt(e.EntryID, 10) }
 
 // NewJournalEntryCreated constructs an EvtJournalEntryCreated with At = now.
 func NewJournalEntryCreated(entryID int64, category, source string) EvtJournalEntryCreated {

@@ -69,17 +69,6 @@ type AlertRule struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-// OutletEvent represents a row in the outlet_event_log table.
-type OutletEvent struct {
-	ID          int64     `json:"id"`
-	TS          time.Time `json:"ts"`
-	OutletID    string    `json:"outlet_id"`
-	OutletName  *string   `json:"outlet_name"`
-	FromState   *string   `json:"from_state"`
-	ToState     string    `json:"to_state"`
-	InitiatedBy string   `json:"initiated_by"`
-}
-
 // AlertEvent represents a row in the alert_events table.
 type AlertEvent struct {
 	ID        int64      `json:"id"`
@@ -226,7 +215,9 @@ type AuditEvent struct {
 
 // AuditFilter controls which rows ListAuditEvents returns.
 type AuditFilter struct {
-	Kind  string     // empty = all kinds
-	Since *time.Time // inclusive lower bound
-	Limit int        // defaults to 100 if <= 0; max 500
+	Kind          string     // empty = all kinds
+	Since         *time.Time // inclusive lower bound
+	Limit         int        // defaults to 100 if <= 0; max 500
+	CorrelationID string     // empty = all; filters on correlation_id column
+	InitiatedBy   string     // empty = all; filters on json_extract(payload_json, '$.data.initiated_by')
 }

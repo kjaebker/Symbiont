@@ -35,6 +35,10 @@ func Register(bus *events.Bus, sqlite *db.SQLiteDB, logger *slog.Logger) {
 			Kind:        e.Kind(),
 			PayloadJSON: string(payload),
 		}
+		if c, ok := e.(events.Correlatable); ok {
+			id := c.CorrelationID()
+			evt.CorrelationID = &id
+		}
 		if err := sqlite.InsertAuditEvent(ctx, evt); err != nil {
 			logger.Error("audit: failed to insert event", "kind", e.Kind(), "err", err)
 		}

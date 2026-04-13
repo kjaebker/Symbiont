@@ -203,7 +203,7 @@ func getOutletEventLogTool() mcp.Tool {
 	return mcp.NewTool("get_outlet_event_log",
 		mcp.WithDescription("Get a log of recent outlet state changes, including who or what made each change (ui, cli, mcp, api) and what the state changed from and to. Useful for understanding what happened in the tank over time."),
 		mcp.WithString("outlet_id",
-			mcp.Description("Filter to specific outlet. Omit for all outlets."),
+			mcp.Description("Filter to a specific outlet by its ID. Omit for all outlets."),
 		),
 		mcp.WithNumber("limit",
 			mcp.Description("Max events to return, default 20, max 100"),
@@ -213,9 +213,9 @@ func getOutletEventLogTool() mcp.Tool {
 
 func getOutletEventLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/outlets/events?"
+		path := "/api/events?kind=outlet_changed&"
 		if v := request.GetString("outlet_id", ""); v != "" {
-			path += "outlet_id=" + v + "&"
+			path += "correlation_id=" + v + "&"
 		}
 		limit := request.GetInt("limit", 20)
 		path += fmt.Sprintf("limit=%d&", limit)
