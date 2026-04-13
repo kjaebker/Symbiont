@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -232,19 +233,18 @@ func (c *client) SetOutlet(ctx context.Context, did string, state OutletState) e
 	return nil
 }
 
-// SetFeedMode enables or cancels a feed cycle via PUT /rest/status/feed.
+// SetFeedMode enables or cancels a feed cycle via PUT /rest/status/feed/<name>.
+// name is 1-4 for Feed A-D; use name=0 to cancel. The feed number goes in the
+// URL path — the payload always carries active=1 regardless of start vs cancel.
 func (c *client) SetFeedMode(ctx context.Context, name int, active bool) error {
-	activeInt := 0
-	if active {
-		activeInt = 1
-	}
-	controlReq := FeedControlRequest{Name: name, Active: activeInt}
+	controlReq := FeedControlRequest{Name: name, Active: 1}
 	payload, err := json.Marshal(controlReq)
 	if err != nil {
 		return fmt.Errorf("marshaling feed mode request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/rest/status/feed", bytes.NewReader(payload))
+	url := fmt.Sprintf("%s/rest/status/feed/%d", c.baseURL, name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("creating feed mode request: %w", err)
 	}
@@ -259,14 +259,16 @@ func (c *client) SetFeedMode(ctx context.Context, name int, active bool) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return fmt.Errorf("feed mode request failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
-		}
-		return fmt.Errorf("feed mode request failed: status %d, body %s", resp.StatusCode, body)
+	respBody, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return fmt.Errorf("feed mode response unreadable: %w", readErr)
 	}
 
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("feed mode request failed: status %d, body %s", resp.StatusCode, respBody)
+	}
+
+	slog.Debug("apex feed mode response", "status", resp.StatusCode, "body", string(respBody), "name", name, "active", active)
 	return nil
 }
 

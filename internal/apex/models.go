@@ -140,10 +140,11 @@ type LinkInfo struct {
 	Link      bool   `json:"link"`
 }
 
-// FeedControlRequest is the body sent to PUT /rest/status/feed.
+// FeedControlRequest is the body sent to PUT /rest/status/feed/<name>.
+// The feed number is in the URL path; active is always 1 in the payload.
 type FeedControlRequest struct {
-	Name   int `json:"name"`   // 1-4 for Feed A-D; 0 to cancel
-	Active int `json:"active"` // 1 to enable, 0 to cancel
+	Name   int `json:"name"`   // mirrors the URL path segment (0=cancel, 1-4=Feed A-D)
+	Active int `json:"active"` // always 1; the URL path controls start vs cancel
 }
 
 // OutletState represents valid states for outlet control via
