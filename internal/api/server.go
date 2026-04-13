@@ -183,6 +183,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/tank/profile/display", s.HandleTankProfileUpsert("display"))
 	mux.HandleFunc("PUT /api/tank/profile/sump", s.HandleTankProfileUpsert("sump"))
 
+	// Audit events.
+	mux.HandleFunc("GET /api/events/stats", s.HandleEventBusStats) // must be before /api/events
+	mux.HandleFunc("GET /api/events", s.HandleAuditEventList)
+
 	// Journal.
 	mux.HandleFunc("GET /api/journal/templates", s.HandleJournalTemplates) // must be before /{id}
 	mux.HandleFunc("GET /api/journal", s.HandleJournalList)

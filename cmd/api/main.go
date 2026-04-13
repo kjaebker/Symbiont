@@ -11,6 +11,7 @@ import (
 	"github.com/kjaebker/symbiont/internal/alerts"
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/api"
+	"github.com/kjaebker/symbiont/internal/audit"
 	"github.com/kjaebker/symbiont/internal/config"
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/events"
@@ -101,8 +102,9 @@ func main() {
 	}
 	logger.Info("journal templates loaded", "count", len(journalCatalog.All()))
 
-	// Create event bus and wire the journal auto-log subscriber.
+	// Create event bus and wire subscribers.
 	bus := events.NewBus(logger.With("component", "events"))
+	audit.Register(bus, sqliteDB, logger.With("component", "audit"))
 	bus.Subscribe("journal_autolog", 256, func(ctx context.Context, e events.SystemEvent) {
 		if entry, ok := journal.EntryFromEvent(e); ok {
 			if _, err := sqliteDB.InsertJournalEntry(ctx, entry); err != nil {
