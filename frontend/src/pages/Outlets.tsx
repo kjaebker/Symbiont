@@ -276,7 +276,7 @@ export default function Outlets() {
                           <td className="py-2.5 px-4">
                             <span className="text-xs text-on-surface-dim">
                               <span className={stateColors[fromState] ?? 'text-on-surface-dim'}>
-                                {stateLabels[fromState] ?? fromState || '—'}
+                                {(stateLabels[fromState] ?? fromState) || '—'}
                               </span>
                               <span className="text-on-surface-faint mx-1.5">&rarr;</span>
                               <span className={stateColors[toState] ?? 'text-on-surface-dim'}>
