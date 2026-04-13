@@ -50,13 +50,16 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 	if journalCatalog == nil {
 		journalCatalog = journal.NewEmptyCatalog()
 	}
+	broadcaster := NewBroadcaster()
+	broadcaster.RegisterSSESubscriber(bus)
+
 	s := &Server{
 		duck:             duck,
 		sqlite:           sqlite,
 		apex:             apexClient,
 		cfg:              cfg,
 		logger:           logger,
-		broadcaster:      NewBroadcaster(),
+		broadcaster:      broadcaster,
 		frontendFS:       frontendFS,
 		catalog:          catalog,
 		events:           bus,

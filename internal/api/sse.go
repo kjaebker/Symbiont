@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kjaebker/symbiont/internal/events"
 )
 
 // Event represents a Server-Sent Event.
@@ -187,5 +188,97 @@ func (s *Server) publishUpdates(ctx context.Context) {
 			Data: outlets,
 		})
 	}
+}
+
+// busEventToSSE converts a typed system event to an SSE event for connected
+// clients. Returns nil if the event kind should not be forwarded to SSE.
+func busEventToSSE(e events.SystemEvent) *Event {
+	switch ev := e.(type) {
+	case events.EvtFeedModeActivated:
+		return &Event{Type: "feed_mode_activated", Data: map[string]any{
+			"mode":     ev.Mode,
+			"feed_num": ev.FeedNum,
+			"at":       ev.OccurredAt(),
+		}}
+	case events.EvtOutletChanged:
+		return &Event{Type: "outlet_changed", Data: map[string]any{
+			"outlet_id":    ev.OutletID,
+			"name":         ev.Name,
+			"prev_state":   ev.PrevState,
+			"new_state":    ev.NewState,
+			"initiated_by": ev.InitiatedBy,
+			"at":           ev.OccurredAt(),
+		}}
+	case events.EvtAlertFired:
+		return &Event{Type: "alert_fired", Data: map[string]any{
+			"rule_id":    ev.RuleID,
+			"rule_name":  ev.RuleName,
+			"probe_name": ev.ProbeName,
+			"value":      ev.Value,
+			"threshold":  ev.Threshold,
+			"severity":   ev.Severity,
+			"condition":  ev.Condition,
+			"event_id":   ev.EventID,
+			"at":         ev.OccurredAt(),
+		}}
+	case events.EvtAlertCleared:
+		return &Event{Type: "alert_cleared", Data: map[string]any{
+			"rule_id":    ev.RuleID,
+			"rule_name":  ev.RuleName,
+			"probe_name": ev.ProbeName,
+			"event_id":   ev.EventID,
+			"at":         ev.OccurredAt(),
+		}}
+	case events.EvtObservationRecorded:
+		return &Event{Type: "observation_recorded", Data: map[string]any{
+			"observation_id": ev.ObservationID,
+			"livestock_id":   ev.LivestockID,
+			"livestock_name": ev.LivestockName,
+			"status":         ev.Status,
+			"prev_status":    ev.PrevStatus,
+			"has_image":      ev.HasImage,
+			"at":             ev.OccurredAt(),
+		}}
+	case events.EvtLivestockAdded:
+		return &Event{Type: "livestock_added", Data: map[string]any{
+			"livestock_id": ev.LivestockID,
+			"name":         ev.Name,
+			"species":      ev.Species,
+			"type":         ev.Type,
+			"at":           ev.OccurredAt(),
+		}}
+	case events.EvtLivestockUpdated:
+		return &Event{Type: "livestock_updated", Data: map[string]any{
+			"livestock_id":   ev.LivestockID,
+			"name":           ev.Name,
+			"changed_fields": ev.ChangedFields,
+			"at":             ev.OccurredAt(),
+		}}
+	case events.EvtJournalEntryCreated:
+		return &Event{Type: "journal_entry_created", Data: map[string]any{
+			"entry_id": ev.EntryID,
+			"category": ev.Category,
+			"source":   ev.Source,
+			"at":       ev.OccurredAt(),
+		}}
+	case events.EvtPollCycleCompleted:
+		return &Event{Type: "poll_cycle_completed", Data: map[string]any{
+			"duration_ms": ev.DurationMs,
+			"probe_count": ev.ProbeCount,
+			"at":          ev.OccurredAt(),
+		}}
+	default:
+		return nil
+	}
+}
+
+// RegisterSSESubscriber wires the Broadcaster as a bus subscriber so that
+// typed system events are forwarded to all connected SSE clients.
+func (b *Broadcaster) RegisterSSESubscriber(bus *events.Bus) {
+	bus.Subscribe("sse", 512, func(ctx context.Context, e events.SystemEvent) {
+		if evt := busEventToSSE(e); evt != nil {
+			b.Publish(*evt)
+		}
+	})
 }
 
