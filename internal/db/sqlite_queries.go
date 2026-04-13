@@ -440,66 +440,6 @@ func (s *SQLiteDB) DeleteNotificationTarget(ctx context.Context, id int64) error
 	return nil
 }
 
-// --- Outlet Event Log ---
-
-// InsertOutletEvent inserts an outlet state change event.
-func (s *SQLiteDB) InsertOutletEvent(ctx context.Context, e OutletEvent) error {
-	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO outlet_event_log (outlet_id, outlet_name, from_state, to_state, initiated_by)
-		VALUES (?, ?, ?, ?, ?)`,
-		e.OutletID, e.OutletName, e.FromState, e.ToState, e.InitiatedBy,
-	)
-	if err != nil {
-		return fmt.Errorf("inserting outlet event: %w", err)
-	}
-	return nil
-}
-
-// ListOutletEvents returns recent outlet events, optionally filtered by outlet ID and initiated_by.
-func (s *SQLiteDB) ListOutletEvents(ctx context.Context, outletID string, initiatedBy string, limit int) ([]OutletEvent, error) {
-	query := "SELECT id, ts, outlet_id, outlet_name, from_state, to_state, initiated_by FROM outlet_event_log"
-	var conditions []string
-	var args []any
-
-	if outletID != "" {
-		conditions = append(conditions, "outlet_id = ?")
-		args = append(args, outletID)
-	}
-	if initiatedBy != "" {
-		conditions = append(conditions, "initiated_by = ?")
-		args = append(args, initiatedBy)
-	}
-
-	if len(conditions) > 0 {
-		query += " WHERE "
-		for i, c := range conditions {
-			if i > 0 {
-				query += " AND "
-			}
-			query += c
-		}
-	}
-
-	query += " ORDER BY ts DESC LIMIT ?"
-	args = append(args, limit)
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("listing outlet events: %w", err)
-	}
-	defer rows.Close()
-
-	var events []OutletEvent
-	for rows.Next() {
-		var e OutletEvent
-		if err := rows.Scan(&e.ID, &e.TS, &e.OutletID, &e.OutletName, &e.FromState, &e.ToState, &e.InitiatedBy); err != nil {
-			return nil, fmt.Errorf("scanning outlet event: %w", err)
-		}
-		events = append(events, e)
-	}
-	return events, rows.Err()
-}
-
 // --- Backup Jobs ---
 
 // InsertBackupJob inserts a new backup job record and returns its ID.
@@ -1590,6 +1530,14 @@ func (s *SQLiteDB) ListAuditEvents(ctx context.Context, f AuditFilter) ([]AuditE
 	if f.Since != nil {
 		query += ` AND ts >= ?`
 		args = append(args, f.Since)
+	}
+	if f.CorrelationID != "" {
+		query += ` AND correlation_id = ?`
+		args = append(args, f.CorrelationID)
+	}
+	if f.InitiatedBy != "" {
+		query += ` AND json_extract(payload_json, '$.data.initiated_by') = ?`
+		args = append(args, f.InitiatedBy)
 	}
 	query += ` ORDER BY ts DESC LIMIT ?`
 	args = append(args, limit)

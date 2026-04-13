@@ -13,7 +13,11 @@ import (
 // GET /api/events?kind=&since=&limit=
 func (s *Server) HandleAuditEventList(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	f := db.AuditFilter{Kind: q.Get("kind")}
+	f := db.AuditFilter{
+		Kind:          q.Get("kind"),
+		CorrelationID: q.Get("correlation_id"),
+		InitiatedBy:   q.Get("initiated_by"),
+	}
 
 	if raw := q.Get("since"); raw != "" {
 		t, err := time.Parse(time.RFC3339, raw)

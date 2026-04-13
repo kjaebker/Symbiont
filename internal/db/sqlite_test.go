@@ -138,54 +138,6 @@ func TestProbeConfigUpsert(t *testing.T) {
 	}
 }
 
-func TestOutletEventInsertAndList(t *testing.T) {
-	db := openTestSQLite(t)
-	ctx := context.Background()
-
-	fromState := "OFF"
-	outletName := "Return Pump"
-	event := OutletEvent{
-		OutletID:    "base_Var1",
-		OutletName:  &outletName,
-		FromState:   &fromState,
-		ToState:     "ON",
-		InitiatedBy: "api",
-	}
-
-	if err := db.InsertOutletEvent(ctx, event); err != nil {
-		t.Fatalf("inserting outlet event: %v", err)
-	}
-
-	// List all events.
-	events, err := db.ListOutletEvents(ctx, "", "", 50)
-	if err != nil {
-		t.Fatalf("listing all outlet events: %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-	if events[0].ToState != "ON" {
-		t.Errorf("expected to_state 'ON', got %q", events[0].ToState)
-	}
-
-	// List filtered by outlet.
-	events, err = db.ListOutletEvents(ctx, "base_Var1", "", 50)
-	if err != nil {
-		t.Fatalf("listing filtered events: %v", err)
-	}
-	if len(events) != 1 {
-		t.Errorf("expected 1 filtered event, got %d", len(events))
-	}
-
-	// List filtered by non-existent outlet.
-	events, err = db.ListOutletEvents(ctx, "nonexistent", "", 50)
-	if err != nil {
-		t.Fatalf("listing events for nonexistent outlet: %v", err)
-	}
-	if len(events) != 0 {
-		t.Errorf("expected 0 events, got %d", len(events))
-	}
-}
 
 func TestAlertRuleCRUD(t *testing.T) {
 	db := openTestSQLite(t)

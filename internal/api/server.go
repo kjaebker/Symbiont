@@ -102,7 +102,6 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Outlets.
 	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
 	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
-	mux.HandleFunc("GET /api/outlets/events", s.HandleOutletEvents)
 
 	// Feed mode.
 	mux.HandleFunc("GET /api/feed", s.HandleFeedGet)

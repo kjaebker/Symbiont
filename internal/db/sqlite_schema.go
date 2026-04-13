@@ -81,15 +81,6 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			peak_value      REAL,
 			notified        INTEGER  NOT NULL DEFAULT 0
 		)`,
-		`CREATE TABLE IF NOT EXISTS outlet_event_log (
-			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
-			ts              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			outlet_id       TEXT     NOT NULL,
-			outlet_name     TEXT,
-			from_state      TEXT,
-			to_state        TEXT     NOT NULL,
-			initiated_by    TEXT     NOT NULL CHECK(initiated_by IN ('ui','cli','mcp','api','apex'))
-		)`,
 		`CREATE TABLE IF NOT EXISTS backup_jobs (
 			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
 			ts          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -179,9 +170,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 
 	indexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_alert_events_rule ON alert_events(rule_id, fired_at DESC)`,
-		`CREATE INDEX IF NOT EXISTS idx_outlet_event_log_ts ON outlet_event_log(ts DESC)`,
-		`CREATE INDEX IF NOT EXISTS idx_outlet_event_log_outlet ON outlet_event_log(outlet_id, ts DESC)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
+`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_items_sort ON dashboard_items(sort_order)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_param ON measurements(parameter_id, measured_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_date ON measurements(measured_at DESC)`,

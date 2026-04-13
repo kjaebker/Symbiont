@@ -315,17 +315,6 @@ func TestOutletSetSuccess(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Verify event was logged.
-	events, err := env.sqlite.ListOutletEvents(context.Background(), "base_Var1", "", 10)
-	if err != nil {
-		t.Fatalf("listing events: %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-	if events[0].InitiatedBy != "api" {
-		t.Errorf("expected initiated_by 'api', got %q", events[0].InitiatedBy)
-	}
 }
 
 func TestOutletSetApexError(t *testing.T) {
@@ -344,28 +333,6 @@ func TestOutletSetInvalidState(t *testing.T) {
 	w := env.request(t, "PUT", "/api/outlets/base_Var1", map[string]string{"state": "INVALID"})
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestOutletEvents(t *testing.T) {
-	env := setupTestEnv(t)
-	ctx := context.Background()
-
-	toState := "ON"
-	env.sqlite.InsertOutletEvent(ctx, db.OutletEvent{
-		OutletID: "base_Var1", ToState: toState, InitiatedBy: "api",
-	})
-
-	w := env.request(t, "GET", "/api/outlets/events?outlet_id=base_Var1", nil)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var resp map[string]any
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	events, ok := resp["events"].([]any)
-	if !ok || len(events) != 1 {
-		t.Fatalf("expected 1 event, got %v", resp["events"])
 	}
 }
 

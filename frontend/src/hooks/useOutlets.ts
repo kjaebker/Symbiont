@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getOutlets, setOutletState, getOutletEvents } from '@/api/client'
+import { getOutlets, setOutletState } from '@/api/client'
 import type { Outlet } from '@/api/types'
 
 // How long to keep optimistic state after a mutation before trusting
@@ -73,15 +73,8 @@ export function useSetOutlet() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outletEvents'] })
+      queryClient.invalidateQueries({ queryKey: ['audit-events'] })
     },
   })
 }
 
-export function useOutletEvents(params?: { outlet_id?: string; initiated_by?: string; limit?: number }) {
-  return useQuery({
-    queryKey: ['outletEvents', params],
-    queryFn: () => getOutletEvents(params),
-    staleTime: 10_000,
-  })
-}

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Power, Zap } from 'lucide-react'
-import { useOutlets, useSetOutlet, useOutletEvents } from '@/hooks/useOutlets'
+import { useOutlets, useSetOutlet } from '@/hooks/useOutlets'
+import { useAuditEvents } from '@/hooks/useEvents'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { cn } from '@/lib/utils'
-import { relativeTime } from '@/lib/utils'
-import type { Outlet } from '@/api/types'
+import { cn, relativeTime } from '@/lib/utils'
+import type { Outlet, AuditEvent } from '@/api/client'
 
 const stateLabels: Record<string, string> = {
   ON: 'On',
@@ -122,17 +122,30 @@ function OutletRow({ outlet }: { outlet: Outlet }) {
   )
 }
 
+function parseOutletPayload(event: AuditEvent) {
+  try {
+    const w = JSON.parse(event.payload_json) as { data: Record<string, string> }
+    return w.data
+  } catch {
+    return null
+  }
+}
+
 export default function Outlets() {
   usePageTitle('Outlets')
   const { data, isLoading } = useOutlets()
   const [eventLimit, setEventLimit] = useState(50)
   const [sourceFilter, setSourceFilter] = useState<string>('')
-  const { data: eventsData } = useOutletEvents({
+  const { data: eventsData } = useAuditEvents({
+    kind: 'outlet_changed',
     limit: eventLimit,
     ...(sourceFilter && { initiated_by: sourceFilter }),
   })
 
   const outlets = data?.outlets ?? []
+  const outletDisplayNames = Object.fromEntries(
+    outlets.map((o) => [o.id, o.display_name || o.name]),
+  )
   const events = eventsData?.events ?? []
 
   return (
@@ -242,40 +255,48 @@ export default function Outlets() {
                     </tr>
                   </thead>
                   <tbody>
-                    {events.map((event) => (
-                      <tr
-                        key={event.id}
-                        className="transition-fluid hover:bg-surface-container-high/50"
-                      >
-                        <td className="py-2.5 px-4 text-xs text-on-surface-dim whitespace-nowrap">
-                          {relativeTime(event.ts)}
-                        </td>
-                        <td className="py-2.5 px-4 text-sm text-on-surface">
-                          {event.outlet_display_name ?? event.outlet_name}
-                        </td>
-                        <td className="py-2.5 px-4">
-                          <span className="text-xs text-on-surface-dim">
-                            <span className={stateColors[event.from_state] ?? 'text-on-surface-dim'}>
-                              {stateLabels[event.from_state] ?? event.from_state}
+                    {events.map((event) => {
+                      const d = parseOutletPayload(event)
+                      const displayName = (event.correlation_id && outletDisplayNames[event.correlation_id])
+                        || d?.name || event.correlation_id || '—'
+                      const fromState = d?.prev_state ?? ''
+                      const toState = d?.new_state ?? ''
+                      const initiatedBy = d?.initiated_by ?? ''
+                      return (
+                        <tr
+                          key={event.id}
+                          className="transition-fluid hover:bg-surface-container-high/50"
+                        >
+                          <td className="py-2.5 px-4 text-xs text-on-surface-dim whitespace-nowrap">
+                            {relativeTime(event.ts)}
+                          </td>
+                          <td className="py-2.5 px-4 text-sm text-on-surface">
+                            {displayName}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span className="text-xs text-on-surface-dim">
+                              <span className={stateColors[fromState] ?? 'text-on-surface-dim'}>
+                                {stateLabels[fromState] ?? fromState || '—'}
+                              </span>
+                              <span className="text-on-surface-faint mx-1.5">&rarr;</span>
+                              <span className={stateColors[toState] ?? 'text-on-surface-dim'}>
+                                {stateLabels[toState] ?? toState}
+                              </span>
                             </span>
-                            <span className="text-on-surface-faint mx-1.5">&rarr;</span>
-                            <span className={stateColors[event.to_state] ?? 'text-on-surface-dim'}>
-                              {stateLabels[event.to_state] ?? event.to_state}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span
+                              className={cn(
+                                'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
+                                initiatedByColors[initiatedBy] ?? 'bg-surface-container-high text-on-surface-dim',
+                              )}
+                            >
+                              {initiatedBy || '—'}
                             </span>
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-4">
-                          <span
-                            className={cn(
-                              'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                              initiatedByColors[event.initiated_by] ?? 'bg-surface-container-high text-on-surface-dim',
-                            )}
-                          >
-                            {event.initiated_by}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -34,17 +34,6 @@ export interface Outlet {
   intensity: number
 }
 
-export interface OutletEvent {
-  id: number
-  ts: string
-  outlet_id: string
-  outlet_name: string
-  outlet_display_name?: string
-  from_state: string
-  to_state: string
-  initiated_by: string
-}
-
 export interface AlertRule {
   id: number
   probe_name: string
