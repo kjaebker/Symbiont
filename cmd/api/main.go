@@ -137,7 +137,7 @@ func main() {
 
 	// Start alert engine.
 	alertLogger := logger.With("component", "alerts")
-	alertEngine := alerts.New(sqliteDB, duckDB, notifier, server.Broadcaster(), alertLogger)
+	alertEngine := alerts.New(sqliteDB, duckDB, notifier, bus, alertLogger)
 	go alertEngine.Start(sigCtx)
 
 	// Run API server — blocks until context is cancelled.

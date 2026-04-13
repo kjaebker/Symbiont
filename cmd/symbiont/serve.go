@@ -136,7 +136,7 @@ func runServe(frontendFS fs.FS) error {
 	}
 
 	alertLogger := logger.With("component", "alerts")
-	alertEngine := alerts.New(sqliteDB, duckDB, notifier, server.Broadcaster(), alertLogger)
+	alertEngine := alerts.New(sqliteDB, duckDB, notifier, bus, alertLogger)
 	go alertEngine.Start(sigCtx)
 
 	logger.Info("symbiont starting", "port", cfg.APIPort, "url", "http://localhost:"+cfg.APIPort)

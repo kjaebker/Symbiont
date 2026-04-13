@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kjaebker/symbiont/internal/api"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/events"
 	"github.com/kjaebker/symbiont/internal/notify"
 )
 
@@ -24,24 +24,25 @@ type AlertState struct {
 
 // Engine evaluates alert rules against current probe readings.
 type Engine struct {
-	sqlite      *db.SQLiteDB
-	duck        *db.DuckDB
-	notifier    notify.Notifier
-	broadcaster *api.Broadcaster
-	logger      *slog.Logger
-	state       map[int64]*AlertState
-	mu          sync.Mutex
+	sqlite   *db.SQLiteDB
+	duck     *db.DuckDB
+	notifier notify.Notifier
+	bus      *events.Bus
+	logger   *slog.Logger
+	state    map[int64]*AlertState
+	mu       sync.Mutex
 }
 
-// New creates a new alert evaluation engine.
-func New(sqlite *db.SQLiteDB, duck *db.DuckDB, notifier notify.Notifier, broadcaster *api.Broadcaster, logger *slog.Logger) *Engine {
+// New creates a new alert evaluation engine. bus is used to publish
+// EvtAlertFired and EvtAlertCleared events; pass nil to disable publishing.
+func New(sqlite *db.SQLiteDB, duck *db.DuckDB, notifier notify.Notifier, bus *events.Bus, logger *slog.Logger) *Engine {
 	return &Engine{
-		sqlite:      sqlite,
-		duck:        duck,
-		notifier:    notifier,
-		broadcaster: broadcaster,
-		logger:      logger,
-		state:       make(map[int64]*AlertState),
+		sqlite:   sqlite,
+		duck:     duck,
+		notifier: notifier,
+		bus:      bus,
+		logger:   logger,
+		state:    make(map[int64]*AlertState),
 	}
 }
 
@@ -191,20 +192,19 @@ func (e *Engine) fire(ctx context.Context, rule db.AlertRule, value float64, dis
 		EventID:   eventID,
 	}
 
-	// Publish SSE event.
-	e.broadcaster.Publish(api.Event{
-		Type: "alert_fired",
-		Data: map[string]any{
-			"rule_id":      rule.ID,
-			"event_id":     eventID,
-			"probe_name":   rule.ProbeName,
-			"display_name": displayName,
-			"severity":     rule.Severity,
-			"value":        value,
-			"condition":    rule.Condition,
-			"fired_at":     now,
-		},
-	})
+	// Publish via event bus (SSE, audit, notifier all subscribe).
+	threshold := 0.0
+	if rule.ThresholdHigh != nil {
+		threshold = *rule.ThresholdHigh
+	} else if rule.ThresholdLow != nil {
+		threshold = *rule.ThresholdLow
+	}
+	if e.bus != nil {
+		e.bus.Publish(events.NewAlertFired(
+			rule.ID, displayName, rule.ProbeName,
+			value, threshold, rule.Severity, rule.Condition, eventID,
+		))
+	}
 
 	e.logger.Warn("alert fired",
 		"rule_id", rule.ID,
@@ -233,17 +233,10 @@ func (e *Engine) clear(ctx context.Context, rule db.AlertRule, displayName strin
 		e.logger.Error("alert engine: failed to clear alert event", "err", err, "event_id", state.EventID)
 	}
 
-	// Publish SSE event.
-	e.broadcaster.Publish(api.Event{
-		Type: "alert_cleared",
-		Data: map[string]any{
-			"rule_id":      rule.ID,
-			"event_id":     state.EventID,
-			"probe_name":   rule.ProbeName,
-			"display_name": displayName,
-			"cleared_at":   now,
-		},
-	})
+	// Publish via event bus.
+	if e.bus != nil {
+		e.bus.Publish(events.NewAlertCleared(rule.ID, displayName, rule.ProbeName, state.EventID))
+	}
 
 	e.logger.Info("alert cleared",
 		"rule_id", rule.ID,
