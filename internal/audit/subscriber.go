@@ -18,6 +18,12 @@ import (
 // other subscribers from any temporary SQLite latency.
 func Register(bus *events.Bus, sqlite *db.SQLiteDB, logger *slog.Logger) {
 	bus.Subscribe("audit_log", 1024, func(ctx context.Context, e events.SystemEvent) {
+		// Poll cycle completions are already captured in DuckDB with full probe
+		// data. Persisting them here would generate ~8,640 rows/day of noise.
+		if _, ok := e.(events.EvtPollCycleCompleted); ok {
+			return
+		}
+
 		payload, err := marshal(e)
 		if err != nil {
 			logger.Error("audit: failed to marshal event payload", "kind", e.Kind(), "err", err)
