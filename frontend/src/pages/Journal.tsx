@@ -350,7 +350,6 @@ const KIND_LABELS: Record<string, string> = {
   livestock_added: 'Livestock Added',
   livestock_updated: 'Livestock Updated',
   journal_entry_created: 'Journal Entry',
-  poll_cycle_completed: 'Poll Cycle',
   config_changed: 'Config',
   auth_event: 'Auth',
 }
@@ -364,7 +363,6 @@ const KIND_COLORS: Record<string, string> = {
   livestock_added: 'text-violet-400 bg-violet-400/10',
   livestock_updated: 'text-violet-400 bg-violet-400/10',
   journal_entry_created: 'text-on-surface-dim bg-surface-container-high',
-  poll_cycle_completed: 'text-on-surface-faint bg-surface-container-high',
   config_changed: 'text-primary bg-primary/10',
   auth_event: 'text-on-surface-dim bg-surface-container-high',
 }
@@ -388,7 +386,6 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
     else if (event.kind === 'observation_recorded') summary = String(d.livestock_name ?? '')
     else if (event.kind === 'livestock_added') summary = `${d.name} (${d.type})`
     else if (event.kind === 'livestock_updated') summary = String(d.name ?? '')
-    else if (event.kind === 'poll_cycle_completed') summary = `${d.duration_ms}ms · ${d.probe_count} probes`
     else if (event.kind === 'auth_event') summary = `${d.auth_kind}: ${d.actor}`
   }
 
