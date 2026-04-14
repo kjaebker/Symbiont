@@ -195,6 +195,13 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/journal/{id}", s.HandleJournalUpdate)
 	mux.HandleFunc("DELETE /api/journal/{id}", s.HandleJournalDelete)
 
+	// Agent settings, context, and skills.
+	mux.HandleFunc("GET /api/agent/settings", s.HandleAgentSettingsGet)
+	mux.HandleFunc("PUT /api/agent/settings", s.HandleAgentSettingsPut)
+	mux.HandleFunc("GET /api/agent/context", s.HandleAgentContext)
+	mux.HandleFunc("GET /api/agent/skills", s.HandleAgentSkillList)
+	mux.HandleFunc("GET /api/agent/skills/{name}/body", s.HandleAgentSkillBody)
+
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
 
