@@ -235,11 +235,11 @@ export default function Measurements() {
       )}
 
       {/* Parameter filter pills */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex overflow-x-auto gap-2 pb-0.5 scrollbar-thin">
         <button
           onClick={() => setSelectedParam(null)}
           className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+            'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
             selectedParam === null
               ? 'bg-primary/20 text-primary'
               : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
@@ -252,7 +252,7 @@ export default function Measurements() {
             key={p.id}
             onClick={() => setSelectedParam(selectedParam === p.name ? null : p.name)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+              'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
               selectedParam === p.name
                 ? 'bg-primary/20 text-primary'
                 : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',

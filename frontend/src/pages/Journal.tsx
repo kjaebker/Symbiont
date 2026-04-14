@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ScrollText, Plus, Pencil, Trash2, Bot, Cpu, Check, X, Activity } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useJournalEntries, useJournalTemplates, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from '@/hooks/useJournal'
@@ -480,11 +481,33 @@ function FullTimeline() {
 
 export default function Journal() {
   usePageTitle('Journal')
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [view, setView] = useState<'journal' | 'timeline'>('journal')
-  const [categoryFilter, setCategoryFilter] = useState<JournalCategory | ''>('')
-  const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>('')
+  const [view, setView] = useState<'journal' | 'timeline'>(
+    (searchParams.get('view') as 'journal' | 'timeline') ?? 'journal',
+  )
+  const [categoryFilter, setCategoryFilter] = useState<JournalCategory | ''>(
+    (searchParams.get('category') as JournalCategory) ?? '',
+  )
+  const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>(
+    (searchParams.get('sentiment') as JournalSentiment) ?? '',
+  )
   const [showForm, setShowForm] = useState(false)
+
+  const syncUrl = useCallback(
+    (v: string, cat: string, sent: string) => {
+      const params = new URLSearchParams()
+      if (v && v !== 'journal') params.set('view', v)
+      if (cat) params.set('category', cat)
+      if (sent) params.set('sentiment', sent)
+      setSearchParams(params, { replace: true })
+    },
+    [setSearchParams],
+  )
+
+  useEffect(() => {
+    syncUrl(view, categoryFilter, sentimentFilter)
+  }, [view, categoryFilter, sentimentFilter, syncUrl])
 
   const { data, isLoading, isError } = useJournalEntries({
     category: categoryFilter || undefined,

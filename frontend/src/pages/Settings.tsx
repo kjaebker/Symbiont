@@ -619,7 +619,7 @@ function ProbesTab() {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full min-w-[750px]">
         <thead>
           <tr className="bg-surface-container-high/50">
             {['Probe', 'Display Name', 'Unit', 'Min Normal', 'Max Normal', 'Min Warn', 'Max Warn'].map((h) => (
@@ -2559,7 +2559,8 @@ export default function Settings() {
         </h1>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      {/* Desktop: pill tabs */}
+      <div className="hidden lg:flex flex-wrap gap-1.5">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -2574,6 +2575,26 @@ export default function Settings() {
             {tab.label}
           </button>
         ))}
+      </div>
+
+      {/* Mobile/tablet: select dropdown */}
+      <div className="lg:hidden relative">
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as Tab)}
+          className="w-full appearance-none bg-surface-container-high text-on-surface text-sm font-semibold uppercase tracking-wider rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+        >
+          {tabs.map((tab) => (
+            <option key={tab.key} value={tab.key}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-on-surface-dim">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
       </div>
 
       <div className="bg-surface-container rounded-2xl overflow-hidden">

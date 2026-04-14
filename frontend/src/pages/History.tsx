@@ -172,7 +172,7 @@ export default function History() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <ProbeSelector
             selected={selectedProbes}
@@ -188,7 +188,7 @@ export default function History() {
         <div className="flex flex-col gap-3 sm:items-end">
           <TimeRangePicker value={range} onChange={setRange} />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-on-surface-faint uppercase tracking-wider mr-1">
               Interval
             </span>
