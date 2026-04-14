@@ -265,7 +265,7 @@ export function getBackups() {
 }
 
 export function triggerBackup() {
-  return apiFetch<BackupJob>('/api/system/backups', { method: 'POST' })
+  return apiFetch<BackupJob>('/api/system/backup', { method: 'POST' })
 }
 
 // Devices

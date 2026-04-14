@@ -150,17 +150,11 @@ func (s *Server) HandleSystemLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	serviceFilter := r.URL.Query().Get("service")
 	args := []string{
-		"-u", "symbiont-api",
-		"-u", "symbiont-poller",
+		"-u", "symbiont",
 		"--no-pager", "-o", "json",
 		"-n", strconv.Itoa(limit),
-	}
-	switch r.URL.Query().Get("service") {
-	case "api":
-		args = []string{"-u", "symbiont-api", "--no-pager", "-o", "json", "-n", strconv.Itoa(limit)}
-	case "poller":
-		args = []string{"-u", "symbiont-poller", "--no-pager", "-o", "json", "-n", strconv.Itoa(limit)}
 	}
 
 	out, err := exec.CommandContext(r.Context(), "journalctl", args...).Output()
@@ -199,14 +193,8 @@ func (s *Server) HandleSystemLog(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Service from _SYSTEMD_UNIT.
+		// Service from structured component field; fall back to "api".
 		service := "api"
-		if v, ok := entry["_SYSTEMD_UNIT"]; ok {
-			var u string
-			if json.Unmarshal(v, &u) == nil && strings.Contains(u, "poller") {
-				service = "poller"
-			}
-		}
 
 		// MESSAGE may be structured slog JSON — parse it if so.
 		msgStr := ""
@@ -226,6 +214,10 @@ func (s *Server) HandleSystemLog(w http.ResponseWriter, r *http.Request) {
 					}
 					if t, ok := structured["time"].(string); ok && tsStr == "" {
 						tsStr = t
+					}
+					// Detect service type from the component field set by each logger.
+					if c, ok := structured["component"].(string); ok && c == "poller" {
+						service = "poller"
 					}
 					fields = make(map[string]any)
 					for k, v := range structured {
@@ -260,6 +252,11 @@ func (s *Server) HandleSystemLog(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msgStr == "" {
+			continue
+		}
+
+		// Apply service filter at the application layer.
+		if serviceFilter != "" && service != serviceFilter {
 			continue
 		}
 
