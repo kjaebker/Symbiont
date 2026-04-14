@@ -1522,12 +1522,7 @@ function TokensTab() {
                       value={t.scope}
                       onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
                       disabled={updateScopeMutation.isPending}
-                      className={cn(
-                        'rounded-full text-xs font-medium uppercase tracking-widest px-2 py-0.5 outline-none cursor-pointer transition-fluid disabled:opacity-50',
-                        t.scope === 'admin' && 'bg-secondary/15 text-secondary',
-                        t.scope === 'control' && 'bg-primary/15 text-primary',
-                        t.scope === 'read' && 'bg-on-surface-faint/15 text-on-surface-dim',
-                      )}
+                      className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50"
                     >
                       <option value="admin">admin</option>
                       <option value="control">control</option>
