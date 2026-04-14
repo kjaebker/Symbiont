@@ -81,6 +81,8 @@ func main() {
 	rootCmd.AddCommand(cli.NewTankCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewEventsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewImagesCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewAgentCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewSkillsCmd(sharedClient))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
