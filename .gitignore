@@ -5,8 +5,10 @@
 docs/apex-api-notes.md
 docs/apex-api-notes.md.bak
 
-# Test data (contains device-specific responses — may contain IPs, serials, etc.)
-testdata/
+# Real device captures in testdata (may contain IPs, serials, etc.) — exclude by convention
+# Files named *.real.json or *.capture.json are real device responses; everything else is a committed fixture
+testdata/*.real.json
+testdata/*.capture.json
 
 # Database files
 *.db
