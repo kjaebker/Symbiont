@@ -203,8 +203,13 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/agent/skills/{name}/body", s.HandleAgentSkillBody)
 
 	// HTTP MCP transport — requires SYMBIONT_TOKEN to create the loopback client.
+	// Register each method explicitly; a bare "/api/mcp" pattern (no method prefix)
+	// conflicts with "GET /" in Go 1.22's mux.
 	if s.cfg.Token != "" {
-		mux.Handle("/api/mcp", newMCPHTTPHandler(s.cfg.APIPort, s.cfg.Token))
+		mcpHandler := newMCPHTTPHandler(s.cfg.APIPort, s.cfg.Token)
+		mux.Handle("POST /api/mcp", mcpHandler)
+		mux.Handle("GET /api/mcp", mcpHandler)
+		mux.Handle("DELETE /api/mcp", mcpHandler)
 	}
 
 	// SSE stream.
