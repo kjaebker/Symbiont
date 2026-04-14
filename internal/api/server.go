@@ -202,6 +202,11 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/agent/skills", s.HandleAgentSkillList)
 	mux.HandleFunc("GET /api/agent/skills/{name}/body", s.HandleAgentSkillBody)
 
+	// HTTP MCP transport — requires SYMBIONT_TOKEN to create the loopback client.
+	if s.cfg.Token != "" {
+		mux.Handle("/api/mcp", newMCPHTTPHandler(s.cfg.APIPort, s.cfg.Token))
+	}
+
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
 
