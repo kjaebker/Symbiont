@@ -24,6 +24,7 @@ import {
 import { LivestockForm } from '@/components/LivestockForm'
 import type { LivestockFormData } from '@/components/LivestockForm'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { thumbUrl } from '@/api/client'
 
 // ─── type maps ────────────────────────────────────────────────────────────────
 
@@ -718,7 +719,7 @@ export default function LivestockDetail() {
                       className="group block w-full overflow-hidden rounded-xl"
                     >
                       <img
-                        src={`/data/${obs.image_path}`}
+                        src={thumbUrl(obs.image_path)}
                         alt="observation"
                         className="w-full max-h-56 object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />

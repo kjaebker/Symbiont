@@ -1307,6 +1307,30 @@ func (s *SQLiteDB) UpdateLivestockObservationImagePath(ctx context.Context, id i
 	return nil
 }
 
+// ListAllImagePaths returns every non-null image_path stored across the
+// livestock and livestock_observations tables. Used by the image reprocessor.
+func (s *SQLiteDB) ListAllImagePaths(ctx context.Context) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT image_path FROM livestock WHERE image_path IS NOT NULL
+		UNION ALL
+		SELECT image_path FROM livestock_observations WHERE image_path IS NOT NULL
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("listing image paths: %w", err)
+	}
+	defer rows.Close()
+
+	var paths []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, fmt.Errorf("scanning image path: %w", err)
+		}
+		paths = append(paths, p)
+	}
+	return paths, rows.Err()
+}
+
 // InsertLivestockObservation inserts a new observation and returns its ID.
 func (s *SQLiteDB) InsertLivestockObservation(ctx context.Context, o LivestockObservation) (int64, error) {
 	res, err := s.db.ExecContext(ctx,

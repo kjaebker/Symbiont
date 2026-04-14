@@ -19,6 +19,7 @@ func NewLivestockCmd(client *APIClient) *cobra.Command {
 	cmd.AddCommand(newLivestockDeleteCmd(client))
 	cmd.AddCommand(newLivestockObserveCmd(client))
 	cmd.AddCommand(newLivestockObservationsCmd(client))
+	cmd.AddCommand(newLivestockImageCmd(client))
 	return cmd
 }
 

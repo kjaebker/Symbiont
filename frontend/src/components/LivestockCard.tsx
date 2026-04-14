@@ -3,6 +3,7 @@ import { Fish, Flower2, Shell, Box } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
+import { thumbUrl } from '@/api/client'
 
 const typeIcons: Record<LivestockType, LucideIcon> = {
   fish:         Fish,
@@ -54,7 +55,7 @@ export function LivestockCard({ item }: LivestockCardProps) {
       {/* Background: photo or tinted placeholder */}
       {item.image_path ? (
         <img
-          src={`/data/${item.image_path}`}
+          src={thumbUrl(item.image_path)}
           alt={item.name}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />

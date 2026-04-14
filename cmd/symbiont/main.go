@@ -80,6 +80,7 @@ func main() {
 	rootCmd.AddCommand(cli.NewJournalCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewTankCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewEventsCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewImagesCmd(sharedClient))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)

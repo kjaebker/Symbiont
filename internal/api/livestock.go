@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -231,10 +230,11 @@ func (s *Server) HandleLivestockDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete image file if present.
+	// Delete image and thumbnail files if present.
 	item, err := s.sqlite.GetLivestockItem(r.Context(), id)
 	if err == nil && item.ImagePath != nil {
 		os.Remove(s.dataFilePath(*item.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
 	}
 
 	if err := s.sqlite.DeleteLivestockItem(r.Context(), id); err != nil {
@@ -287,32 +287,38 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	full, thumb, err := processImage(file, ext)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
+		return
+	}
+
 	imagesDir := s.dataFilePath("images")
 	if err := os.MkdirAll(imagesDir, 0o755); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create images directory", "io_error")
 		return
 	}
 
-	filename := fmt.Sprintf("livestock-%d-%d%s", id, time.Now().Unix(), ext)
+	// Always stored as JPEG regardless of upload format.
+	filename := fmt.Sprintf("livestock-%d-%d.jpg", id, time.Now().Unix())
 	relPath := filepath.Join("images", filename)
 	absPath := s.dataFilePath(relPath)
+	absThumbPath := s.dataFilePath(thumbPath(relPath))
 
-	dst, err := os.Create(absPath)
-	if err != nil {
+	if err := os.WriteFile(absPath, full, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
 		return
 	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
+	if err := os.WriteFile(absThumbPath, thumb, 0o644); err != nil {
 		os.Remove(absPath)
-		writeError(w, http.StatusInternalServerError, "failed to write image", "io_error")
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
 		return
 	}
 
-	// Remove old image if present.
+	// Remove old image and thumbnail if present.
 	if item.ImagePath != nil {
 		os.Remove(s.dataFilePath(*item.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
 	}
 
 	item.ImagePath = &relPath
@@ -321,7 +327,10 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"image_path": relPath})
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
 }
 
 func (s *Server) HandleLivestockImageDelete(w http.ResponseWriter, r *http.Request) {
@@ -345,6 +354,7 @@ func (s *Server) HandleLivestockImageDelete(w http.ResponseWriter, r *http.Reque
 
 	if item.ImagePath != nil {
 		os.Remove(s.dataFilePath(*item.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
 	}
 
 	item.ImagePath = nil
@@ -485,7 +495,6 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	const maxImageSize = 5 << 20 // 5MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
 		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
@@ -506,41 +515,51 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	full, thumb, err := processImage(file, ext)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
+		return
+	}
+
 	imagesDir := s.dataFilePath("images")
 	if err := os.MkdirAll(imagesDir, 0o755); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create images directory", "io_error")
 		return
 	}
 
-	filename := fmt.Sprintf("obs-%d-%d%s", obsID, time.Now().Unix(), ext)
+	// Always stored as JPEG regardless of upload format.
+	filename := fmt.Sprintf("obs-%d-%d.jpg", obsID, time.Now().Unix())
 	relPath := filepath.Join("images", filename)
 	absPath := s.dataFilePath(relPath)
+	absThumbPath := s.dataFilePath(thumbPath(relPath))
 
-	dst, err := os.Create(absPath)
-	if err != nil {
+	if err := os.WriteFile(absPath, full, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
 		return
 	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
+	if err := os.WriteFile(absThumbPath, thumb, 0o644); err != nil {
 		os.Remove(absPath)
-		writeError(w, http.StatusInternalServerError, "failed to write image", "io_error")
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
 		return
 	}
 
-	// Remove old image if present.
+	// Remove old image and thumbnail if present.
 	if obs.ImagePath != nil {
 		os.Remove(s.dataFilePath(*obs.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
 	}
 
 	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, &relPath); err != nil {
 		os.Remove(absPath)
+		os.Remove(absThumbPath)
 		writeError(w, http.StatusInternalServerError, "failed to update observation image", "db_error")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"image_path": relPath})
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
 }
 
 func (s *Server) HandleObservationImageDelete(w http.ResponseWriter, r *http.Request) {
@@ -560,6 +579,7 @@ func (s *Server) HandleObservationImageDelete(w http.ResponseWriter, r *http.Req
 
 	if obs.ImagePath != nil {
 		os.Remove(s.dataFilePath(*obs.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
 	}
 
 	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, nil); err != nil {

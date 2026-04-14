@@ -56,6 +56,31 @@ func (c *APIClient) Delete(ctx context.Context, path string) error {
 	return c.do(ctx, http.MethodDelete, path, nil, nil)
 }
 
+// GetBytes sends a GET request and returns the raw response body.
+func (c *APIClient) GetBytes(ctx context.Context, path string) ([]byte, string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, "", &APIError{Status: resp.StatusCode, Message: "request failed"}
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("reading response: %w", err)
+	}
+	return data, resp.Header.Get("Content-Type"), nil
+}
+
 func (c *APIClient) do(ctx context.Context, method, path string, body any, result any) error {
 	var bodyReader io.Reader
 	if body != nil {

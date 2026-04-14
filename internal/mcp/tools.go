@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -38,6 +39,7 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(updateLivestockTool(), updateLivestockHandler(client))
 	s.AddTool(getLivestockObservationsTool(), getLivestockObservationsHandler(client))
 	s.AddTool(addLivestockObservationTool(), addLivestockObservationHandler(client))
+	s.AddTool(getLivestockImageTool(), getLivestockImageHandler(client))
 	s.AddTool(getFeedModeTool(), getFeedModeHandler(client))
 	s.AddTool(setFeedModeTool(), setFeedModeHandler(client))
 	s.AddTool(getJournalEntriesTool(), getJournalEntriesHandler(client))
@@ -1061,6 +1063,96 @@ func addLivestockObservationHandler(client *cli.APIClient) server.ToolHandlerFun
 		}
 		return jsonResult(resp)
 	}
+}
+
+// --- get_livestock_image ---
+
+func getLivestockImageTool() mcp.Tool {
+	return mcp.NewTool("get_livestock_image",
+		mcp.WithDescription("Fetch the photo for a livestock item so you can visually inspect it. Returns the image as inline content. Use the id from get_livestock. Pass thumbnail=true (the default) for a fast preview, or thumbnail=false for the full-resolution image."),
+		mcp.WithNumber("id",
+			mcp.Required(),
+			mcp.Description("Livestock item ID from get_livestock"),
+		),
+		mcp.WithBoolean("thumbnail",
+			mcp.Description("Return the thumbnail instead of the full image (default: true)"),
+		),
+	)
+}
+
+func getLivestockImageHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		idFloat := request.GetFloat("id", 0)
+		if idFloat == 0 {
+			return toolError("Parameter 'id' is required"), nil
+		}
+		idStr := fmt.Sprintf("%d", int64(idFloat))
+
+		// Default thumbnail=true unless explicitly set to false.
+		useThumbnail := true
+		if v, ok := request.GetArguments()["thumbnail"]; ok {
+			if b, ok := v.(bool); ok {
+				useThumbnail = b
+			}
+		}
+
+		// Fetch the livestock item to get its image_path.
+		var item struct {
+			Name      string  `json:"name"`
+			ImagePath *string `json:"image_path"`
+		}
+		timeoutCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+
+		if err := client.Get(timeoutCtx, "/api/livestock/"+idStr, &item); err != nil {
+			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
+				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
+			}
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		if item.ImagePath == nil {
+			return mcp.NewToolResultText(fmt.Sprintf("Livestock item %s (%s) has no image.", idStr, item.Name)), nil
+		}
+
+		imagePath := *item.ImagePath
+		if useThumbnail {
+			imagePath = thumbPathMCP(imagePath)
+		}
+
+		data, contentType, err := client.GetBytes(timeoutCtx, "/data/"+imagePath)
+		if err != nil {
+			// Fall back to full image if thumbnail doesn't exist yet.
+			if useThumbnail {
+				data, contentType, err = client.GetBytes(timeoutCtx, "/data/"+*item.ImagePath)
+			}
+			if err != nil {
+				return toolError(fmt.Sprintf("Failed to fetch image: %v", err)), nil
+			}
+		}
+
+		if contentType == "" {
+			contentType = "image/jpeg"
+		}
+
+		encoded := base64.StdEncoding.EncodeToString(data)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.NewTextContent(fmt.Sprintf("Photo of %s (livestock ID %s):", item.Name, idStr)),
+				mcp.NewImageContent(encoded, contentType),
+			},
+		}, nil
+	}
+}
+
+// thumbPathMCP derives the thumbnail path from an image path, mirroring the
+// naming convention used by the API server's image upload handlers.
+func thumbPathMCP(imagePath string) string {
+	for i := len(imagePath) - 1; i >= 0 && imagePath[i] != '/'; i-- {
+		if imagePath[i] == '.' {
+			return imagePath[:i] + "-thumb.jpg"
+		}
+	}
+	return imagePath + "-thumb.jpg"
 }
 
 // --- get_feed_mode ---

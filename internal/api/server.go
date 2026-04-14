@@ -203,6 +203,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
 
+	// Image utilities.
+	mux.HandleFunc("POST /api/images/reprocess", s.HandleImagesReprocess)
+
 	// Device images — serve from data directory.
 	dataDir := filepath.Dir(s.sqlite.Path())
 	mux.Handle("GET /data/", http.StripPrefix("/data/", http.FileServer(http.Dir(dataDir))))
