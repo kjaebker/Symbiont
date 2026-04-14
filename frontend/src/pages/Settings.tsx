@@ -2208,15 +2208,21 @@ function AgentTab() {
   }
 
   function handleSkillToggle(name: string, enabled: boolean) {
-    const current = settings!.enabled_skills ?? []
+    const allNames = skills.map((s) => s.name)
+    // Expand empty list (opt-out "all enabled") to explicit list before mutating,
+    // otherwise filtering an empty array always stays empty.
+    const current =
+      settings!.enabled_skills && settings!.enabled_skills.length > 0
+        ? settings!.enabled_skills
+        : allNames
     let next: string[]
     if (enabled) {
       next = current.includes(name) ? current : [...current, name]
     } else {
       next = current.filter((n) => n !== name)
     }
-    // If all skills are enabled, store empty array (opt-out model = all enabled)
-    if (next.length === skills.length) next = []
+    // Collapse back to empty when all skills are on (opt-out model)
+    if (next.length === allNames.length) next = []
     updateSettings.mutate({ enabled_skills: next })
   }
 
