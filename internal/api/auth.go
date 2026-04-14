@@ -59,6 +59,36 @@ func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) HandleTokenUpdateScope(w http.ResponseWriter, r *http.Request) {
+	idStr := pathValue(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid token id", "invalid_param")
+		return
+	}
+
+	var body struct {
+		Scope string `json:"scope"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
+		return
+	}
+	if !validTokenScopes[body.Scope] {
+		writeError(w, http.StatusBadRequest, "invalid scope; must be: read, control, admin", "invalid_param")
+		return
+	}
+
+	if err := s.sqlite.UpdateTokenScope(r.Context(), id, body.Scope); err != nil {
+		writeError(w, http.StatusNotFound, "token not found", "not_found")
+		return
+	}
+
+	s.events.Publish(events.NewAuthEvent("token_scope_updated", idStr))
+
+	writeJSON(w, http.StatusOK, map[string]string{"id": idStr, "scope": body.Scope})
+}
+
 func (s *Server) HandleTokenDelete(w http.ResponseWriter, r *http.Request) {
 	idStr := pathValue(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)

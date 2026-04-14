@@ -218,6 +218,13 @@ export function createToken(label: string, scope: string = 'admin') {
   })
 }
 
+export function updateTokenScope(id: number, scope: string) {
+  return apiFetch<{ id: string; scope: string }>(`/api/tokens/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ scope }),
+  })
+}
+
 export function revokeToken(id: number) {
   return apiFetch<void>(`/api/tokens/${id}`, { method: 'DELETE' })
 }

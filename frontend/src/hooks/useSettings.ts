@@ -6,6 +6,7 @@ import {
   updateOutletConfig,
   listTokens,
   createToken,
+  updateTokenScope,
   revokeToken,
   getBackups,
   triggerBackup,
@@ -71,6 +72,17 @@ export function useCreateToken() {
   return useMutation({
     mutationFn: ({ label, scope }: { label: string; scope: string }) =>
       createToken(label, scope),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tokens'] })
+    },
+  })
+}
+
+export function useUpdateTokenScope() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, scope }: { id: number; scope: string }) =>
+      updateTokenScope(id, scope),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tokens'] })
     },

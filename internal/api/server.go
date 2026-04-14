@@ -218,6 +218,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Auth tokens.
 	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
+	mux.HandleFunc("PATCH /api/tokens/{id}", s.HandleTokenUpdateScope)
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
 
 	// Image utilities.

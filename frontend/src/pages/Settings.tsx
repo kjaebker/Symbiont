@@ -26,6 +26,7 @@ import {
   useUpdateOutletConfig,
   useTokens,
   useCreateToken,
+  useUpdateTokenScope,
   useRevokeToken,
   useBackups,
   useTriggerBackup,
@@ -1364,6 +1365,7 @@ function TankTab() {
 function TokensTab() {
   const { data, isLoading } = useTokens()
   const createMutation = useCreateToken()
+  const updateScopeMutation = useUpdateTokenScope()
   const revokeMutation = useRevokeToken()
 
   const [showForm, setShowForm] = useState(false)
@@ -1516,14 +1518,21 @@ function TokensTab() {
                   <td className="py-3 px-4 text-sm text-on-surface-dim font-mono">{t.id}</td>
                   <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
                   <td className="py-3 px-4">
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-widest',
-                      t.scope === 'admin' && 'bg-secondary/15 text-secondary',
-                      t.scope === 'control' && 'bg-primary/15 text-primary',
-                      t.scope === 'read' && 'bg-on-surface-faint/15 text-on-surface-dim',
-                    )}>
-                      {t.scope}
-                    </span>
+                    <select
+                      value={t.scope}
+                      onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
+                      disabled={updateScopeMutation.isPending}
+                      className={cn(
+                        'rounded-full text-xs font-medium uppercase tracking-widest px-2 py-0.5 outline-none cursor-pointer transition-fluid disabled:opacity-50',
+                        t.scope === 'admin' && 'bg-secondary/15 text-secondary',
+                        t.scope === 'control' && 'bg-primary/15 text-primary',
+                        t.scope === 'read' && 'bg-on-surface-faint/15 text-on-surface-dim',
+                      )}
+                    >
+                      <option value="admin">admin</option>
+                      <option value="control">control</option>
+                      <option value="read">read</option>
+                    </select>
                   </td>
                   <td className="py-3 px-4 text-sm text-on-surface-dim">
                     {relativeTime(t.created_at)}

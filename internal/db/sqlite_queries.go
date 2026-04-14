@@ -33,6 +33,20 @@ func (s *SQLiteDB) TouchToken(ctx context.Context, id int64) error {
 	return nil
 }
 
+// UpdateTokenScope changes the scope of an existing token.
+// Only the scope column is updated — the token value is immutable.
+func (s *SQLiteDB) UpdateTokenScope(ctx context.Context, id int64, scope string) error {
+	res, err := s.db.ExecContext(ctx, "UPDATE auth_tokens SET scope = ? WHERE id = ?", scope, id)
+	if err != nil {
+		return fmt.Errorf("updating token %d scope: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("token %d not found", id)
+	}
+	return nil
+}
+
 // InsertToken generates a random 32-byte token with admin scope and returns it.
 // Existing callers (bootstrap, tests) continue to work unchanged.
 func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error) {
