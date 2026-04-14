@@ -203,6 +203,18 @@ type JournalFilter struct {
 	Limit     int // defaults to 50 if <= 0
 }
 
+// AgentSettings represents the single-row agent_settings table. It stores the
+// tunable persona parameters used by get_agent_context to assemble a system
+// prompt for external Claude clients.
+type AgentSettings struct {
+	Tone              string   `json:"tone"`                // analytical | casual | terse
+	DosingProductLine string   `json:"dosing_product_line"` // brs_pharma | red_sea | tropic_marin | generic | none
+	NetVolumeGallons  *float64 `json:"net_volume_gallons"`  // override; nil = derive from tank_profile
+	CustomGuardrails  *string  `json:"custom_guardrails"`
+	EnabledSkills     []string `json:"enabled_skills"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 // AuditEvent represents a row in the events table — a forensic record of every
 // significant state change that flows through the system event bus.
 type AuditEvent struct {
