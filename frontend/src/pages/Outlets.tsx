@@ -179,7 +179,7 @@ export default function Outlets() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[580px]">
               <thead>
                 <tr className="bg-surface-container-high/50">
                   <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
@@ -237,7 +237,7 @@ export default function Outlets() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[560px]">
                   <thead>
                     <tr className="bg-surface-container-high/50">
                       <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">

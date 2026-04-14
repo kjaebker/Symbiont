@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { setToken } from '@/api/client'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { Bubbles } from '@/components/Bubbles'
 
 export default function Login() {
   usePageTitle('Login')
@@ -34,7 +35,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Bubbles />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
