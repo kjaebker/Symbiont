@@ -78,13 +78,13 @@ func (s *Server) HandleStream(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "missing token query parameter", "unauthorized")
 		return
 	}
-	valid, id := s.sqlite.ValidateToken(r.Context(), token)
+	valid, ta := s.sqlite.ValidateToken(r.Context(), token)
 	if !valid {
 		writeError(w, http.StatusUnauthorized, "invalid token", "unauthorized")
 		return
 	}
 	go func() {
-		_ = s.sqlite.TouchToken(context.Background(), id)
+		_ = s.sqlite.TouchToken(context.Background(), ta.ID)
 	}()
 
 	// Set SSE headers.

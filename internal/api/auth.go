@@ -16,9 +16,16 @@ func (s *Server) HandleTokenList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"tokens": tokens})
 }
 
+var validTokenScopes = map[string]bool{
+	"read":    true,
+	"control": true,
+	"admin":   true,
+}
+
 func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Label string `json:"label"`
+		Scope string `json:"scope"` // read | control | admin (default: admin)
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
@@ -28,8 +35,16 @@ func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "label is required", "missing_param")
 		return
 	}
+	scope := body.Scope
+	if scope == "" {
+		scope = "admin"
+	}
+	if !validTokenScopes[scope] {
+		writeError(w, http.StatusBadRequest, "invalid scope; must be: read, control, admin", "invalid_param")
+		return
+	}
 
-	token, err := s.sqlite.InsertToken(r.Context(), body.Label)
+	token, err := s.sqlite.InsertTokenWithScope(r.Context(), body.Label, scope)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create token", "db_error")
 		return
@@ -40,6 +55,7 @@ func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]string{
 		"token": token,
 		"label": body.Label,
+		"scope": scope,
 	})
 }
 

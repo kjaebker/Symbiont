@@ -13,13 +13,15 @@ import (
 // --- Auth Tokens ---
 
 // ValidateToken checks if a token exists and returns its ID.
-func (s *SQLiteDB) ValidateToken(ctx context.Context, token string) (bool, int64) {
-	var id int64
-	err := s.db.QueryRowContext(ctx, "SELECT id FROM auth_tokens WHERE token = ?", token).Scan(&id)
+func (s *SQLiteDB) ValidateToken(ctx context.Context, token string) (bool, *TokenAuth) {
+	var t TokenAuth
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, COALESCE(label,''), COALESCE(scope,'admin') FROM auth_tokens WHERE token = ?", token,
+	).Scan(&t.ID, &t.Label, &t.Scope)
 	if err != nil {
-		return false, 0
+		return false, nil
 	}
-	return true, id
+	return true, &t
 }
 
 // TouchToken updates the last_used timestamp for a token.
@@ -31,8 +33,15 @@ func (s *SQLiteDB) TouchToken(ctx context.Context, id int64) error {
 	return nil
 }
 
-// InsertToken generates a random 32-byte token, inserts it, and returns the hex-encoded token string.
+// InsertToken generates a random 32-byte token with admin scope and returns it.
+// Existing callers (bootstrap, tests) continue to work unchanged.
 func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error) {
+	return s.InsertTokenWithScope(ctx, label, "admin")
+}
+
+// InsertTokenWithScope generates a random 32-byte token with a specific scope.
+// scope must be one of: read, control, admin.
+func (s *SQLiteDB) InsertTokenWithScope(ctx context.Context, label, scope string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("generating token: %w", err)
@@ -40,8 +49,8 @@ func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error
 	token := hex.EncodeToString(b)
 
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO auth_tokens (token, label) VALUES (?, ?)",
-		token, label,
+		"INSERT INTO auth_tokens (token, label, scope) VALUES (?, ?, ?)",
+		token, label, scope,
 	)
 	if err != nil {
 		return "", fmt.Errorf("inserting token: %w", err)
@@ -52,7 +61,7 @@ func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error
 // ListTokens returns all tokens (without the token value itself).
 func (s *SQLiteDB) ListTokens(ctx context.Context) ([]AuthToken, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, label, created_at, last_used FROM auth_tokens ORDER BY created_at DESC",
+		"SELECT id, COALESCE(label,''), COALESCE(scope,'admin'), created_at, last_used FROM auth_tokens ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing tokens: %w", err)
@@ -62,7 +71,7 @@ func (s *SQLiteDB) ListTokens(ctx context.Context) ([]AuthToken, error) {
 	var tokens []AuthToken
 	for rows.Next() {
 		var t AuthToken
-		if err := rows.Scan(&t.ID, &t.Label, &t.CreatedAt, &t.LastUsed); err != nil {
+		if err := rows.Scan(&t.ID, &t.Label, &t.Scope, &t.CreatedAt, &t.LastUsed); err != nil {
 			return nil, fmt.Errorf("scanning token: %w", err)
 		}
 		tokens = append(tokens, t)

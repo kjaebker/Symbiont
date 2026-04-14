@@ -39,11 +39,11 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Validate it.
-	valid, id := db.ValidateToken(ctx, token)
+	valid, ta := db.ValidateToken(ctx, token)
 	if !valid {
 		t.Fatal("expected token to be valid")
 	}
-	if id == 0 {
+	if ta == nil || ta.ID == 0 {
 		t.Fatal("expected non-zero token ID")
 	}
 
@@ -54,7 +54,7 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Touch it.
-	if err := db.TouchToken(ctx, id); err != nil {
+	if err := db.TouchToken(ctx, ta.ID); err != nil {
 		t.Fatalf("touching token: %v", err)
 	}
 
@@ -74,7 +74,7 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Delete it.
-	if err := db.DeleteToken(ctx, id); err != nil {
+	if err := db.DeleteToken(ctx, ta.ID); err != nil {
 		t.Fatalf("deleting token: %v", err)
 	}
 

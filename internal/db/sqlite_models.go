@@ -7,8 +7,17 @@ type AuthToken struct {
 	ID        int64      `json:"id"`
 	Token     string     `json:"-"` // Never expose in list responses
 	Label     string     `json:"label"`
+	Scope     string     `json:"scope"` // read | control | admin
 	CreatedAt time.Time  `json:"created_at"`
 	LastUsed  *time.Time `json:"last_used"`
+}
+
+// TokenAuth is returned by ValidateToken and holds the data the auth
+// middleware needs without exposing the raw token string.
+type TokenAuth struct {
+	ID    int64
+	Label string
+	Scope string // read | control | admin
 }
 
 // ProbeConfig represents a row in the probe_config table.

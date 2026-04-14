@@ -209,6 +209,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 	migrations := []string{
 		`ALTER TABLE probe_config ADD COLUMN device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL`,
 		`ALTER TABLE livestock_observations ADD COLUMN image_path TEXT`,
+		// Token scope: existing tokens default to 'admin' to preserve current behaviour.
+		`ALTER TABLE auth_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'admin'`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

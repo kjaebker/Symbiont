@@ -129,13 +129,18 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Publish post-commit.
+	// Publish post-commit. Enrich initiated_by with the token label when set
+	// so events distinguish "api:claude-mobile" from "api:default".
 	prevState := ""
 	if fromState != nil {
 		prevState = *fromState
 	}
 	name := derefStr(outletName, did)
-	s.events.Publish(events.NewOutletChanged(did, name, prevState, body.State, "api"))
+	initiatedBy := "api"
+	if label := TokenLabelFromContext(ctx); label != "" && label != "default" {
+		initiatedBy = "api:" + label
+	}
+	s.events.Publish(events.NewOutletChanged(did, name, prevState, body.State, initiatedBy))
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"id":    did,
