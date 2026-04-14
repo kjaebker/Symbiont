@@ -123,11 +123,17 @@ func (s *Server) HandleAgentContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	livestock, err := s.sqlite.ListLivestock(ctx, db.LivestockFilter{Status: "active"})
+	allLivestock, err := s.sqlite.ListLivestock(ctx, db.LivestockFilter{})
 	if err != nil {
 		s.logger.Error("failed to list livestock", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to get livestock", "db_error")
 		return
+	}
+	livestock := make([]db.LivestockItem, 0, len(allLivestock))
+	for _, l := range allLivestock {
+		if l.Status != "deceased" {
+			livestock = append(livestock, l)
+		}
 	}
 
 	alertRules, err := s.sqlite.ListAlertRules(ctx)

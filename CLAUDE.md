@@ -297,6 +297,6 @@ When a task is complete, mark it `[x]` in the relevant phase file.
 > Update this section at the start of each session.
 
 **Active phase:** Phase 7 — Layout Builder (phases 1–6 substantially complete)
-**Last completed task:** Codebase review improvements — display name consistency, alert engine lock fix, input validation, frontend test setup
-**Next task:** Phase 7 tasks
+**Last completed task:** Agent + Skills feature (feat/agent-skills) — full two-phase implementation: embedded skills pack, agent context assembly, MCP tools, CLI subcommands, Settings > Agent tab, token scopes/middleware, HTTP MCP transport, claude.ai connector flow
+**Next task:** Phase 7 tasks (or merge feat/agent-skills → main first)
 **Blockers:** None
