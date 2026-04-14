@@ -22,6 +22,8 @@ import type {
   LivestockObservation,
   LivestockType,
   LivestockStatus,
+  AgentSettings,
+  AgentSkill,
 } from './types'
 
 export type { Outlet }
@@ -655,4 +657,24 @@ export function listAuditEvents(params?: AuditEventListParams) {
 
 export function getEventBusStats() {
   return apiFetch<{ subscribers: SubscriberStat[] }>('/api/events/stats')
+}
+
+// Agent
+export function getAgentSettings() {
+  return apiFetch<AgentSettings>('/api/agent/settings')
+}
+
+export function updateAgentSettings(patch: Partial<AgentSettings>) {
+  return apiFetch<AgentSettings>('/api/agent/settings', {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function getAgentContext() {
+  return apiFetch<{ context: string }>('/api/agent/context')
+}
+
+export function getAgentSkills() {
+  return apiFetch<{ skills: AgentSkill[] }>('/api/agent/skills')
 }

@@ -218,3 +218,18 @@ export interface LivestockObservation {
   note: string | null
   image_path: string | null
 }
+
+export interface AgentSettings {
+  tone: 'analytical' | 'casual' | 'terse'
+  dosing_product_line: 'brs_pharma' | 'red_sea' | 'tropic_marin' | 'generic' | 'none'
+  net_volume_gallons: number | null
+  custom_guardrails: string | null
+  enabled_skills: string[]
+  updated_at: string
+}
+
+export interface AgentSkill {
+  name: string
+  description: string
+  enabled: boolean
+}
