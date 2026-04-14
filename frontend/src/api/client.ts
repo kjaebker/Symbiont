@@ -211,10 +211,10 @@ export function listTokens() {
   return apiFetch<{ tokens: AuthToken[] }>('/api/tokens')
 }
 
-export function createToken(label: string) {
-  return apiFetch<{ token: string; label: string }>('/api/tokens', {
+export function createToken(label: string, scope: string = 'admin') {
+  return apiFetch<{ token: string; label: string; scope: string }>('/api/tokens', {
     method: 'POST',
-    body: JSON.stringify({ label }),
+    body: JSON.stringify({ label, scope }),
   })
 }
 

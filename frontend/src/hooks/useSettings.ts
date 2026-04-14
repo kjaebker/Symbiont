@@ -69,7 +69,8 @@ export function useTokens() {
 export function useCreateToken() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (label: string) => createToken(label),
+    mutationFn: ({ label, scope }: { label: string; scope: string }) =>
+      createToken(label, scope),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tokens'] })
     },

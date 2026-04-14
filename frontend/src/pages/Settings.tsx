@@ -1368,6 +1368,7 @@ function TokensTab() {
 
   const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
+  const [scope, setScope] = useState<'read' | 'control' | 'admin'>('admin')
   const [newToken, setNewToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null)
@@ -1377,10 +1378,11 @@ function TokensTab() {
   function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!label.trim()) return
-    createMutation.mutate(label.trim(), {
+    createMutation.mutate({ label: label.trim(), scope }, {
       onSuccess: (data) => {
         setNewToken(data.token)
         setLabel('')
+        setScope('admin')
         setShowForm(false)
       },
     })
@@ -1453,6 +1455,15 @@ function TokensTab() {
             className="flex-1 bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
             autoFocus
           />
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value as 'read' | 'control' | 'admin')}
+            className="bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer"
+          >
+            <option value="admin">admin</option>
+            <option value="control">control</option>
+            <option value="read">read</option>
+          </select>
           <button
             type="submit"
             disabled={createMutation.isPending}
@@ -1465,6 +1476,7 @@ function TokensTab() {
             onClick={() => {
               setShowForm(false)
               setLabel('')
+              setScope('admin')
             }}
             className="px-3 py-2 rounded-xl text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
           >
@@ -1485,7 +1497,7 @@ function TokensTab() {
           <table className="w-full">
             <thead>
               <tr className="bg-surface-container-high/50">
-                {['ID', 'Label', 'Created', 'Last Used', ''].map((h) => (
+                {['ID', 'Label', 'Scope', 'Created', 'Last Used', ''].map((h) => (
                   <th
                     key={h}
                     className={cn(
@@ -1503,6 +1515,16 @@ function TokensTab() {
                 <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
                   <td className="py-3 px-4 text-sm text-on-surface-dim font-mono">{t.id}</td>
                   <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
+                  <td className="py-3 px-4">
+                    <span className={cn(
+                      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-widest',
+                      t.scope === 'admin' && 'bg-secondary/15 text-secondary',
+                      t.scope === 'control' && 'bg-primary/15 text-primary',
+                      t.scope === 'read' && 'bg-on-surface-faint/15 text-on-surface-dim',
+                    )}>
+                      {t.scope}
+                    </span>
+                  </td>
                   <td className="py-3 px-4 text-sm text-on-surface-dim">
                     {relativeTime(t.created_at)}
                   </td>
@@ -2182,7 +2204,7 @@ function AgentTab() {
   }
 
   function handleSkillToggle(name: string, enabled: boolean) {
-    const current = settings.enabled_skills ?? []
+    const current = settings!.enabled_skills ?? []
     let next: string[]
     if (enabled) {
       next = current.includes(name) ? current : [...current, name]
@@ -2195,8 +2217,8 @@ function AgentTab() {
   }
 
   function isSkillEnabled(name: string): boolean {
-    if (!settings.enabled_skills || settings.enabled_skills.length === 0) return true
-    return settings.enabled_skills.includes(name)
+    if (!settings!.enabled_skills || settings!.enabled_skills.length === 0) return true
+    return settings!.enabled_skills.includes(name)
   }
 
   async function handleCopyContext() {
