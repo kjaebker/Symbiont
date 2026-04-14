@@ -2173,8 +2173,12 @@ function AgentTab() {
   const { data: skillsData, isLoading: skillsLoading } = useAgentSkills()
   const { data: contextData, isLoading: contextLoading, refetch: refetchContext } = useAgentContext()
   const updateSettings = useUpdateAgentSettings()
+  const createToken = useCreateToken()
   const [showContext, setShowContext] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [personaCopied, setPersonaCopied] = useState(false)
+  const [connectorToken, setConnectorToken] = useState<string | null>(null)
+  const [connectorCopied, setConnectorCopied] = useState(false)
 
   if (settingsLoading || skillsLoading) return <LoadingState label="Loading agent settings..." />
   if (!settings) return null
@@ -2229,6 +2233,30 @@ function AgentTab() {
         setTimeout(() => setCopied(false), 2000)
       })
     }
+  }
+
+  async function handleCopyPersona() {
+    const { data } = await refetchContext()
+    const text = data?.context ?? context
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        setPersonaCopied(true)
+        setTimeout(() => setPersonaCopied(false), 2000)
+      })
+    }
+  }
+
+  function handleCreateConnectorToken() {
+    createToken.mutate({ label: 'claude-mobile', scope: 'control' }, {
+      onSuccess: (data) => setConnectorToken(data.token),
+    })
+  }
+
+  function handleCopyConnectorToken(token: string) {
+    navigator.clipboard.writeText(token).then(() => {
+      setConnectorCopied(true)
+      setTimeout(() => setConnectorCopied(false), 2000)
+    })
   }
 
   const selectClass = 'w-full bg-surface-container-highest text-on-surface text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/40 transition-fluid'
@@ -2367,6 +2395,80 @@ function AgentTab() {
         <p className="text-xs text-on-surface-faint">
           Claude Code auto-discovers skills in that directory. Re-run after toggling skills or updating Symbiont.
         </p>
+      </div>
+
+      {/* claude.ai Connector */}
+      <div className="rounded-2xl bg-surface-container-high/40 p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">claude.ai Connector</p>
+        </div>
+        <p className="text-sm text-on-surface-dim">
+          Add Symbiont as a remote MCP connector in a claude.ai Project for mobile access.
+          The MCP endpoint is at <code className="text-primary font-mono text-xs">/api/mcp</code> on your Symbiont host.
+        </p>
+
+        {/* Step 1: Persona */}
+        <div className="space-y-1.5">
+          <p className="text-xs text-on-surface-dim font-medium">1. Copy your agent persona</p>
+          <p className="text-xs text-on-surface-faint">Paste into the Project&apos;s Custom Instructions so Claude knows your tank without calling tools every turn.</p>
+          <button
+            onClick={handleCopyPersona}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-highest hover:bg-surface-container-high transition-fluid cursor-pointer"
+          >
+            {personaCopied ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
+            {personaCopied ? 'Persona copied!' : 'Copy persona for claude.ai'}
+          </button>
+        </div>
+
+        {/* Step 2: Connector token */}
+        <div className="space-y-1.5">
+          <p className="text-xs text-on-surface-dim font-medium">2. Create a connector token</p>
+          <p className="text-xs text-on-surface-faint">Creates a <code className="text-primary font-mono">control</code>-scoped token labeled <code className="text-primary font-mono">claude-mobile</code>. Use it as the Bearer token in the claude.ai connector settings.</p>
+          {connectorToken ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 bg-surface-container-highest rounded-xl px-3 py-2">
+                <code className="flex-1 text-xs text-secondary font-mono break-all">{connectorToken}</code>
+                <button
+                  onClick={() => handleCopyConnectorToken(connectorToken)}
+                  className="p-1 rounded-lg text-on-surface-faint hover:text-secondary hover:bg-secondary/10 transition-fluid cursor-pointer shrink-0"
+                >
+                  {connectorCopied ? <Check size={13} /> : <Copy size={13} />}
+                </button>
+              </div>
+              <p className="text-xs text-tertiary">Save this token — it won&apos;t be shown again.</p>
+              <button
+                onClick={() => setConnectorToken(null)}
+                className="text-xs text-on-surface-faint hover:text-on-surface transition-fluid cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleCreateConnectorToken}
+              disabled={createToken.isPending}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer disabled:opacity-50"
+            >
+              <Plus size={13} />
+              Create connector token
+            </button>
+          )}
+        </div>
+
+        {/* Step 3: Walkthrough */}
+        <div className="space-y-1.5">
+          <p className="text-xs text-on-surface-dim font-medium">3. Add connector in claude.ai</p>
+          <ol className="text-xs text-on-surface-faint space-y-1 list-decimal list-inside">
+            <li>Open a Project in claude.ai → <span className="text-on-surface-dim">Project settings → Connectors</span></li>
+            <li>Click <span className="text-on-surface-dim">Add connector → Custom MCP server</span></li>
+            <li>Enter your Symbiont URL and the token above</li>
+            <li>Paste the persona into <span className="text-on-surface-dim">Custom Instructions</span></li>
+          </ol>
+          <p className="text-xs text-on-surface-faint pt-1">
+            Need a public URL?{' '}
+            <span className="text-on-surface-dim">Use Tailscale Funnel or Cloudflare Tunnel — see <code className="text-primary font-mono">docs/deployment-remote-mcp.md</code>.</span>
+          </p>
+        </div>
       </div>
 
       {/* Context preview */}
