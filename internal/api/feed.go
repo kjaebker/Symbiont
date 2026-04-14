@@ -58,7 +58,7 @@ func (s *Server) HandleFeedSet(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.apex.SetFeedMode(r.Context(), body.Name, body.Active); err != nil {
 		s.logger.Error("feed mode failed", "err", err, "name", body.Name, "active", body.Active)
-		writeError(w, http.StatusBadGateway, "failed to set feed mode: "+err.Error(), "apex_error")
+		writeError(w, http.StatusBadGateway, "failed to set feed mode", "apex_error")
 		return
 	}
 

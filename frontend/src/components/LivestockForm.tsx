@@ -237,7 +237,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             </div>
           ) : currentImagePath ? (
             <div className="flex items-center gap-3">
-              <img src={`/data/${currentImagePath}`} alt="Current" className="w-24 h-24 rounded-xl object-cover" />
+              <img src={`/${currentImagePath}`} alt="Current" className="w-24 h-24 rounded-xl object-cover" />
               <button
                 type="button"
                 onClick={() => imageInputRef.current?.click()}

@@ -34,16 +34,16 @@ func Run(ctx context.Context, duck *db.DuckDB, sqlite *db.SQLiteDB, cfg Config, 
 		return nil, fmt.Errorf("creating backup dir: %w", err)
 	}
 
-	stamp := time.Now().Format("2006-01-02")
+	stamp := time.Now().Format("2006-01-02-150405")
 
 	// Checkpoint DuckDB before copy.
 	if _, err := duck.DB().ExecContext(ctx, "CHECKPOINT"); err != nil {
 		logger.Warn("duckdb checkpoint failed, proceeding with copy", "err", err)
 	}
 
-	// Checkpoint SQLite WAL before copy.
+	// Checkpoint SQLite WAL before copy to ensure the backup is consistent.
 	if _, err := sqlite.DB().ExecContext(ctx, "PRAGMA wal_checkpoint(FULL)"); err != nil {
-		logger.Warn("sqlite wal checkpoint failed, proceeding with copy", "err", err)
+		return nil, fmt.Errorf("sqlite wal checkpoint failed: %w", err)
 	}
 
 	var paths []string

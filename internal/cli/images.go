@@ -101,16 +101,16 @@ func newLivestockImageCmd(client *APIClient) *cobra.Command {
 			if IsJSON(cmd) {
 				PrintJSON(map[string]string{
 					"image_path":     relPath,
-					"image_url":      client.BaseURL + "/data/" + relPath,
+					"image_url":      client.BaseURL + "/" + relPath,
 					"thumbnail_path": thumbRelPath,
-					"thumbnail_url":  client.BaseURL + "/data/" + thumbRelPath,
+					"thumbnail_url":  client.BaseURL + "/" + thumbRelPath,
 				})
 				return nil
 			}
 
 			fmt.Printf("Livestock:     #%s (%s)\n", id, item.Name)
-			fmt.Printf("Full image:    %s/data/%s\n", client.BaseURL, relPath)
-			fmt.Printf("Thumbnail:     %s/data/%s\n", client.BaseURL, thumbRelPath)
+			fmt.Printf("Full image:    %s/%s\n", client.BaseURL, relPath)
+			fmt.Printf("Thumbnail:     %s/%s\n", client.BaseURL, thumbRelPath)
 
 			if save != "" {
 				fetchPath := relPath
@@ -130,9 +130,9 @@ func newLivestockImageCmd(client *APIClient) *cobra.Command {
 	return cmd
 }
 
-// downloadImage fetches an image from /data/<relPath> and writes it to dest.
+// downloadImage fetches an image from /<relPath> and writes it to dest.
 func downloadImage(ctx context.Context, client *APIClient, relPath, dest string) error {
-	data, _, err := client.GetBytes(ctx, "/data/"+relPath)
+	data, _, err := client.GetBytes(ctx, "/"+relPath)
 	if err != nil {
 		return err
 	}

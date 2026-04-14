@@ -337,9 +337,9 @@ export default function LivestockDetail() {
 
   // Build the gallery from item image + observation images
   const galleryImages: string[] = []
-  if (item?.image_path) galleryImages.push(`/data/${item.image_path}`)
+  if (item?.image_path) galleryImages.push(`/${item.image_path}`)
   for (const obs of observations) {
-    if (obs.image_path) galleryImages.push(`/data/${obs.image_path}`)
+    if (obs.image_path) galleryImages.push(`/${obs.image_path}`)
   }
 
   function openLightbox(index: number) {
@@ -515,7 +515,7 @@ export default function LivestockDetail() {
         <div className="group relative mx-4 md:mx-8 overflow-hidden rounded-2xl" style={{ aspectRatio: '16/9' }}>
           {item.image_path ? (
             <img
-              src={`/data/${item.image_path}`}
+              src={`/${item.image_path}`}
               alt={item.name}
               className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ease-out group-hover:scale-[1.02]"
               onClick={() => openLightbox(0)}
@@ -713,7 +713,7 @@ export default function LivestockDetail() {
                   {obs.image_path && (
                     <button
                       onClick={() => {
-                        const idx = galleryImages.indexOf(`/data/${obs.image_path}`)
+                        const idx = galleryImages.indexOf(`/${obs.image_path}`)
                         if (idx >= 0) openLightbox(idx)
                       }}
                       className="group block w-full overflow-hidden rounded-xl"

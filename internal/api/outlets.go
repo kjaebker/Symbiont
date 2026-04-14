@@ -125,7 +125,8 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		err = s.apex.SetOutletAuto(ctx, *outletName)
 	}
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "failed to set outlet on apex: "+err.Error(), "apex_error")
+		s.logger.Error("apex outlet control failed", "err", err, "outlet_id", did, "state", body.State)
+		writeError(w, http.StatusBadGateway, "failed to control outlet", "apex_error")
 		return
 	}
 

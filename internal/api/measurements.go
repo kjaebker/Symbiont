@@ -62,6 +62,9 @@ func (s *Server) HandleMeasurementList(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "invalid limit", "invalid_param")
 			return
 		}
+		if n > 500 {
+			n = 500
+		}
 		f.Limit = n
 	}
 

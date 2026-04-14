@@ -1,12 +1,34 @@
 package api
 
 import (
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/notify"
 )
+
+// validateNotificationURL checks that the URL is safe to use as a notification
+// target: must be https and must not point at a private/loopback IP or hostname.
+func validateNotificationURL(raw string) string {
+	u, err := url.ParseRequestURI(raw)
+	if err != nil {
+		return "config must be a valid URL"
+	}
+	if u.Scheme != "https" {
+		return "notification URL must use https"
+	}
+	host := u.Hostname()
+	// Block loopback and private ranges to prevent SSRF.
+	if ip := net.ParseIP(host); ip != nil {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return "notification URL must not point to a private or loopback address"
+		}
+	}
+	return ""
+}
 
 func (s *Server) HandleNotificationTargetList(w http.ResponseWriter, r *http.Request) {
 	targets, err := s.sqlite.ListNotificationTargets(r.Context())
@@ -26,6 +48,10 @@ func (s *Server) HandleNotificationTargetUpsert(w http.ResponseWriter, r *http.R
 
 	if target.Type == "" || target.Label == "" || target.Config == "" {
 		writeError(w, http.StatusBadRequest, "type, label, and config are required", "validation_error")
+		return
+	}
+	if errMsg := validateNotificationURL(target.Config); errMsg != "" {
+		writeError(w, http.StatusBadRequest, errMsg, "invalid_url")
 		return
 	}
 

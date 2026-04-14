@@ -33,6 +33,8 @@ func (d *DuckDB) DeleteOldRows(ctx context.Context, retentionDays int) (*Cleanup
 	tables[3].dest = &result.ControllerMeta
 
 	for _, t := range tables {
+		// Table names are hardcoded constants above — not user input — so this
+		// fmt.Sprintf is safe. DuckDB does not support parameterized table names.
 		query := fmt.Sprintf("DELETE FROM %s WHERE ts < CURRENT_TIMESTAMP::TIMESTAMP - INTERVAL '%d days'", t.name, retentionDays)
 		res, err := d.db.ExecContext(ctx, query)
 		if err != nil {

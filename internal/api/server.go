@@ -70,10 +70,11 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 	mux := http.NewServeMux()
 	s.registerRoutes(mux)
 
-	// Build middleware chain: RequestID → Logger → Recover → CORS → Auth → handler
+	// Build middleware chain: RequestID → Logger → Recover → SecurityHeaders → CORS → Auth → handler
 	var handler http.Handler = mux
 	handler = Auth(sqlite)(handler)
 	handler = CORS(handler)
+	handler = SecurityHeaders(handler)
 	handler = Recover(logger)(handler)
 	handler = Logger(logger)(handler)
 	handler = RequestID(handler)
@@ -224,9 +225,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Image utilities.
 	mux.HandleFunc("POST /api/images/reprocess", s.HandleImagesReprocess)
 
-	// Device images — serve from data directory.
-	dataDir := filepath.Dir(s.sqlite.Path())
-	mux.Handle("GET /data/", http.StripPrefix("/data/", http.FileServer(http.Dir(dataDir))))
+	// Device/livestock images — serve only the images subdirectory (not the whole data dir).
+	imagesDir := filepath.Join(filepath.Dir(s.sqlite.Path()), "images")
+	mux.Handle("GET /images/", http.StripPrefix("/images/", http.FileServer(http.Dir(imagesDir))))
 
 	// Static frontend serving with SPA fallback.
 	mux.Handle("GET /", spaHandler(s.frontendFS))

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -120,16 +121,19 @@ func getProbeHistoryHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			return toolError("Parameter 'name' is required"), nil
 		}
 
-		path := "/api/probes/" + name + "/history?"
+		u := &url.URL{Path: "/api/probes/" + url.PathEscape(name) + "/history"}
+		q := url.Values{}
 		if v := request.GetString("from", ""); v != "" {
-			path += "from=" + v + "&"
+			q.Set("from", v)
 		}
 		if v := request.GetString("to", ""); v != "" {
-			path += "to=" + v + "&"
+			q.Set("to", v)
 		}
 		if v := request.GetString("interval", ""); v != "" {
-			path += "interval=" + v + "&"
+			q.Set("interval", v)
 		}
+		u.RawQuery = q.Encode()
+		path := u.String()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -220,12 +224,12 @@ func getOutletEventLogTool() mcp.Tool {
 
 func getOutletEventLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/events?kind=outlet_changed&"
+		q := url.Values{"kind": {"outlet_changed"}}
 		if v := request.GetString("outlet_id", ""); v != "" {
-			path += "correlation_id=" + v + "&"
+			q.Set("correlation_id", v)
 		}
-		limit := request.GetInt("limit", 20)
-		path += fmt.Sprintf("limit=%d&", limit)
+		q.Set("limit", fmt.Sprintf("%d", request.GetInt("limit", 20)))
+		path := "/api/events?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -439,12 +443,12 @@ func getAlertEventsTool() mcp.Tool {
 
 func getAlertEventsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/alerts/events?"
-		limit := request.GetInt("limit", 20)
-		path += fmt.Sprintf("limit=%d&", limit)
+		q := url.Values{}
+		q.Set("limit", fmt.Sprintf("%d", request.GetInt("limit", 20)))
 		if request.GetString("active_only", "") == "true" {
-			path += "active_only=true&"
+			q.Set("active_only", "true")
 		}
+		path := "/api/alerts/events?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -471,11 +475,12 @@ func getSystemLogTool() mcp.Tool {
 
 func getSystemLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		limit := request.GetInt("limit", 50)
-		path := fmt.Sprintf("/api/system/log?limit=%d&", limit)
+		q := url.Values{}
+		q.Set("limit", fmt.Sprintf("%d", request.GetInt("limit", 50)))
 		if v := request.GetString("service", ""); v != "" {
-			path += "service=" + v + "&"
+			q.Set("service", v)
 		}
+		path := "/api/system/log?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -525,19 +530,20 @@ func getMeasurementsTool() mcp.Tool {
 
 func getMeasurementsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/measurements?"
+		q := url.Values{}
 		if v := request.GetString("parameter", ""); v != "" {
-			path += "parameter=" + v + "&"
+			q.Set("parameter", v)
 		}
 		if v := request.GetString("from", ""); v != "" {
-			path += "from=" + v + "&"
+			q.Set("from", v)
 		}
 		if v := request.GetString("to", ""); v != "" {
-			path += "to=" + v + "&"
+			q.Set("to", v)
 		}
 		if v := request.GetInt("limit", 0); v > 0 {
-			path += fmt.Sprintf("limit=%d&", v)
+			q.Set("limit", fmt.Sprintf("%d", v))
 		}
+		path := "/api/measurements?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -617,13 +623,14 @@ func getLivestockTool() mcp.Tool {
 
 func getLivestockHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/livestock?"
+		q := url.Values{}
 		if v := request.GetString("type", ""); v != "" {
-			path += "type=" + v + "&"
+			q.Set("type", v)
 		}
 		if v := request.GetString("status", ""); v != "" {
-			path += "status=" + v + "&"
+			q.Set("status", v)
 		}
+		path := "/api/livestock?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -838,16 +845,17 @@ func getJournalEntriesTool() mcp.Tool {
 
 func getJournalEntriesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path := "/api/journal?"
+		q := url.Values{}
 		if v := request.GetString("category", ""); v != "" {
-			path += "category=" + v + "&"
+			q.Set("category", v)
 		}
 		if v := request.GetString("sentiment", ""); v != "" {
-			path += "sentiment=" + v + "&"
+			q.Set("sentiment", v)
 		}
 		if v := request.GetFloat("limit", 0); v > 0 {
-			path += fmt.Sprintf("limit=%d&", int(v))
+			q.Set("limit", fmt.Sprintf("%d", int(v)))
 		}
+		path := "/api/journal?" + q.Encode()
 
 		var resp any
 		if err := apiCall(client, path, &resp); err != nil {
@@ -1124,11 +1132,11 @@ func getLivestockImageHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			imagePath = thumbPathMCP(imagePath)
 		}
 
-		data, contentType, err := client.GetBytes(timeoutCtx, "/data/"+imagePath)
+		data, contentType, err := client.GetBytes(timeoutCtx, "/"+imagePath)
 		if err != nil {
 			// Fall back to full image if thumbnail doesn't exist yet.
 			if useThumbnail {
-				data, contentType, err = client.GetBytes(timeoutCtx, "/data/"+*item.ImagePath)
+				data, contentType, err = client.GetBytes(timeoutCtx, "/"+*item.ImagePath)
 			}
 			if err != nil {
 				return toolError(fmt.Sprintf("Failed to fetch image: %v", err)), nil
@@ -1544,7 +1552,7 @@ func updateProbeConfigHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(timeoutCtx, "/api/config/probes/"+probeName, body, &resp); err != nil {
+		if err := client.Put(timeoutCtx, "/api/config/probes/"+url.PathEscape(probeName), body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to update probe config for %s: %v", probeName, err)), nil
 		}
 		return jsonResult(resp)
@@ -1629,7 +1637,7 @@ func getSkillHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			Name string `json:"name"`
 			Body string `json:"body"`
 		}
-		if err := apiCall(client, "/api/agent/skills/"+name+"/body", &resp); err != nil {
+		if err := apiCall(client, "/api/agent/skills/"+url.PathEscape(name)+"/body", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return mcp.NewToolResultText(resp.Body), nil

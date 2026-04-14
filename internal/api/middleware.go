@@ -235,6 +235,18 @@ func isAdminRoute(r *http.Request) bool {
 	return false
 }
 
+// SecurityHeaders sets standard security headers on every response.
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		// Permit inline styles (Tailwind generates them) and blob/data for images.
+		w.Header().Set("Content-Security-Policy",
+			"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func extractBearerToken(r *http.Request) string {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
