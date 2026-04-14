@@ -15,7 +15,28 @@ import (
 
 type contextKey string
 
-const requestIDKey contextKey = "request_id"
+const (
+	requestIDKey  contextKey = "request_id"
+	tokenScopeKey contextKey = "token_scope"
+	tokenLabelKey contextKey = "token_label"
+)
+
+// TokenScopeFromContext returns the scope of the authenticated token, or
+// empty string if not set (unauthenticated or pre-scope tokens).
+func TokenScopeFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(tokenScopeKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// TokenLabelFromContext returns the label of the authenticated token.
+func TokenLabelFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(tokenLabelKey).(string); ok {
+		return v
+	}
+	return ""
+}
 
 // RequestIDFromContext returns the request ID from the context.
 func RequestIDFromContext(ctx context.Context) string {
@@ -127,11 +148,14 @@ func CORS(next http.Handler) http.Handler {
 // Auth validates the Bearer token via SQLite. Skips auth for the SSE stream
 // endpoint (which uses a query param token instead) and for non-API paths
 // (static frontend files).
+//
+// On success the token's scope and label are stored in the request context so
+// handlers and downstream middleware can read them via TokenScopeFromContext
+// and TokenLabelFromContext.
 func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for SSE stream (uses ?token= query param) and health check.
-			// Skip auth for endpoints that use query param tokens or don't need auth.
 			if r.URL.Path == "/api/stream" || r.URL.Path == "/api/health" || r.URL.Path == "/api/healthz" {
 				next.ServeHTTP(w, r)
 				return
@@ -153,20 +177,62 @@ func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 				return
 			}
 
-			valid, id := sqlite.ValidateToken(r.Context(), token)
+			valid, ta := sqlite.ValidateToken(r.Context(), token)
 			if !valid {
 				writeError(w, http.StatusUnauthorized, "invalid authorization token", "unauthorized")
 				return
 			}
 
+			// Enforce scope. Read-only tokens may not mutate state.
+			if ta.Scope == "read" && r.Method != http.MethodGet && r.Method != http.MethodOptions {
+				writeError(w, http.StatusForbidden, "token scope 'read' does not permit this operation", "forbidden")
+				return
+			}
+			// Control tokens may not manage tokens, config, backup, or agent settings.
+			if ta.Scope == "control" && isAdminRoute(r) {
+				writeError(w, http.StatusForbidden, "token scope 'control' does not permit this operation", "forbidden")
+				return
+			}
+
+			// Store scope and label in context for downstream use.
+			ctx := context.WithValue(r.Context(), tokenScopeKey, ta.Scope)
+			ctx = context.WithValue(ctx, tokenLabelKey, ta.Label)
+
 			// Update last_used asynchronously — don't block the request.
 			go func() {
-				_ = sqlite.TouchToken(context.Background(), id)
+				_ = sqlite.TouchToken(context.Background(), ta.ID)
 			}()
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// isAdminRoute returns true for routes that require admin scope.
+func isAdminRoute(r *http.Request) bool {
+	p := r.URL.Path
+	m := r.Method
+	// Token management.
+	if strings.HasPrefix(p, "/api/tokens") {
+		return true
+	}
+	// Probe and outlet config.
+	if strings.HasPrefix(p, "/api/config/") && (m == http.MethodPut || m == http.MethodPost || m == http.MethodDelete) {
+		return true
+	}
+	// Tank profile writes.
+	if strings.HasPrefix(p, "/api/tank/profile") && (m == http.MethodPut || m == http.MethodPost) {
+		return true
+	}
+	// Agent settings writes.
+	if p == "/api/agent/settings" && m == http.MethodPut {
+		return true
+	}
+	// System / backup.
+	if strings.HasPrefix(p, "/api/system/backup") || strings.HasPrefix(p, "/api/system/cleanup") {
+		return true
+	}
+	return false
 }
 
 func extractBearerToken(r *http.Request) string {

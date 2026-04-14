@@ -159,6 +159,16 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			source_ref  TEXT,
 			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS agent_settings (
+			id                  INTEGER  PRIMARY KEY CHECK(id = 1),
+			tone                TEXT     NOT NULL DEFAULT 'analytical'
+			                    CHECK(tone IN ('analytical','casual','terse')),
+			dosing_product_line TEXT     NOT NULL DEFAULT 'generic',
+			net_volume_gallons  REAL,
+			custom_guardrails   TEXT,
+			enabled_skills      TEXT     NOT NULL DEFAULT '[]',
+			updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE TABLE IF NOT EXISTS events (
 			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
 			ts              DATETIME NOT NULL,
@@ -199,6 +209,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 	migrations := []string{
 		`ALTER TABLE probe_config ADD COLUMN device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL`,
 		`ALTER TABLE livestock_observations ADD COLUMN image_path TEXT`,
+		// Token scope: existing tokens default to 'admin' to preserve current behaviour.
+		`ALTER TABLE auth_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'admin'`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

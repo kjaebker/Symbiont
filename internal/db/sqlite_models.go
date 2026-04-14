@@ -7,8 +7,17 @@ type AuthToken struct {
 	ID        int64      `json:"id"`
 	Token     string     `json:"-"` // Never expose in list responses
 	Label     string     `json:"label"`
+	Scope     string     `json:"scope"` // read | control | admin
 	CreatedAt time.Time  `json:"created_at"`
 	LastUsed  *time.Time `json:"last_used"`
+}
+
+// TokenAuth is returned by ValidateToken and holds the data the auth
+// middleware needs without exposing the raw token string.
+type TokenAuth struct {
+	ID    int64
+	Label string
+	Scope string // read | control | admin
 }
 
 // ProbeConfig represents a row in the probe_config table.
@@ -201,6 +210,18 @@ type JournalFilter struct {
 	From      *time.Time
 	To        *time.Time
 	Limit     int // defaults to 50 if <= 0
+}
+
+// AgentSettings represents the single-row agent_settings table. It stores the
+// tunable persona parameters used by get_agent_context to assemble a system
+// prompt for external Claude clients.
+type AgentSettings struct {
+	Tone              string   `json:"tone"`                // analytical | casual | terse
+	DosingProductLine string   `json:"dosing_product_line"` // brs_pharma | red_sea | tropic_marin | generic | none
+	NetVolumeGallons  *float64 `json:"net_volume_gallons"`  // override; nil = derive from tank_profile
+	CustomGuardrails  *string  `json:"custom_guardrails"`
+	EnabledSkills     []string `json:"enabled_skills"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // AuditEvent represents a row in the events table — a forensic record of every

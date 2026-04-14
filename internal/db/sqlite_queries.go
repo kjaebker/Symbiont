@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -12,13 +13,15 @@ import (
 // --- Auth Tokens ---
 
 // ValidateToken checks if a token exists and returns its ID.
-func (s *SQLiteDB) ValidateToken(ctx context.Context, token string) (bool, int64) {
-	var id int64
-	err := s.db.QueryRowContext(ctx, "SELECT id FROM auth_tokens WHERE token = ?", token).Scan(&id)
+func (s *SQLiteDB) ValidateToken(ctx context.Context, token string) (bool, *TokenAuth) {
+	var t TokenAuth
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, COALESCE(label,''), COALESCE(scope,'admin') FROM auth_tokens WHERE token = ?", token,
+	).Scan(&t.ID, &t.Label, &t.Scope)
 	if err != nil {
-		return false, 0
+		return false, nil
 	}
-	return true, id
+	return true, &t
 }
 
 // TouchToken updates the last_used timestamp for a token.
@@ -30,8 +33,29 @@ func (s *SQLiteDB) TouchToken(ctx context.Context, id int64) error {
 	return nil
 }
 
-// InsertToken generates a random 32-byte token, inserts it, and returns the hex-encoded token string.
+// UpdateTokenScope changes the scope of an existing token.
+// Only the scope column is updated — the token value is immutable.
+func (s *SQLiteDB) UpdateTokenScope(ctx context.Context, id int64, scope string) error {
+	res, err := s.db.ExecContext(ctx, "UPDATE auth_tokens SET scope = ? WHERE id = ?", scope, id)
+	if err != nil {
+		return fmt.Errorf("updating token %d scope: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("token %d not found", id)
+	}
+	return nil
+}
+
+// InsertToken generates a random 32-byte token with admin scope and returns it.
+// Existing callers (bootstrap, tests) continue to work unchanged.
 func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error) {
+	return s.InsertTokenWithScope(ctx, label, "admin")
+}
+
+// InsertTokenWithScope generates a random 32-byte token with a specific scope.
+// scope must be one of: read, control, admin.
+func (s *SQLiteDB) InsertTokenWithScope(ctx context.Context, label, scope string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("generating token: %w", err)
@@ -39,8 +63,8 @@ func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error
 	token := hex.EncodeToString(b)
 
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO auth_tokens (token, label) VALUES (?, ?)",
-		token, label,
+		"INSERT INTO auth_tokens (token, label, scope) VALUES (?, ?, ?)",
+		token, label, scope,
 	)
 	if err != nil {
 		return "", fmt.Errorf("inserting token: %w", err)
@@ -51,7 +75,7 @@ func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error
 // ListTokens returns all tokens (without the token value itself).
 func (s *SQLiteDB) ListTokens(ctx context.Context) ([]AuthToken, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, label, created_at, last_used FROM auth_tokens ORDER BY created_at DESC",
+		"SELECT id, COALESCE(label,''), COALESCE(scope,'admin'), created_at, last_used FROM auth_tokens ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing tokens: %w", err)
@@ -61,7 +85,7 @@ func (s *SQLiteDB) ListTokens(ctx context.Context) ([]AuthToken, error) {
 	var tokens []AuthToken
 	for rows.Next() {
 		var t AuthToken
-		if err := rows.Scan(&t.ID, &t.Label, &t.CreatedAt, &t.LastUsed); err != nil {
+		if err := rows.Scan(&t.ID, &t.Label, &t.Scope, &t.CreatedAt, &t.LastUsed); err != nil {
 			return nil, fmt.Errorf("scanning token: %w", err)
 		}
 		tokens = append(tokens, t)
@@ -1581,4 +1605,65 @@ func (s *SQLiteDB) ListAuditEvents(ctx context.Context, f AuditFilter) ([]AuditE
 		out = append(out, e)
 	}
 	return out, rows.Err()
+}
+
+// --- Agent Settings ---
+
+// GetAgentSettings returns the single row of agent_settings, inserting defaults
+// on first access so callers can always rely on a non-nil result.
+func (s *SQLiteDB) GetAgentSettings(ctx context.Context) (*AgentSettings, error) {
+	if _, err := s.db.ExecContext(ctx,
+		`INSERT OR IGNORE INTO agent_settings (id) VALUES (1)`); err != nil {
+		return nil, fmt.Errorf("seeding agent_settings: %w", err)
+	}
+	row := s.db.QueryRowContext(ctx,
+		`SELECT tone, dosing_product_line, net_volume_gallons,
+		        custom_guardrails, enabled_skills, updated_at
+		 FROM agent_settings WHERE id = 1`)
+	a := &AgentSettings{}
+	var enabledJSON string
+	if err := row.Scan(&a.Tone, &a.DosingProductLine, &a.NetVolumeGallons,
+		&a.CustomGuardrails, &enabledJSON, &a.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("getting agent settings: %w", err)
+	}
+	if enabledJSON != "" {
+		if err := json.Unmarshal([]byte(enabledJSON), &a.EnabledSkills); err != nil {
+			return nil, fmt.Errorf("parsing enabled_skills: %w", err)
+		}
+	}
+	if a.EnabledSkills == nil {
+		a.EnabledSkills = []string{}
+	}
+	return a, nil
+}
+
+// UpsertAgentSettings writes the full agent_settings row.
+func (s *SQLiteDB) UpsertAgentSettings(ctx context.Context, a AgentSettings) error {
+	skills := a.EnabledSkills
+	if skills == nil {
+		skills = []string{}
+	}
+	enabledJSON, err := json.Marshal(skills)
+	if err != nil {
+		return fmt.Errorf("encoding enabled_skills: %w", err)
+	}
+	_, err = s.db.ExecContext(ctx,
+		`INSERT INTO agent_settings
+		    (id, tone, dosing_product_line, net_volume_gallons,
+		     custom_guardrails, enabled_skills, updated_at)
+		 VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		 ON CONFLICT(id) DO UPDATE SET
+		    tone                = excluded.tone,
+		    dosing_product_line = excluded.dosing_product_line,
+		    net_volume_gallons  = excluded.net_volume_gallons,
+		    custom_guardrails   = excluded.custom_guardrails,
+		    enabled_skills      = excluded.enabled_skills,
+		    updated_at          = CURRENT_TIMESTAMP`,
+		a.Tone, a.DosingProductLine, a.NetVolumeGallons,
+		a.CustomGuardrails, string(enabledJSON),
+	)
+	if err != nil {
+		return fmt.Errorf("upserting agent settings: %w", err)
+	}
+	return nil
 }

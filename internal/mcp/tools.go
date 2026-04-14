@@ -46,6 +46,11 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(addJournalEntryTool(), addJournalEntryHandler(client))
 	s.AddTool(getJournalTemplatesTool(), getJournalTemplatesHandler(client))
 	s.AddTool(getTankProfileTool(), getTankProfileHandler(client))
+	s.AddTool(getAgentContextTool(), getAgentContextHandler(client))
+	s.AddTool(listSkillsTool(), listSkillsHandler(client))
+	s.AddTool(getSkillTool(), getSkillHandler(client))
+	s.AddTool(listProbeConfigsTool(), listProbeConfigsHandler(client))
+	s.AddTool(updateProbeConfigTool(), updateProbeConfigHandler(client))
 }
 
 func apiCall(client *cli.APIClient, path string, result any) error {
@@ -1471,6 +1476,81 @@ func deleteAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	}
 }
 
+// --- list_probe_configs ---
+
+func listProbeConfigsTool() mcp.Tool {
+	return mcp.NewTool("list_probe_configs",
+		mcp.WithDescription("List the display-band configuration for all probes: min/max normal (healthy range shown in UI) and min/max warning (outer limits before gauge turns red). Use before update_probe_config to see current values."),
+	)
+}
+
+func listProbeConfigsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Get(timeoutCtx, "/api/config/probes", &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to list probe configs: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- update_probe_config ---
+
+func updateProbeConfigTool() mcp.Tool {
+	return mcp.NewTool("update_probe_config",
+		mcp.WithDescription("Set the display-band configuration for a probe. min_normal/max_normal define the healthy range shown in the dashboard gauge; min_warning/max_warning are the outer limits before the gauge turns red. Use list_probe_configs + get_probe_history to calibrate values before calling this."),
+		mcp.WithString("probe_name",
+			mcp.Required(),
+			mcp.Description("Probe name exactly as returned by get_current_parameters"),
+		),
+		mcp.WithNumber("min_normal",
+			mcp.Description("Low end of the normal (healthy) range"),
+		),
+		mcp.WithNumber("max_normal",
+			mcp.Description("High end of the normal (healthy) range"),
+		),
+		mcp.WithNumber("min_warning",
+			mcp.Description("Low end of the warning range — below this the gauge turns red"),
+		),
+		mcp.WithNumber("max_warning",
+			mcp.Description("High end of the warning range — above this the gauge turns red"),
+		),
+	)
+}
+
+func updateProbeConfigHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		probeName, err := request.RequireString("probe_name")
+		if err != nil {
+			return toolError("Parameter 'probe_name' is required"), nil
+		}
+
+		body := map[string]any{}
+		if args, ok := request.Params.Arguments.(map[string]any); ok {
+			for _, key := range []string{"min_normal", "max_normal", "min_warning", "max_warning"} {
+				if v, ok := args[key]; ok {
+					body[key] = v
+				}
+			}
+		}
+		if len(body) == 0 {
+			return toolError("At least one of min_normal, max_normal, min_warning, max_warning is required"), nil
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := client.Put(timeoutCtx, "/api/config/probes/"+probeName, body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to update probe config for %s: %v", probeName, err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
 // --- get_journal_templates ---
 
 func getJournalTemplatesTool() mcp.Tool {
@@ -1486,5 +1566,72 @@ func getJournalTemplatesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
+	}
+}
+
+// --- get_agent_context ---
+
+func getAgentContextTool() mcp.Tool {
+	return mcp.NewTool("get_agent_context",
+		mcp.WithDescription("Get the full AI assistant context for this Symbiont tank: persona settings, tank profile (volume, dimensions, type), active livestock inventory, target parameter ranges derived from alert rules, dosing product preferences, custom guardrails, and a list of installed skills. Call this at the start of every skill workflow to load tank-specific facts before making recommendations."),
+	)
+}
+
+func getAgentContextHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp struct {
+			Context string `json:"context"`
+		}
+		if err := apiCall(client, "/api/agent/context", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return mcp.NewToolResultText(resp.Context), nil
+	}
+}
+
+// --- list_skills ---
+
+func listSkillsTool() mcp.Tool {
+	return mcp.NewTool("list_skills",
+		mcp.WithDescription("List all available Symbiont skill workflows with their names, descriptions, and enabled status. Use this to show the user which skills are available and whether they are currently enabled for install."),
+	)
+}
+
+func listSkillsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(client, "/api/agent/skills", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_skill ---
+
+func getSkillTool() mcp.Tool {
+	return mcp.NewTool("get_skill",
+		mcp.WithDescription("Get the full content of a named Symbiont skill file, including the frontmatter and workflow instructions. Use this to inspect a skill before installing it."),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("The skill name (e.g. water-test-analysis, weekly-maintenance)."),
+		),
+	)
+}
+
+func getSkillHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		name, err := request.RequireString("name")
+		if err != nil {
+			return toolError("name is required"), nil
+		}
+		var resp struct {
+			Name string `json:"name"`
+			Body string `json:"body"`
+		}
+		if err := apiCall(client, "/api/agent/skills/"+name+"/body", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return mcp.NewToolResultText(resp.Body), nil
 	}
 }

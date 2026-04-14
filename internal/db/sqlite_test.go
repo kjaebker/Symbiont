@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"testing"
 )
 
@@ -38,11 +39,11 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Validate it.
-	valid, id := db.ValidateToken(ctx, token)
+	valid, ta := db.ValidateToken(ctx, token)
 	if !valid {
 		t.Fatal("expected token to be valid")
 	}
-	if id == 0 {
+	if ta == nil || ta.ID == 0 {
 		t.Fatal("expected non-zero token ID")
 	}
 
@@ -53,7 +54,7 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Touch it.
-	if err := db.TouchToken(ctx, id); err != nil {
+	if err := db.TouchToken(ctx, ta.ID); err != nil {
 		t.Fatalf("touching token: %v", err)
 	}
 
@@ -73,7 +74,7 @@ func TestTokenLifecycle(t *testing.T) {
 	}
 
 	// Delete it.
-	if err := db.DeleteToken(ctx, id); err != nil {
+	if err := db.DeleteToken(ctx, ta.ID); err != nil {
 		t.Fatalf("deleting token: %v", err)
 	}
 
@@ -659,5 +660,82 @@ func TestEnsureDefaultToken(t *testing.T) {
 	}
 	if token2 != "" {
 		t.Errorf("expected empty token on second call, got %q", token2)
+	}
+}
+
+func TestAgentSettingsDefaults(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	a, err := db.GetAgentSettings(ctx)
+	if err != nil {
+		t.Fatalf("getting defaults: %v", err)
+	}
+	if a.Tone != "analytical" {
+		t.Errorf("default tone: got %q want analytical", a.Tone)
+	}
+	if a.DosingProductLine != "generic" {
+		t.Errorf("default product line: got %q want generic", a.DosingProductLine)
+	}
+	if a.EnabledSkills == nil || len(a.EnabledSkills) != 0 {
+		t.Errorf("expected empty EnabledSkills slice, got %v", a.EnabledSkills)
+	}
+	if a.NetVolumeGallons != nil {
+		t.Errorf("expected nil NetVolumeGallons, got %v", *a.NetVolumeGallons)
+	}
+}
+
+func TestAgentSettingsUpsertRoundTrip(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	vol := 70.0
+	guard := "Mg priority, never exceed 0.5 dKH/day."
+	in := AgentSettings{
+		Tone:              "casual",
+		DosingProductLine: "brs_pharma",
+		NetVolumeGallons:  &vol,
+		CustomGuardrails:  &guard,
+		EnabledSkills:     []string{"water-test-analysis", "weekly-maintenance"},
+	}
+	if err := db.UpsertAgentSettings(ctx, in); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+
+	out, err := db.GetAgentSettings(ctx)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if out.Tone != in.Tone || out.DosingProductLine != in.DosingProductLine {
+		t.Errorf("tone/product mismatch: got %+v", out)
+	}
+	if out.NetVolumeGallons == nil || *out.NetVolumeGallons != vol {
+		t.Errorf("net volume mismatch: got %+v", out.NetVolumeGallons)
+	}
+	if out.CustomGuardrails == nil || *out.CustomGuardrails != guard {
+		t.Errorf("guardrails mismatch: got %+v", out.CustomGuardrails)
+	}
+	if !reflect.DeepEqual(out.EnabledSkills, in.EnabledSkills) {
+		t.Errorf("enabled skills mismatch: got %v want %v", out.EnabledSkills, in.EnabledSkills)
+	}
+
+	// Second upsert overwrites cleanly.
+	in2 := AgentSettings{
+		Tone:              "terse",
+		DosingProductLine: "red_sea",
+		EnabledSkills:     []string{"livestock-health-check"},
+	}
+	if err := db.UpsertAgentSettings(ctx, in2); err != nil {
+		t.Fatalf("second upsert: %v", err)
+	}
+	out2, err := db.GetAgentSettings(ctx)
+	if err != nil {
+		t.Fatalf("get2: %v", err)
+	}
+	if out2.Tone != "terse" || out2.NetVolumeGallons != nil || out2.CustomGuardrails != nil {
+		t.Errorf("overwrite did not clear optional fields: %+v", out2)
+	}
+	if !reflect.DeepEqual(out2.EnabledSkills, in2.EnabledSkills) {
+		t.Errorf("enabled skills after overwrite: got %v want %v", out2.EnabledSkills, in2.EnabledSkills)
 	}
 }

@@ -195,12 +195,30 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/journal/{id}", s.HandleJournalUpdate)
 	mux.HandleFunc("DELETE /api/journal/{id}", s.HandleJournalDelete)
 
+	// Agent settings, context, and skills.
+	mux.HandleFunc("GET /api/agent/settings", s.HandleAgentSettingsGet)
+	mux.HandleFunc("PUT /api/agent/settings", s.HandleAgentSettingsPut)
+	mux.HandleFunc("GET /api/agent/context", s.HandleAgentContext)
+	mux.HandleFunc("GET /api/agent/skills", s.HandleAgentSkillList)
+	mux.HandleFunc("GET /api/agent/skills/{name}/body", s.HandleAgentSkillBody)
+
+	// HTTP MCP transport — requires SYMBIONT_TOKEN to create the loopback client.
+	// Register each method explicitly; a bare "/api/mcp" pattern (no method prefix)
+	// conflicts with "GET /" in Go 1.22's mux.
+	if s.cfg.Token != "" {
+		mcpHandler := newMCPHTTPHandler(s.cfg.APIPort, s.cfg.Token)
+		mux.Handle("POST /api/mcp", mcpHandler)
+		mux.Handle("GET /api/mcp", mcpHandler)
+		mux.Handle("DELETE /api/mcp", mcpHandler)
+	}
+
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
 
 	// Auth tokens.
 	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
 	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
+	mux.HandleFunc("PATCH /api/tokens/{id}", s.HandleTokenUpdateScope)
 	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
 
 	// Image utilities.

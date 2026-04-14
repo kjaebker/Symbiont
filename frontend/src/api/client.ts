@@ -22,6 +22,8 @@ import type {
   LivestockObservation,
   LivestockType,
   LivestockStatus,
+  AgentSettings,
+  AgentSkill,
 } from './types'
 
 export type { Outlet }
@@ -209,10 +211,17 @@ export function listTokens() {
   return apiFetch<{ tokens: AuthToken[] }>('/api/tokens')
 }
 
-export function createToken(label: string) {
-  return apiFetch<{ token: string; label: string }>('/api/tokens', {
+export function createToken(label: string, scope: string = 'admin') {
+  return apiFetch<{ token: string; label: string; scope: string }>('/api/tokens', {
     method: 'POST',
-    body: JSON.stringify({ label }),
+    body: JSON.stringify({ label, scope }),
+  })
+}
+
+export function updateTokenScope(id: number, scope: string) {
+  return apiFetch<{ id: string; scope: string }>(`/api/tokens/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ scope }),
   })
 }
 
@@ -655,4 +664,24 @@ export function listAuditEvents(params?: AuditEventListParams) {
 
 export function getEventBusStats() {
   return apiFetch<{ subscribers: SubscriberStat[] }>('/api/events/stats')
+}
+
+// Agent
+export function getAgentSettings() {
+  return apiFetch<AgentSettings>('/api/agent/settings')
+}
+
+export function updateAgentSettings(patch: Partial<AgentSettings>) {
+  return apiFetch<AgentSettings>('/api/agent/settings', {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function getAgentContext() {
+  return apiFetch<{ context: string }>('/api/agent/context')
+}
+
+export function getAgentSkills() {
+  return apiFetch<{ skills: AgentSkill[] }>('/api/agent/skills')
 }
