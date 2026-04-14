@@ -700,7 +700,7 @@ func (s *SQLiteDB) listDeviceProbeNames(ctx context.Context, deviceID int64) ([]
 	}
 	defer rows.Close()
 
-	var names []string
+	names := make([]string, 0)
 	for rows.Next() {
 		var n string
 		if err := rows.Scan(&n); err != nil {
