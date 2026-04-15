@@ -20,15 +20,15 @@ import { Bubbles } from '@/components/Bubbles'
 
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/outlets', icon: Power, label: 'Outlets' },
-  { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/livestock', icon: Fish, label: 'Livestock' },
+  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
+  { to: '/journal', icon: ScrollText, label: 'Journal' },
 ]
 
 const overflowNavItems = [
-  { to: '/journal', icon: ScrollText, label: 'Journal' },
+  { to: '/control', icon: Power, label: 'Control' },
+  { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/history', icon: Clock, label: 'History' },
-  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

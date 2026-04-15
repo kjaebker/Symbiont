@@ -8,7 +8,7 @@ import Journal from '@/pages/Journal'
 import Measurements from '@/pages/Measurements'
 import Livestock from '@/pages/Livestock'
 import LivestockDetail from '@/pages/LivestockDetail'
-import Outlets from '@/pages/Outlets'
+import Control from '@/pages/Control'
 import Alerts from '@/pages/Alerts'
 import Settings from '@/pages/Settings'
 
@@ -36,7 +36,7 @@ export default function App() {
         <Route path="journal" element={<Journal />} />
         <Route path="livestock" element={<Livestock />} />
         <Route path="livestock/:id" element={<LivestockDetail />} />
-        <Route path="outlets" element={<Outlets />} />
+        <Route path="control" element={<Control />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="settings" element={<Settings />} />
       </Route>

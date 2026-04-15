@@ -5,6 +5,7 @@ import { useOutlets } from '@/hooks/useOutlets'
 import { useDevices } from '@/hooks/useDevices'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { useFeedStatus } from '@/hooks/useFeed'
+import { useLivestock } from '@/hooks/useLivestock'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDashboardLayout } from '@/hooks/useDashboardLayout'
 import { ProbeCard } from '@/components/ProbeCard'
@@ -69,6 +70,8 @@ function TankStatusHeader({
   controlsLocked,
   onToggleLock,
   feedActive,
+  sickCount,
+  quarantineCount,
 }: {
   worstStatus: string
   activeOutlets: number
@@ -78,6 +81,8 @@ function TankStatusHeader({
   controlsLocked: boolean
   onToggleLock: () => void
   feedActive: boolean
+  sickCount: number
+  quarantineCount: number
 }) {
   const cfg = statusConfig[worstStatus as keyof typeof statusConfig] ?? statusConfig.normal
 
@@ -109,6 +114,16 @@ function TankStatusHeader({
               {cfg.detail(activeOutlets, criticalCount)}
               {feedActive && (
                 <span className="ml-2 text-primary font-semibold">· Feed active</span>
+              )}
+              {sickCount > 0 && (
+                <span className="ml-2 text-tertiary font-semibold">
+                  · {sickCount} sick
+                </span>
+              )}
+              {quarantineCount > 0 && (
+                <span className="ml-2 text-tertiary font-semibold">
+                  · {quarantineCount} in quarantine
+                </span>
               )}
             </p>
             {lastPoll && (
@@ -301,6 +316,7 @@ export default function Dashboard() {
   const { data: deviceData, isLoading: devicesLoading } = useDevices()
   const { data: systemData } = useSystemStatus()
   const { data: feedData } = useFeedStatus()
+  const { data: livestockData } = useLivestock()
 
   const probes = probeData?.probes ?? []
   const allOutlets = (outletData?.outlets ?? []).filter(
@@ -325,6 +341,14 @@ export default function Dashboard() {
 
   const criticalCount = probes.filter((p) => p.status === 'critical').length
   const feedActive = (feedData?.active ?? 0) === 1
+
+  const livestock = livestockData?.livestock ?? []
+  const sickCount = livestock
+    .filter((l) => l.status === 'sick')
+    .reduce((sum, l) => sum + l.quantity, 0)
+  const quarantineCount = livestock
+    .filter((l) => l.status === 'quarantine')
+    .reduce((sum, l) => sum + l.quantity, 0)
   const isLoading = layoutLoading || probesLoading || outletsLoading || devicesLoading
   const sections = groupIntoSections(dashboardItems)
 
@@ -339,6 +363,8 @@ export default function Dashboard() {
         controlsLocked={controlsLocked}
         onToggleLock={() => setControlsLocked((v) => !v)}
         feedActive={feedActive}
+        sickCount={sickCount}
+        quarantineCount={quarantineCount}
       />
 
       {isLoading ? (
