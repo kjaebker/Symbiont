@@ -99,6 +99,7 @@ func (s *Server) HandleJournalCreate(w http.ResponseWriter, r *http.Request) {
 		Sentiment *string `json:"sentiment"`
 		Title     string  `json:"title"`
 		Body      *string `json:"body"`
+		Source    string  `json:"source"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
@@ -119,12 +120,17 @@ func (s *Server) HandleJournalCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	source := "manual"
+	if body.Source == "ai" {
+		source = "ai"
+	}
+
 	entry := db.JournalEntry{
 		Category:  body.Category,
 		Sentiment: body.Sentiment,
 		Title:     body.Title,
 		Body:      body.Body,
-		Source:    "manual",
+		Source:    source,
 	}
 	id, err := s.sqlite.InsertJournalEntry(r.Context(), entry)
 	if err != nil {
