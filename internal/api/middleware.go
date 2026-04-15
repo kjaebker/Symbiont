@@ -184,9 +184,16 @@ func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 			}
 
 			// Enforce scope. Read-only tokens may not mutate state.
+			// Exception: POST to /api/mcp is allowed because the MCP Streamable HTTP
+			// transport uses POST for all operations regardless of whether the underlying
+			// tool is read-only. Scope is enforced via the per-request loopback API client
+			// in mcp_http.go, which uses the caller's token and will 403 on any actual
+			// mutation attempt.
 			if ta.Scope == "read" && r.Method != http.MethodGet && r.Method != http.MethodOptions {
-				writeError(w, http.StatusForbidden, "token scope 'read' does not permit this operation", "forbidden")
-				return
+				if r.URL.Path != "/api/mcp" {
+					writeError(w, http.StatusForbidden, "token scope 'read' does not permit this operation", "forbidden")
+					return
+				}
 			}
 			// Control tokens may not manage tokens, config, backup, or agent settings.
 			if ta.Scope == "control" && isAdminRoute(r) {

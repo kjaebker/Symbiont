@@ -54,6 +54,23 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(updateProbeConfigTool(), updateProbeConfigHandler(client))
 }
 
+type contextKeyClient struct{}
+
+// WithLoopbackClient stores a per-request loopback API client in ctx.
+// Called by the MCP HTTP handler so each tool invocation uses the caller's token.
+func WithLoopbackClient(ctx context.Context, client *cli.APIClient) context.Context {
+	return context.WithValue(ctx, contextKeyClient{}, client)
+}
+
+// clientFromCtx returns the per-request loopback client from ctx,
+// falling back to the static client (used in stdio mode).
+func clientFromCtx(ctx context.Context, fallback *cli.APIClient) *cli.APIClient {
+	if c, ok := ctx.Value(contextKeyClient{}).(*cli.APIClient); ok {
+		return c
+	}
+	return fallback
+}
+
 func apiCall(client *cli.APIClient, path string, result any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -86,7 +103,7 @@ func getCurrentParametersTool() mcp.Tool {
 func getCurrentParametersHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/probes", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/probes", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -136,7 +153,7 @@ func getProbeHistoryHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := u.String()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Probe '%s' not found or no data in range", name)), nil
 			}
@@ -157,7 +174,7 @@ func getOutletStatesTool() mcp.Tool {
 func getOutletStatesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/outlets", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/outlets", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -201,7 +218,7 @@ func controlOutletHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(ctx, "/api/outlets/"+id, map[string]string{"state": state}, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Put(ctx,"/api/outlets/"+id, map[string]string{"state": state}, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to set outlet: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -232,7 +249,7 @@ func getOutletEventLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/events?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -250,7 +267,7 @@ func getAlertRulesTool() mcp.Tool {
 func getAlertRulesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/alerts", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/alerts", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -268,7 +285,7 @@ func getSystemStatusTool() mcp.Tool {
 func getSystemStatusHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/system", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/system", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -322,19 +339,19 @@ func summarizeTankHealthHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		wg.Add(4)
 		go func() {
 			defer wg.Done()
-			errs[0] = apiCall(client, "/api/probes", &probesResp)
+			errs[0] = apiCall(clientFromCtx(ctx, client),"/api/probes", &probesResp)
 		}()
 		go func() {
 			defer wg.Done()
-			errs[1] = apiCall(client, "/api/outlets", &outletsResp)
+			errs[1] = apiCall(clientFromCtx(ctx, client),"/api/outlets", &outletsResp)
 		}()
 		go func() {
 			defer wg.Done()
-			errs[2] = apiCall(client, "/api/system", &systemResp)
+			errs[2] = apiCall(clientFromCtx(ctx, client),"/api/system", &systemResp)
 		}()
 		go func() {
 			defer wg.Done()
-			errs[3] = apiCall(client, "/api/livestock", &livestockResp)
+			errs[3] = apiCall(clientFromCtx(ctx, client),"/api/livestock", &livestockResp)
 		}()
 		wg.Wait()
 
@@ -451,7 +468,7 @@ func getAlertEventsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/alerts/events?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -483,7 +500,7 @@ func getSystemLogHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/system/log?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -501,7 +518,7 @@ func getDevicesTool() mcp.Tool {
 func getDevicesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/devices", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/devices", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -546,7 +563,7 @@ func getMeasurementsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/measurements?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -598,7 +615,7 @@ func addMeasurementHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Post(timeoutCtx, "/api/measurements", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx,"/api/measurements", body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to add measurement: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -633,7 +650,7 @@ func getLivestockHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/livestock?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -708,7 +725,7 @@ func addLivestockHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Post(timeoutCtx, "/api/livestock", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx,"/api/livestock", body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to add livestock: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -769,7 +786,7 @@ func updateLivestockHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			DateAdded *string `json:"date_added"`
 			Notes     *string `json:"notes"`
 		}
-		if err := apiCall(client, "/api/livestock/"+idStr, &existing); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/livestock/"+idStr, &existing); err != nil {
 			return toolError(fmt.Sprintf("Livestock item %s not found: %v", idStr, err)), nil
 		}
 
@@ -817,7 +834,7 @@ func updateLivestockHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(timeoutCtx, "/api/livestock/"+idStr, body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Put(timeoutCtx,"/api/livestock/"+idStr, body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to update livestock: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -858,7 +875,7 @@ func getJournalEntriesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		path := "/api/journal?" + q.Encode()
 
 		var resp any
-		if err := apiCall(client, path, &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),path, &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -916,7 +933,7 @@ func addJournalEntryHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Post(timeoutCtx, "/api/journal", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx,"/api/journal", body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to add journal entry: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -934,7 +951,7 @@ func getTankProfileTool() mcp.Tool {
 func getTankProfileHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/tank/profile", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/tank/profile", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -952,7 +969,7 @@ func getMeasurementParametersTool() mcp.Tool {
 func getMeasurementParametersHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/measurements/parameters", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/measurements/parameters", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -982,7 +999,7 @@ func deleteMeasurementHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
-		if err := client.Delete(timeoutCtx, "/api/measurements/"+idStr); err != nil {
+		if err := clientFromCtx(ctx, client).Delete(timeoutCtx,"/api/measurements/"+idStr); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Measurement %s not found", idStr)), nil
 			}
@@ -1013,7 +1030,7 @@ func getLivestockObservationsHandler(client *cli.APIClient) server.ToolHandlerFu
 		idStr := fmt.Sprintf("%d", int64(idFloat))
 
 		var resp any
-		if err := apiCall(client, "/api/livestock/"+idStr+"/observations", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/livestock/"+idStr+"/observations", &resp); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
 			}
@@ -1068,7 +1085,7 @@ func addLivestockObservationHandler(client *cli.APIClient) server.ToolHandlerFun
 		defer cancel()
 
 		var resp any
-		if err := client.Post(timeoutCtx, "/api/livestock/"+idStr+"/observations", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx,"/api/livestock/"+idStr+"/observations", body, &resp); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
 			}
@@ -1117,7 +1134,7 @@ func getLivestockImageHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		timeoutCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 
-		if err := client.Get(timeoutCtx, "/api/livestock/"+idStr, &item); err != nil {
+		if err := clientFromCtx(ctx, client).Get(timeoutCtx,"/api/livestock/"+idStr, &item); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Livestock item %s not found", idStr)), nil
 			}
@@ -1132,11 +1149,11 @@ func getLivestockImageHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			imagePath = thumbPathMCP(imagePath)
 		}
 
-		data, contentType, err := client.GetBytes(timeoutCtx, "/"+imagePath)
+		data, contentType, err := clientFromCtx(ctx, client).GetBytes(timeoutCtx,"/"+imagePath)
 		if err != nil {
 			// Fall back to full image if thumbnail doesn't exist yet.
 			if useThumbnail {
-				data, contentType, err = client.GetBytes(timeoutCtx, "/"+*item.ImagePath)
+				data, contentType, err = clientFromCtx(ctx, client).GetBytes(timeoutCtx,"/"+*item.ImagePath)
 			}
 			if err != nil {
 				return toolError(fmt.Sprintf("Failed to fetch image: %v", err)), nil
@@ -1179,7 +1196,7 @@ func getFeedModeTool() mcp.Tool {
 func getFeedModeHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/feed", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/feed", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1231,7 +1248,7 @@ func setFeedModeHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(timeoutCtx, "/api/feed", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Put(timeoutCtx,"/api/feed", body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to set feed mode: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1310,7 +1327,7 @@ func createAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Post(timeoutCtx, "/api/alerts", body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx,"/api/alerts", body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to create alert rule: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1374,7 +1391,7 @@ func updateAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
 				Enabled         bool     `json:"enabled"`
 			} `json:"rules"`
 		}
-		if err := apiCall(client, "/api/alerts", &listResp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/alerts", &listResp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 
@@ -1444,7 +1461,7 @@ func updateAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(timeoutCtx, "/api/alerts/"+idStr, body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Put(timeoutCtx,"/api/alerts/"+idStr, body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to update alert rule: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1474,7 +1491,7 @@ func deleteAlertRuleHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
-		if err := client.Delete(timeoutCtx, "/api/alerts/"+idStr); err != nil {
+		if err := clientFromCtx(ctx, client).Delete(timeoutCtx,"/api/alerts/"+idStr); err != nil {
 			if apiErr, ok := err.(*cli.APIError); ok && apiErr.Status == 404 {
 				return toolError(fmt.Sprintf("Alert rule %s not found", idStr)), nil
 			}
@@ -1498,7 +1515,7 @@ func listProbeConfigsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Get(timeoutCtx, "/api/config/probes", &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Get(timeoutCtx,"/api/config/probes", &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to list probe configs: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1552,7 +1569,7 @@ func updateProbeConfigHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		defer cancel()
 
 		var resp any
-		if err := client.Put(timeoutCtx, "/api/config/probes/"+url.PathEscape(probeName), body, &resp); err != nil {
+		if err := clientFromCtx(ctx, client).Put(timeoutCtx,"/api/config/probes/"+url.PathEscape(probeName), body, &resp); err != nil {
 			return toolError(fmt.Sprintf("Failed to update probe config for %s: %v", probeName, err)), nil
 		}
 		return jsonResult(resp)
@@ -1570,7 +1587,7 @@ func getJournalTemplatesTool() mcp.Tool {
 func getJournalTemplatesHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/journal/templates", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/journal/templates", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1590,7 +1607,7 @@ func getAgentContextHandler(client *cli.APIClient) server.ToolHandlerFunc {
 		var resp struct {
 			Context string `json:"context"`
 		}
-		if err := apiCall(client, "/api/agent/context", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/agent/context", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return mcp.NewToolResultText(resp.Context), nil
@@ -1608,7 +1625,7 @@ func listSkillsTool() mcp.Tool {
 func listSkillsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
-		if err := apiCall(client, "/api/agent/skills", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/agent/skills", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
@@ -1637,7 +1654,7 @@ func getSkillHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			Name string `json:"name"`
 			Body string `json:"body"`
 		}
-		if err := apiCall(client, "/api/agent/skills/"+url.PathEscape(name)+"/body", &resp); err != nil {
+		if err := apiCall(clientFromCtx(ctx, client),"/api/agent/skills/"+url.PathEscape(name)+"/body", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return mcp.NewToolResultText(resp.Body), nil
