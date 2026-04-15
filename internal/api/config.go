@@ -44,21 +44,6 @@ func (s *Server) HandleProbeConfigUpdate(w http.ResponseWriter, r *http.Request)
 		cfg = *existing
 	}
 
-	// If display_name is being changed and the probe is linked to a device, reject.
-	if _, ok := patch["display_name"]; ok {
-		device, devErr := s.sqlite.GetDeviceByProbeName(ctx, name)
-		if devErr != nil {
-			writeError(w, http.StatusInternalServerError, "failed to check device link", "db_error")
-			return
-		}
-		if device != nil {
-			writeError(w, http.StatusConflict,
-				"display name is managed by device '"+device.Name+"'",
-				"device_managed")
-			return
-		}
-	}
-
 	// Merge only the provided fields.
 	if v, ok := patch["display_name"]; ok {
 		var s string
@@ -136,21 +121,6 @@ func (s *Server) HandleOutletConfigUpdate(w http.ResponseWriter, r *http.Request
 	cfg := db.OutletConfig{OutletID: id}
 	if existing != nil {
 		cfg = *existing
-	}
-
-	// If display_name is being changed and the outlet is linked to a device, reject.
-	if _, ok := patch["display_name"]; ok {
-		device, devErr := s.sqlite.GetDeviceByOutletID(ctx, id)
-		if devErr != nil {
-			writeError(w, http.StatusInternalServerError, "failed to check device link", "db_error")
-			return
-		}
-		if device != nil {
-			writeError(w, http.StatusConflict,
-				"display name is managed by device '"+device.Name+"'",
-				"device_managed")
-			return
-		}
 	}
 
 	if v, ok := patch["display_name"]; ok {

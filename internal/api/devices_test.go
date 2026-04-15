@@ -144,7 +144,7 @@ func TestDeviceSuggestions(t *testing.T) {
 	}
 }
 
-func TestNameConflictGuardProbe(t *testing.T) {
+func TestNameChangeAllowedOnLinkedProbe(t *testing.T) {
 	env := setupTestEnv(t)
 	seedTestData(t, env.duck)
 
@@ -154,24 +154,16 @@ func TestNameConflictGuardProbe(t *testing.T) {
 		"probe_names": []string{"Tmp"},
 	})
 
-	// Try to change display name on linked probe — should be rejected.
+	// Changing display name on a linked probe is allowed.
 	w := env.request(t, "PUT", "/api/config/probes/Tmp", map[string]any{
 		"display_name": "My Custom Name",
 	})
-	if w.Code != http.StatusConflict {
-		t.Errorf("expected 409 for device-managed probe, got %d: %s", w.Code, w.Body.String())
-	}
-
-	// Non-display-name changes should still work.
-	w = env.request(t, "PUT", "/api/config/probes/Tmp", map[string]any{
-		"unit_override": "°F",
-	})
 	if w.Code != http.StatusOK {
-		t.Errorf("expected 200 for non-name change, got %d: %s", w.Code, w.Body.String())
+		t.Errorf("expected 200 for display name change on linked probe, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
-func TestNameConflictGuardOutlet(t *testing.T) {
+func TestNameChangeAllowedOnLinkedOutlet(t *testing.T) {
 	env := setupTestEnv(t)
 	seedTestData(t, env.duck)
 
@@ -181,11 +173,11 @@ func TestNameConflictGuardOutlet(t *testing.T) {
 		"outlet_id": "base_Var1",
 	})
 
-	// Try to change display name — should be rejected.
+	// Changing display name on a linked outlet is allowed.
 	w := env.request(t, "PUT", "/api/config/outlets/base_Var1", map[string]any{
 		"display_name": "My Custom Name",
 	})
-	if w.Code != http.StatusConflict {
-		t.Errorf("expected 409 for device-managed outlet, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 for display name change on linked outlet, got %d: %s", w.Code, w.Body.String())
 	}
 }
