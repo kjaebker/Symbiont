@@ -33,11 +33,12 @@ func (s *Server) HandleAlertList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"rules": out})
 }
 
-// alertRuleInput is the accepted subset of fields for create/update requests.
-// It intentionally excludes read-only fields (id, created_at) and computed
-// display fields (probe_display_name) so DisallowUnknownFields in readJSON
-// doesn't reject payloads that were round-tripped from the list response.
+// alertRuleInput accepts all fields that the list response returns so that
+// round-tripped payloads (id, created_at, probe_display_name) aren't rejected
+// by DisallowUnknownFields in readJSON. Read-only and computed fields are
+// accepted but ignored when writing.
 type alertRuleInput struct {
+	ID              int64    `json:"id"`
 	ProbeName       string   `json:"probe_name"`
 	Condition       string   `json:"condition"`
 	ThresholdLow    *float64 `json:"threshold_low"`
@@ -45,6 +46,8 @@ type alertRuleInput struct {
 	Severity        string   `json:"severity"`
 	CooldownMinutes int      `json:"cooldown_minutes"`
 	Enabled         bool     `json:"enabled"`
+	CreatedAt       string   `json:"created_at"`
+	ProbeDisplayName string  `json:"probe_display_name"`
 }
 
 func (s *Server) HandleAlertCreate(w http.ResponseWriter, r *http.Request) {
