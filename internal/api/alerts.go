@@ -33,13 +33,36 @@ func (s *Server) HandleAlertList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"rules": out})
 }
 
+// alertRuleInput is the accepted subset of fields for create/update requests.
+// It intentionally excludes read-only fields (id, created_at) and computed
+// display fields (probe_display_name) so DisallowUnknownFields in readJSON
+// doesn't reject payloads that were round-tripped from the list response.
+type alertRuleInput struct {
+	ProbeName       string   `json:"probe_name"`
+	Condition       string   `json:"condition"`
+	ThresholdLow    *float64 `json:"threshold_low"`
+	ThresholdHigh   *float64 `json:"threshold_high"`
+	Severity        string   `json:"severity"`
+	CooldownMinutes int      `json:"cooldown_minutes"`
+	Enabled         bool     `json:"enabled"`
+}
+
 func (s *Server) HandleAlertCreate(w http.ResponseWriter, r *http.Request) {
-	var rule db.AlertRule
-	if err := readJSON(r, &rule); err != nil {
+	var input alertRuleInput
+	if err := readJSON(r, &input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 		return
 	}
 
+	rule := db.AlertRule{
+		ProbeName:       input.ProbeName,
+		Condition:       input.Condition,
+		ThresholdLow:    input.ThresholdLow,
+		ThresholdHigh:   input.ThresholdHigh,
+		Severity:        input.Severity,
+		CooldownMinutes: input.CooldownMinutes,
+		Enabled:         input.Enabled,
+	}
 	if err := validateAlertRule(rule); err != "" {
 		writeError(w, http.StatusBadRequest, err, "validation_error")
 		return
@@ -63,12 +86,21 @@ func (s *Server) HandleAlertUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var rule db.AlertRule
-	if err := readJSON(r, &rule); err != nil {
+	var input alertRuleInput
+	if err := readJSON(r, &input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 		return
 	}
 
+	rule := db.AlertRule{
+		ProbeName:       input.ProbeName,
+		Condition:       input.Condition,
+		ThresholdLow:    input.ThresholdLow,
+		ThresholdHigh:   input.ThresholdHigh,
+		Severity:        input.Severity,
+		CooldownMinutes: input.CooldownMinutes,
+		Enabled:         input.Enabled,
+	}
 	if errMsg := validateAlertRule(rule); errMsg != "" {
 		writeError(w, http.StatusBadRequest, errMsg, "validation_error")
 		return
