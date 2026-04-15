@@ -131,8 +131,8 @@ function parseOutletPayload(event: AuditEvent) {
   }
 }
 
-export default function Outlets() {
-  usePageTitle('Outlets')
+export default function Control() {
+  usePageTitle('Control')
   const { data, isLoading } = useOutlets()
   const [eventLimit, setEventLimit] = useState(50)
   const [sourceFilter, setSourceFilter] = useState<string>('')

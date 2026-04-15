@@ -26,7 +26,7 @@ const primaryNavItems = [
 ]
 
 const overflowNavItems = [
-  { to: '/outlets', icon: Power, label: 'Outlets' },
+  { to: '/control', icon: Power, label: 'Control' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/history', icon: Clock, label: 'History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
