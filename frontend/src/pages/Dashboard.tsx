@@ -13,6 +13,7 @@ import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard, pickPrimaryProbe } from '@/components/DeviceCard'
 import { FeedCard } from '@/components/FeedCard'
 import { MeasurementCard } from '@/components/MeasurementCard'
+import { DailyPromptCard } from '@/components/DailyPromptCard'
 import {
   ProbeCompactCard,
   OutletCompactCard,
@@ -366,6 +367,8 @@ export default function Dashboard() {
         sickCount={sickCount}
         quarantineCount={quarantineCount}
       />
+
+      <DailyPromptCard />
 
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 items-start" style={{ gridAutoFlow: 'dense' }}>

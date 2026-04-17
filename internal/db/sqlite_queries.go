@@ -1543,6 +1543,19 @@ func (s *SQLiteDB) DeleteJournalEntry(ctx context.Context, id int64) error {
 	return nil
 }
 
+// HasJournalEntryBySourceRef reports whether any journal entry exists with the
+// given source_ref value. Used to check if the daily prompt has been answered.
+func (s *SQLiteDB) HasJournalEntryBySourceRef(ctx context.Context, sourceRef string) (bool, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM journal_entries WHERE source_ref = ?", sourceRef,
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("checking journal entry by source_ref: %w", err)
+	}
+	return count > 0, nil
+}
+
 // --- Audit Events ---
 
 // InsertAuditEvent inserts a row into the events table.
