@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, FlaskConical } from 'lucide-react'
 import {
   useMeasurementParameters,
   useMeasurements,
   useCreateMeasurement,
   useDeleteMeasurement,
+  useKitCatalog,
 } from '@/hooks/useMeasurements'
+import { getKitPref, setKitPref } from '@/api/client'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
-import type { MeasurementParameter } from '@/api/types'
+import type { MeasurementParameter, KitDef } from '@/api/types'
 
 // Convert a local datetime-local input value to an ISO 8601 UTC string.
 function localInputToISO(value: string): string {
@@ -51,13 +53,51 @@ const PARAM_PLACEHOLDERS: Record<string, string> = {
 
 function AddForm({ parameters, onClose }: AddFormProps) {
   const create = useCreateMeasurement()
+  const { data: kitData } = useKitCatalog()
+  const kitsByParam = kitData?.kits ?? {}
+
   const [paramName, setParamName] = useState(parameters[0]?.name ?? '')
+  const [kitRef, setKitRef] = useState<string>(() => getKitPref(parameters[0]?.name ?? '') ?? '')
+  const [rawValue, setRawValue] = useState('')
   const [value, setValue] = useState('')
+  const [valueOverridden, setValueOverridden] = useState(false)
   const [measuredAt, setMeasuredAt] = useState(nowForInput())
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
 
   const selectedParam = parameters.find((p) => p.name === paramName)
+  const availableKits: KitDef[] = kitsByParam[paramName] ?? []
+  const selectedKit = availableKits.find((k) => k.ref === kitRef) ?? null
+
+  // When the parameter changes, restore kit preference.
+  function handleParamChange(name: string) {
+    setParamName(name)
+    const pref = getKitPref(name)
+    const kitsForParam = kitsByParam[name] ?? []
+    const validPref = pref && kitsForParam.some((k) => k.ref === pref) ? pref : ''
+    setKitRef(validPref)
+    setRawValue('')
+    setValue('')
+    setValueOverridden(false)
+  }
+
+  // When kit changes, reset raw/value fields and persist preference.
+  function handleKitChange(ref: string) {
+    setKitRef(ref)
+    setRawValue('')
+    setValue('')
+    setValueOverridden(false)
+    if (ref) setKitPref(paramName, ref)
+  }
+
+  // Recompute canonical value when raw changes (unless user overrode it).
+  useEffect(() => {
+    if (!selectedKit || !rawValue || valueOverridden) return
+    const raw = parseFloat(rawValue)
+    if (isNaN(raw)) { setValue(''); return }
+    const canonical = raw * selectedKit.scale + selectedKit.offset
+    setValue(canonical.toFixed(4).replace(/\.?0+$/, ''))
+  }, [rawValue, selectedKit, valueOverridden])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -69,18 +109,25 @@ function AddForm({ parameters, onClose }: AddFormProps) {
       return
     }
 
+    const rawNum = selectedKit && rawValue ? parseFloat(rawValue) : undefined
+
     try {
       await create.mutateAsync({
         parameter: paramName,
         value: numVal,
         measured_at: localInputToISO(measuredAt),
         notes: notes.trim() || null,
+        test_kit_ref: selectedKit?.ref ?? null,
+        raw_value: rawNum != null && !isNaN(rawNum) ? rawNum : null,
       })
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save measurement.')
     }
   }
+
+  const inputCls = 'w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint'
+  const labelCls = 'text-xs text-on-surface-dim uppercase tracking-wider'
 
   return (
     <div className="bg-surface-container rounded-2xl p-6 space-y-5">
@@ -89,65 +136,105 @@ function AddForm({ parameters, onClose }: AddFormProps) {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Parameter */}
+        {/* Parameter */}
+        <div className="space-y-1.5">
+          <label className={labelCls}>Parameter</label>
+          <select
+            value={paramName}
+            onChange={(e) => handleParamChange(e.target.value)}
+            className={inputCls}
+          >
+            {parameters.map((p) => (
+              <option key={p.id} value={p.name}>
+                {p.name}{p.canonical_unit ? ` (${p.canonical_unit})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Kit selector — only when kits exist for this parameter */}
+        {availableKits.length > 0 && (
           <div className="space-y-1.5">
-            <label className="text-xs text-on-surface-dim uppercase tracking-wider">
-              Parameter
-            </label>
+            <label className={labelCls}>Test Kit</label>
             <select
-              value={paramName}
-              onChange={(e) => setParamName(e.target.value)}
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50"
+              value={kitRef}
+              onChange={(e) => handleKitChange(e.target.value)}
+              className={inputCls}
             >
-              {parameters.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name}{p.canonical_unit ? ` (${p.canonical_unit})` : ''}
-                </option>
+              <option value="">None — enter value directly</option>
+              {availableKits.map((k) => (
+                <option key={k.ref} value={k.ref}>{k.name}</option>
               ))}
             </select>
           </div>
+        )}
 
-          {/* Value */}
+        {/* Raw value input — only when a kit is selected */}
+        {selectedKit && (
           <div className="space-y-1.5">
-            <label className="text-xs text-on-surface-dim uppercase tracking-wider">
-              Value{selectedParam?.canonical_unit ? ` (${selectedParam.canonical_unit})` : ''}
+            <label className={labelCls}>
+              {selectedKit.input_label || 'Reading'}{selectedKit.input_unit ? ` (${selectedKit.input_unit})` : ''}
             </label>
             <input
               type="number"
               step="any"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={`e.g. ${PARAM_PLACEHOLDERS[paramName] ?? '0'}`}
-              required
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
+              value={rawValue}
+              onChange={(e) => { setRawValue(e.target.value); setValueOverridden(false) }}
+              placeholder="Kit reading"
+              className={inputCls}
             />
           </div>
+        )}
 
+        {/* Canonical value */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className={labelCls}>
+              {selectedKit
+                ? `Converted value (${selectedParam?.canonical_unit ?? ''})`
+                : `Value${selectedParam?.canonical_unit ? ` (${selectedParam.canonical_unit})` : ''}`}
+            </label>
+            {selectedKit && valueOverridden && (
+              <span className="text-xs text-amber-400">overridden</span>
+            )}
+          </div>
+          <input
+            type="number"
+            step="any"
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setValueOverridden(true) }}
+            placeholder={`e.g. ${PARAM_PLACEHOLDERS[paramName] ?? '0'}`}
+            required
+            className={cn(inputCls, selectedKit && !valueOverridden && value ? 'text-primary' : '')}
+          />
+          {selectedKit && value && !valueOverridden && (
+            <p className="text-xs text-on-surface-faint">
+              Auto-converted from {rawValue} {selectedKit.input_unit} → {value} {selectedParam?.canonical_unit}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Measured At */}
           <div className="space-y-1.5">
-            <label className="text-xs text-on-surface-dim uppercase tracking-wider">
-              Tested At
-            </label>
+            <label className={labelCls}>Tested At</label>
             <input
               type="datetime-local"
               value={measuredAt}
               onChange={(e) => setMeasuredAt(e.target.value)}
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50"
+              className={inputCls}
             />
           </div>
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label className="text-xs text-on-surface-dim uppercase tracking-wider">
-              Notes (optional)
-            </label>
+            <label className={labelCls}>Notes (optional)</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. after 10% water change"
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
+              className={inputCls}
             />
           </div>
         </div>
