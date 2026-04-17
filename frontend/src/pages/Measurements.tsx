@@ -98,7 +98,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
             <select
               value={paramName}
               onChange={(e) => setParamName(e.target.value)}
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50"
             >
               {parameters.map((p) => (
                 <option key={p.id} value={p.name}>
@@ -120,7 +120,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
               onChange={(e) => setValue(e.target.value)}
               placeholder={`e.g. ${PARAM_PLACEHOLDERS[paramName] ?? '0'}`}
               required
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
+              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
             />
           </div>
 
@@ -133,7 +133,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
               type="datetime-local"
               value={measuredAt}
               onChange={(e) => setMeasuredAt(e.target.value)}
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50"
             />
           </div>
 
@@ -147,7 +147,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. after 10% water change"
-              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
+              className="w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint"
             />
           </div>
         </div>
