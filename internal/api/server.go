@@ -235,8 +235,13 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/images/reprocess", s.HandleImagesReprocess)
 
 	// Device/livestock images — serve only the images subdirectory (not the whole data dir).
+	// no-cache ensures the browser revalidates via If-Modified-Since after in-place overwrites.
 	imagesDir := filepath.Join(filepath.Dir(s.sqlite.Path()), "images")
-	mux.Handle("GET /images/", http.StripPrefix("/images/", http.FileServer(http.Dir(imagesDir))))
+	imageFS := http.StripPrefix("/images/", http.FileServer(http.Dir(imagesDir)))
+	mux.Handle("GET /images/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		imageFS.ServeHTTP(w, r)
+	}))
 
 	// Static frontend serving with SPA fallback.
 	mux.Handle("GET /", spaHandler(s.frontendFS))

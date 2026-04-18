@@ -309,6 +309,9 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
   )
 }
 
+// Module-level map so cache-busting timestamps survive SPA navigation.
+const imageBustMap: Record<string, number> = {}
+
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function LivestockDetail() {
@@ -337,12 +340,15 @@ export default function LivestockDetail() {
   const [imageError, setImageError] = useState('')
   const [editingImage, setEditingImage] = useState(false)
   const [editingObsImage, setEditingObsImage] = useState<number | null>(null)
-  const [imageBust, setImageBust] = useState<Record<string, number>>({})
+  const [, forceRender] = useState(0)
   const bustUrl = (path: string, base?: string) => {
     const url = base ?? `/${path}`
-    return imageBust[path] ? `${url}?v=${imageBust[path]}` : url
+    return imageBustMap[path] ? `${url}?v=${imageBustMap[path]}` : url
   }
-  const bumpBust = (path: string) => setImageBust((b) => ({ ...b, [path]: Date.now() }))
+  const bumpBust = (path: string) => {
+    imageBustMap[path] = Date.now()
+    forceRender((n) => n + 1)
+  }
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -354,9 +360,9 @@ export default function LivestockDetail() {
 
   // Build the gallery from item image + observation images
   const galleryImages: string[] = []
-  if (item?.image_path) galleryImages.push(`/${item.image_path}`)
+  if (item?.image_path) galleryImages.push(bustUrl(item.image_path))
   for (const obs of observations) {
-    if (obs.image_path) galleryImages.push(`/${obs.image_path}`)
+    if (obs.image_path) galleryImages.push(bustUrl(obs.image_path))
   }
 
   function openLightbox(index: number) {
@@ -803,7 +809,7 @@ export default function LivestockDetail() {
                   {obs.image_path && (
                     <button
                       onClick={() => {
-                        const idx = galleryImages.indexOf(`/${obs.image_path}`)
+                        const idx = galleryImages.indexOf(bustUrl(obs.image_path!))
                         if (idx >= 0) openLightbox(idx)
                       }}
                       className="group block w-full overflow-hidden rounded-xl"

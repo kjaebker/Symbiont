@@ -149,14 +149,16 @@ export function ImageEditModal({ imageSrc, fallbackSrc, onSave, onClose }: Props
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>, handle: DragHandle) {
+    e.preventDefault()
     e.stopPropagation()
     ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
     dragRef.current = { handle, startX: e.clientX, startY: e.clientY, origCrop: { ...crop } }
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return
+    e.preventDefault()
     const d = dragRef.current
-    if (!d) return
     const dx = e.clientX - d.startX
     const dy = e.clientY - d.startY
     const { x, y, w, h } = d.origCrop
@@ -190,6 +192,7 @@ export function ImageEditModal({ imageSrc, fallbackSrc, onSave, onClose }: Props
   }
 
   function onPointerUp() { dragRef.current = null }
+  function onPointerCancel() { dragRef.current = null }
 
   async function handleSave() {
     const img = imgRef.current
@@ -247,6 +250,8 @@ export function ImageEditModal({ imageSrc, fallbackSrc, onSave, onClose }: Props
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          style={{ touchAction: 'none' }}
         >
           {loadError ? (
             <p className="text-on-surface-faint text-sm">Failed to load image.</p>
@@ -276,14 +281,33 @@ export function ImageEditModal({ imageSrc, fallbackSrc, onSave, onClose }: Props
               {/* Move zone */}
               <div className="absolute" style={{ top: crop.y + 18, left: crop.x + 18, width: Math.max(0, crop.w - 36), height: Math.max(0, crop.h - 36), cursor: 'move' }} onPointerDown={e => onPointerDown(e, 'move')} />
 
-              {/* Corner handles */}
-              {([['nw', crop.x - 5, crop.y - 5, 'nw-resize'], ['ne', crop.x + crop.w - 7, crop.y - 5, 'ne-resize'], ['sw', crop.x - 5, crop.y + crop.h - 7, 'sw-resize'], ['se', crop.x + crop.w - 7, crop.y + crop.h - 7, 'se-resize']] as const).map(([h, lx, ly, cur]) => (
-                <div key={h} className="absolute w-3 h-3 rounded-sm bg-primary" style={{ left: lx, top: ly, cursor: cur }} onPointerDown={e => onPointerDown(e, h)} />
+              {/* Corner handles — 44px touch target, 12px visual dot */}
+              {([['nw', crop.x, crop.y, 'nw-resize'], ['ne', crop.x + crop.w, crop.y, 'ne-resize'], ['sw', crop.x, crop.y + crop.h, 'sw-resize'], ['se', crop.x + crop.w, crop.y + crop.h, 'se-resize']] as const).map(([h, cx, cy, cur]) => (
+                <div
+                  key={h}
+                  className="absolute flex items-center justify-center"
+                  style={{ left: cx - 22, top: cy - 22, width: 44, height: 44, cursor: cur }}
+                  onPointerDown={e => onPointerDown(e, h)}
+                >
+                  <div className="w-3 h-3 rounded-sm bg-primary" />
+                </div>
               ))}
 
-              {/* Edge handles */}
-              {([['n', crop.x + crop.w / 2 - 6, crop.y - 4, 'n-resize', 12, 8], ['s', crop.x + crop.w / 2 - 6, crop.y + crop.h - 4, 's-resize', 12, 8], ['w', crop.x - 4, crop.y + crop.h / 2 - 6, 'w-resize', 8, 12], ['e', crop.x + crop.w - 4, crop.y + crop.h / 2 - 6, 'e-resize', 8, 12]] as const).map(([h, lx, ly, cur, bw, bh]) => (
-                <div key={h} className="absolute rounded-sm bg-primary" style={{ left: lx, top: ly, width: bw, height: bh, cursor: cur }} onPointerDown={e => onPointerDown(e, h)} />
+              {/* Edge handles — 44px touch target, small visual bar */}
+              {([
+                ['n', crop.x + crop.w / 2, crop.y, 'n-resize', true],
+                ['s', crop.x + crop.w / 2, crop.y + crop.h, 's-resize', true],
+                ['w', crop.x, crop.y + crop.h / 2, 'w-resize', false],
+                ['e', crop.x + crop.w, crop.y + crop.h / 2, 'e-resize', false],
+              ] as const).map(([h, cx, cy, cur, horiz]) => (
+                <div
+                  key={h}
+                  className="absolute flex items-center justify-center"
+                  style={{ left: cx - 22, top: cy - 22, width: 44, height: 44, cursor: cur }}
+                  onPointerDown={e => onPointerDown(e, h)}
+                >
+                  <div className="rounded-sm bg-primary" style={{ width: horiz ? 16 : 4, height: horiz ? 4 : 16 }} />
+                </div>
               ))}
             </div>
           )}
