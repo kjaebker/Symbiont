@@ -1257,7 +1257,7 @@ function TankProfileForm({
                 value={form.display_name ?? ''}
                 onChange={field('display_name')}
                 placeholder={title}
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
               />
             </div>
 
@@ -1267,7 +1267,7 @@ function TankProfileForm({
               <select
                 value={form.tank_type ?? ''}
                 onChange={field('tank_type')}
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
               >
                 <option value="">Select type...</option>
                 {(Object.keys(TANK_TYPE_LABELS) as TankType[]).map(t => (
@@ -1286,38 +1286,38 @@ function TankProfileForm({
                 value={form.volume_gallons ?? ''}
                 onChange={numericField('volume_gallons')}
                 placeholder="e.g. 75"
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
               />
             </div>
 
             {/* Dimensions */}
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Length (in)</label>
-              <input type="number" min="0" step="0.5" value={form.length_in ?? ''} onChange={numericField('length_in')} placeholder="48" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="number" min="0" step="0.5" value={form.length_in ?? ''} onChange={numericField('length_in')} placeholder="48" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Width (in)</label>
-              <input type="number" min="0" step="0.5" value={form.width_in ?? ''} onChange={numericField('width_in')} placeholder="18" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="number" min="0" step="0.5" value={form.width_in ?? ''} onChange={numericField('width_in')} placeholder="18" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Height (in)</label>
-              <input type="number" min="0" step="0.5" value={form.height_in ?? ''} onChange={numericField('height_in')} placeholder="20" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="number" min="0" step="0.5" value={form.height_in ?? ''} onChange={numericField('height_in')} placeholder="20" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
 
             {/* Manufacturer & model */}
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Manufacturer</label>
-              <input type="text" value={form.manufacturer ?? ''} onChange={field('manufacturer')} placeholder="e.g. Red Sea" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="text" value={form.manufacturer ?? ''} onChange={field('manufacturer')} placeholder="e.g. Red Sea" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Model</label>
-              <input type="text" value={form.model ?? ''} onChange={field('model')} placeholder="e.g. Reefer 350" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="text" value={form.model ?? ''} onChange={field('model')} placeholder="e.g. Reefer 350" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
 
             {/* Setup date */}
             <div>
               <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Setup Date</label>
-              <input type="date" value={form.setup_date ?? ''} onChange={field('setup_date')} className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
+              <input type="date" value={form.setup_date ?? ''} onChange={field('setup_date')} className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
             </div>
 
             {/* Notes */}
@@ -1328,7 +1328,7 @@ function TankProfileForm({
                 value={form.notes ?? ''}
                 onChange={field('notes')}
                 placeholder="Any additional notes..."
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
+                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
               />
             </div>
           </div>

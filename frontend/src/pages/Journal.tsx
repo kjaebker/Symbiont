@@ -135,7 +135,7 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
           <select
             value={category}
             onChange={e => setCategory(e.target.value as JournalCategory)}
-            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
           >
             {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
               <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
@@ -147,7 +147,7 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
           <select
             value={sentiment}
             onChange={e => setSentiment(e.target.value as JournalSentiment | '')}
-            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
           >
             <option value="">None</option>
             {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
@@ -166,7 +166,7 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
           value={title}
           onChange={e => setTitle(e.target.value)}
           placeholder="What happened?"
-          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
+          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
         />
       </div>
 
@@ -178,7 +178,7 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder="Add more context..."
-          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
+          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
         />
       </div>
 
