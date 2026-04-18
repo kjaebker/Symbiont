@@ -70,7 +70,7 @@ export function LivestockCard({ item }: LivestockCardProps) {
         <div className="absolute inset-0 bg-surface-container-lowest/0 group-hover:bg-surface-container-lowest/20 transition-fluid" />
 
         {/* Status dot — top right */}
-        <div className="absolute top-2.5 right-2.5">
+        <div className="absolute top-4 right-4">
           <span className={cn('block h-2.5 w-2.5 rounded-full', statusDotClass[item.status])} />
         </div>
       </div>
