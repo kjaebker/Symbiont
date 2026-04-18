@@ -21,6 +21,8 @@ import {
   useCreateLivestockObservation,
   useUploadObservationImage,
   useDeleteObservationImage,
+  useEditObservationImage,
+  useResetObservationImage,
   useLivestockSpecies,
 } from '@/hooks/useLivestock'
 import { LivestockForm } from '@/components/LivestockForm'
@@ -324,6 +326,8 @@ export default function LivestockDetail() {
   const resetItemImage = useResetLivestockImage()
   const deleteItemImage = useDeleteLivestockImage()
   const deleteObsImage = useDeleteObservationImage()
+  const editObsImage = useEditObservationImage()
+  const resetObsImage = useResetObservationImage()
 
   const itemImageInputRef = useRef<HTMLInputElement>(null)
 
@@ -332,6 +336,13 @@ export default function LivestockDetail() {
   const [addingObs, setAddingObs] = useState(false)
   const [imageError, setImageError] = useState('')
   const [editingImage, setEditingImage] = useState(false)
+  const [editingObsImage, setEditingObsImage] = useState<number | null>(null)
+  const [imageBust, setImageBust] = useState<Record<string, number>>({})
+  const bustUrl = (path: string, base?: string) => {
+    const url = base ?? `/${path}`
+    return imageBust[path] ? `${url}?v=${imageBust[path]}` : url
+  }
+  const bumpBust = (path: string) => setImageBust((b) => ({ ...b, [path]: Date.now() }))
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -459,11 +470,29 @@ export default function LivestockDetail() {
           onSave={async (file) => {
             setImageError('')
             await editItemImage.mutateAsync({ id: numericId, file })
+            if (item.image_path) bumpBust(item.image_path)
             setEditingImage(false)
           }}
           onClose={() => setEditingImage(false)}
         />
       )}
+
+      {editingObsImage !== null && (() => {
+        const obs = observations.find((o) => o.id === editingObsImage)
+        if (!obs?.image_path) return null
+        return (
+          <ImageEditModal
+            imageSrc={bustUrl(obs.image_path, originalUrl(obs.image_path))}
+            fallbackSrc={bustUrl(obs.image_path)}
+            onSave={async (file) => {
+              await editObsImage.mutateAsync({ livestockId: numericId, obsId: obs.id, file })
+              bumpBust(obs.image_path)
+              setEditingObsImage(null)
+            }}
+            onClose={() => setEditingObsImage(null)}
+          />
+        )
+      })()}
 
       <div className="max-w-3xl mx-auto">
         {/* ── navigation + actions row ───────────────────────────────────── */}
@@ -535,7 +564,7 @@ export default function LivestockDetail() {
         <div className="group relative mx-4 md:mx-8 overflow-hidden rounded-2xl" style={{ aspectRatio: '16/9' }}>
           {item.image_path ? (
             <img
-              src={`/${item.image_path}`}
+              src={bustUrl(item.image_path)}
               alt={item.name}
               className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ease-out group-hover:scale-[1.02]"
               onClick={() => openLightbox(0)}
@@ -583,6 +612,7 @@ export default function LivestockDetail() {
                 onClick={() => {
                   resetItemImage.mutate(numericId, {
                     onError: (err) => setImageError(err instanceof Error ? err.message : 'Reset failed'),
+                    onSuccess: () => { if (item.image_path) bumpBust(item.image_path) },
                   })
                 }}
                 disabled={resetItemImage.isPending}
@@ -736,14 +766,31 @@ export default function LivestockDetail() {
                       )}
                     </div>
                     {obs.image_path && (
-                      <button
-                        onClick={() => deleteObsImage.mutate({ livestockId: numericId, obsId: obs.id })}
-                        disabled={deleteObsImage.isPending}
-                        className="flex-shrink-0 p-1 rounded-lg text-on-surface-faint hover:text-tertiary transition-fluid"
-                        title="Remove photo"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => setEditingObsImage(obs.id)}
+                          className="p-1 rounded-lg text-on-surface-faint hover:text-primary transition-fluid"
+                          title="Edit photo"
+                        >
+                          <Crop className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => resetObsImage.mutate({ livestockId: numericId, obsId: obs.id }, { onSuccess: () => { if (obs.image_path) bumpBust(obs.image_path) } })}
+                          disabled={resetObsImage.isPending}
+                          className="p-1 rounded-lg text-on-surface-faint hover:text-secondary transition-fluid"
+                          title="Reset to original"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteObsImage.mutate({ livestockId: numericId, obsId: obs.id })}
+                          disabled={deleteObsImage.isPending}
+                          className="p-1 rounded-lg text-on-surface-faint hover:text-tertiary transition-fluid"
+                          title="Remove photo"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -762,7 +809,7 @@ export default function LivestockDetail() {
                       className="group block w-full overflow-hidden rounded-xl"
                     >
                       <img
-                        src={thumbUrl(obs.image_path)}
+                        src={bustUrl(obs.image_path, thumbUrl(obs.image_path))}
                         alt="observation"
                         className="w-full max-h-56 object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />

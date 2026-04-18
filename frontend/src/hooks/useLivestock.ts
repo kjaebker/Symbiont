@@ -14,6 +14,8 @@ import {
   createLivestockObservation,
   uploadObservationImage,
   deleteObservationImage,
+  editObservationImage,
+  resetObservationImage,
 } from '@/api/client'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 
@@ -150,6 +152,32 @@ export function useDeleteObservationImage() {
   return useMutation({
     mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
       deleteObservationImage(livestockId, obsId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
+    },
+  })
+}
+
+export function useEditObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ livestockId, obsId, file }: { livestockId: number; obsId: number; file: File }) =>
+      editObservationImage(livestockId, obsId, file),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
+    },
+  })
+}
+
+export function useResetObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
+      resetObservationImage(livestockId, obsId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['livestock-observations', variables.livestockId],

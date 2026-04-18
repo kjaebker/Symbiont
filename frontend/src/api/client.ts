@@ -519,6 +519,30 @@ export function resetLivestockImage(id: number) {
   return apiFetch<{ image_path: string }>(`/api/livestock/${id}/image/reset`, { method: 'POST' })
 }
 
+export function editObservationImage(livestockId: number, obsId: number, file: File) {
+  const token = getToken()
+  const form = new FormData()
+  form.append('image', file)
+  return fetch(`/api/livestock/${livestockId}/observations/${obsId}/image/edit`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  }).then(async (res) => {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'upload failed', code: 'upload_error' }))
+      throw new Error(err.error ?? 'upload failed')
+    }
+    return res.json() as Promise<{ image_path: string }>
+  })
+}
+
+export function resetObservationImage(livestockId: number, obsId: number) {
+  return apiFetch<{ image_path: string }>(
+    `/api/livestock/${livestockId}/observations/${obsId}/image/reset`,
+    { method: 'POST' },
+  )
+}
+
 export function deleteLivestockImage(id: number) {
   return apiFetch<{ status: string }>(`/api/livestock/${id}/image`, { method: 'DELETE' })
 }
