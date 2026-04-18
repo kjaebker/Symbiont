@@ -486,7 +486,7 @@ export default function LivestockDetail() {
             fallbackSrc={bustUrl(obs.image_path)}
             onSave={async (file) => {
               await editObsImage.mutateAsync({ livestockId: numericId, obsId: obs.id, file })
-              bumpBust(obs.image_path)
+              bumpBust(obs.image_path!)
               setEditingObsImage(null)
             }}
             onClose={() => setEditingObsImage(null)}
