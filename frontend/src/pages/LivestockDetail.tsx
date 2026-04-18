@@ -376,7 +376,10 @@ export default function LivestockDetail() {
     setImageError('')
     uploadItemImage.mutate(
       { id: numericId, file },
-      { onError: (err) => setImageError(err instanceof Error ? err.message : 'Upload failed') },
+      {
+        onError: (err) => setImageError(err instanceof Error ? err.message : 'Upload failed'),
+        onSuccess: (result) => bumpBust(result.image_path),
+      },
     )
     e.target.value = ''
   }
