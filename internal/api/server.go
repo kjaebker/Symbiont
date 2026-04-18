@@ -189,6 +189,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/events/stats", s.HandleEventBusStats) // must be before /api/events
 	mux.HandleFunc("GET /api/events", s.HandleAuditEventList)
 
+	// Daily prompt.
+	mux.HandleFunc("GET /api/daily-prompt", s.HandleDailyPromptGet)
+	mux.HandleFunc("POST /api/daily-prompt/respond", s.HandleDailyPromptRespond)
+
 	// Journal.
 	mux.HandleFunc("GET /api/journal/templates", s.HandleJournalTemplates) // must be before /{id}
 	mux.HandleFunc("GET /api/journal", s.HandleJournalList)

@@ -25,9 +25,10 @@ import type {
   LivestockStatus,
   AgentSettings,
   AgentSkill,
+  DailyPrompt,
 } from './types'
 
-export type { Outlet }
+export type { Outlet, DailyPrompt }
 
 const TOKEN_KEY = 'symbiont_token'
 const BUBBLES_KEY = 'ui:bubbles'
@@ -642,6 +643,19 @@ export function updateJournalEntry(id: number, data: {
 
 export function deleteJournalEntry(id: number) {
   return apiFetch<{ status: string }>(`/api/journal/${id}`, { method: 'DELETE' })
+}
+
+// ─── Daily Prompt ─────────────────────────────────────────────────────────────
+
+export function getDailyPrompt() {
+  return apiFetch<{ prompt: DailyPrompt | null }>('/api/daily-prompt')
+}
+
+export function respondToPrompt(question: string, response: string) {
+  return apiFetch<{ ok: boolean }>('/api/daily-prompt/respond', {
+    method: 'POST',
+    body: JSON.stringify({ question, response }),
+  })
 }
 
 // ─── Audit Events ─────────────────────────────────────────────────────────────

@@ -203,6 +203,13 @@ export interface APIError {
   code: string
 }
 
+export type PromptType = 'open' | 'thumbs' | 'rating'
+
+export interface DailyPrompt {
+  type: PromptType
+  question: string
+}
+
 export type LivestockType = 'fish' | 'coral' | 'invertebrate' | 'other'
 export type LivestockStatus = 'healthy' | 'sick' | 'quarantine' | 'deceased'
 
