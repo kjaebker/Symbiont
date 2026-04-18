@@ -30,7 +30,7 @@ var validDeviceTypes = map[string]bool{
 	"other":     true,
 }
 
-const maxImageSize = 5 << 20 // 5MB
+const maxImageSize = 20 << 20 // 20MB
 
 func (s *Server) HandleDeviceList(w http.ResponseWriter, r *http.Request) {
 	devices, err := s.sqlite.ListDevices(r.Context())
@@ -395,7 +395,7 @@ func (s *Server) HandleDeviceImageUpload(w http.ResponseWriter, r *http.Request)
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		writeError(w, http.StatusBadRequest, "image too large (max 20MB)", "file_too_large")
 		return
 	}
 

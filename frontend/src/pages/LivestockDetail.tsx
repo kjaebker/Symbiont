@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useLivestock'
 import { LivestockForm } from '@/components/LivestockForm'
 import type { LivestockFormData } from '@/components/LivestockForm'
+import { ImageEditor } from '@/components/ImageEditor'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { thumbUrl } from '@/api/client'
 
@@ -177,6 +178,7 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
   const [note, setNote] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const createObs = useCreateLivestockObservation()
@@ -185,10 +187,15 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setPendingFile(file)
+    e.target.value = ''
+  }
+
+  function handleEditorConfirm(file: File) {
     if (imagePreview) URL.revokeObjectURL(imagePreview)
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
-    e.target.value = ''
+    setPendingFile(null)
   }
 
   function clearImage() {
@@ -220,6 +227,16 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
   }
 
   const isEmpty = !status && !note.trim() && !imageFile
+
+  if (pendingFile) {
+    return (
+      <ImageEditor
+        file={pendingFile}
+        onConfirm={handleEditorConfirm}
+        onCancel={() => setPendingFile(null)}
+      />
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit} className="bg-surface-container rounded-2xl p-4 space-y-3">

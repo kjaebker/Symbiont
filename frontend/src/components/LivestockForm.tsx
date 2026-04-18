@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { X, ImagePlus } from 'lucide-react'
 import type { LivestockType, LivestockStatus } from '@/api/types'
 import { useUploadLivestockImage } from '@/hooks/useLivestock'
+import { ImageEditor } from '@/components/ImageEditor'
 
 export const TYPE_OPTIONS: { value: LivestockType; label: string }[] = [
   { value: 'fish', label: 'Fish' },
@@ -56,6 +57,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
   const [submitting, setSubmitting] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const uploadImage = useUploadLivestockImage()
 
@@ -66,10 +68,15 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setPendingFile(file)
+    e.target.value = ''
+  }
+
+  function handleEditorConfirm(file: File) {
     if (imagePreview) URL.revokeObjectURL(imagePreview)
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
-    e.target.value = ''
+    setPendingFile(null)
   }
 
   function clearImage() {
@@ -97,6 +104,16 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (pendingFile) {
+    return (
+      <ImageEditor
+        file={pendingFile}
+        onConfirm={handleEditorConfirm}
+        onCancel={() => setPendingFile(null)}
+      />
+    )
   }
 
   return (

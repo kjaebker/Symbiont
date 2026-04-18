@@ -269,7 +269,7 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		writeError(w, http.StatusBadRequest, "image too large (max 20MB)", "file_too_large")
 		return
 	}
 
@@ -497,7 +497,7 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		writeError(w, http.StatusBadRequest, "image too large (max 20MB)", "file_too_large")
 		return
 	}
 
