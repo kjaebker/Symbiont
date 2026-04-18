@@ -1,5 +1,7 @@
 # Environment (contains secrets)
 .env
+.env.local
+frontend/.env.local
 
 # Local Apex API notes (contains device IP, serial — use .example template)
 docs/apex-api-notes.md

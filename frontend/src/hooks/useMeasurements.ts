@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getMeasurements,
   getMeasurementParameters,
+  getKitCatalog,
   createMeasurement,
   updateMeasurement,
   deleteMeasurement,
@@ -12,6 +13,14 @@ export function useMeasurementParameters() {
     queryKey: ['measurement-parameters'],
     queryFn: getMeasurementParameters,
     staleTime: Infinity, // parameters are seeded at startup and rarely change
+  })
+}
+
+export function useKitCatalog() {
+  return useQuery({
+    queryKey: ['measurement-kits'],
+    queryFn: getKitCatalog,
+    staleTime: Infinity, // kit catalog is static — embedded in the binary
   })
 }
 

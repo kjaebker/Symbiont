@@ -17,6 +17,7 @@ import type {
   DeviceSuggestion,
   DashboardItem,
   MeasurementParameter,
+  KitDef,
   Measurement,
   LivestockItem,
   LivestockObservation,
@@ -415,6 +416,24 @@ export function updateMeasurement(
 
 export function deleteMeasurement(id: number) {
   return apiFetch<void>(`/api/measurements/${id}`, { method: 'DELETE' })
+}
+
+export function getKitCatalog() {
+  return apiFetch<{ kits: Record<string, KitDef[]> }>('/api/measurements/kits')
+}
+
+const KIT_PREF_PREFIX = 'kit_pref:'
+
+export function getKitPref(paramName: string): string | null {
+  try { return localStorage.getItem(KIT_PREF_PREFIX + paramName) } catch { return null }
+}
+
+export function setKitPref(paramName: string, ref: string) {
+  try { localStorage.setItem(KIT_PREF_PREFIX + paramName, ref) } catch {}
+}
+
+export function clearKitPref(paramName: string) {
+  try { localStorage.removeItem(KIT_PREF_PREFIX + paramName) } catch {}
 }
 
 // Livestock

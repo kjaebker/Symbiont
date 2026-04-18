@@ -160,6 +160,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 	// Measurements.
 	mux.HandleFunc("GET /api/measurements/parameters", s.HandleMeasurementParameterList)
+	mux.HandleFunc("GET /api/measurements/kits", s.HandleKitList)
 	mux.HandleFunc("GET /api/measurements", s.HandleMeasurementList)
 	mux.HandleFunc("POST /api/measurements", s.HandleMeasurementCreate)
 	mux.HandleFunc("PUT /api/measurements/{id}", s.HandleMeasurementUpdate)

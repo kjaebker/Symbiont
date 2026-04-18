@@ -175,6 +175,15 @@ export interface MeasurementParameter {
   sort_order: number
 }
 
+export interface KitDef {
+  ref: string
+  name: string
+  input_label: string
+  input_unit: string
+  scale: number
+  offset: number
+}
+
 export interface Measurement {
   id: number
   measured_at: string

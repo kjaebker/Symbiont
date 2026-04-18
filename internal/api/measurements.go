@@ -8,6 +8,41 @@ import (
 	"github.com/kjaebker/symbiont/internal/db"
 )
 
+// HandleKitList returns all test kit definitions grouped by parameter name.
+func (s *Server) HandleKitList(w http.ResponseWriter, r *http.Request) {
+	if s.catalog == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"kits": map[string]any{}})
+		return
+	}
+
+	type KitResponse struct {
+		Ref        string  `json:"ref"`
+		Name       string  `json:"name"`
+		InputLabel string  `json:"input_label"`
+		InputUnit  string  `json:"input_unit"`
+		Scale      float64 `json:"scale"`
+		Offset     float64 `json:"offset"`
+	}
+
+	grouped := s.catalog.GroupedByParameter()
+	result := make(map[string][]KitResponse, len(grouped))
+	for param, kits := range grouped {
+		resp := make([]KitResponse, 0, len(kits))
+		for _, k := range kits {
+			resp = append(resp, KitResponse{
+				Ref:        k.Ref,
+				Name:       k.Name,
+				InputLabel: k.Input.Label,
+				InputUnit:  k.Input.Unit,
+				Scale:      k.Conversion.Scale,
+				Offset:     k.Conversion.Offset,
+			})
+		}
+		result[param] = resp
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"kits": result})
+}
+
 // HandleMeasurementParameterList returns all measurement parameter definitions.
 func (s *Server) HandleMeasurementParameterList(w http.ResponseWriter, r *http.Request) {
 	params, err := s.sqlite.ListMeasurementParameters(r.Context())

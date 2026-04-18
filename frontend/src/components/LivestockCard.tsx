@@ -50,33 +50,39 @@ export function LivestockCard({ item }: LivestockCardProps) {
   return (
     <Link
       to={`/livestock/${item.id}`}
-      className="group relative block aspect-[4/3] rounded-2xl overflow-hidden shadow-abyss focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      className="group block rounded-2xl overflow-hidden shadow-abyss focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >
-      {/* Background: photo or tinted placeholder */}
-      {item.image_path ? (
-        <img
-          src={thumbUrl(item.image_path)}
-          alt={item.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-        />
-      ) : (
-        <div className={cn('absolute inset-0 flex items-center justify-center', typePlaceholderClass[item.type])}>
-          <TypeIcon className={cn('h-16 w-16', typeIconClass[item.type])} />
-        </div>
-      )}
-
-      {/* Subtle darkening vignette on hover */}
-      <div className="absolute inset-0 bg-surface-container-lowest/0 group-hover:bg-surface-container-lowest/20 transition-fluid" />
-
-      {/* Bottom glass overlay: identity */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 glass">
-        <div className="font-semibold text-on-surface leading-tight truncate">{item.name}</div>
-        {item.species && (
-          <div className="text-xs text-on-surface-dim italic truncate mt-0.5">{item.species}</div>
+      {/* Image — portrait 3:4 */}
+      <div className="relative aspect-[3/4]">
+        {item.image_path ? (
+          <img
+            src={thumbUrl(item.image_path)}
+            alt={item.name}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          />
+        ) : (
+          <div className={cn('absolute inset-0 flex items-center justify-center', typePlaceholderClass[item.type])}>
+            <TypeIcon className={cn('h-16 w-16', typeIconClass[item.type])} />
+          </div>
         )}
-        <div className="flex items-center gap-2 mt-2">
-          <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', statusDotClass[item.status])} />
-          <span className="text-xs text-on-surface-dim">{statusLabel[item.status]}</span>
+
+        {/* Subtle darkening vignette on hover */}
+        <div className="absolute inset-0 bg-surface-container-lowest/0 group-hover:bg-surface-container-lowest/20 transition-fluid" />
+
+        {/* Status dot — top right */}
+        <div className="absolute top-4 right-4">
+          <span className={cn('block h-2.5 w-2.5 rounded-full', statusDotClass[item.status])} />
+        </div>
+      </div>
+
+      {/* Footer: identity */}
+      <div className="bg-surface-container px-3 py-2.5">
+        <div className="font-semibold text-sm text-on-surface leading-tight line-clamp-2">{item.name}</div>
+        {item.species && (
+          <div className="text-xs text-on-surface-dim italic line-clamp-1 mt-0.5">{item.species}</div>
+        )}
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <span className="text-xs text-on-surface-faint">{statusLabel[item.status]}</span>
           {item.quantity > 1 && (
             <span className="ml-auto text-xs text-on-surface-faint">×{item.quantity}</span>
           )}
