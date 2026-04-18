@@ -80,7 +80,7 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
               }
             }
           }}
-          className="bg-surface-container-high text-on-surface text-xs rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+          className="bg-surface-container-high text-on-surface text-base rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
         />
         <span className="text-on-surface-faint text-xs">to</span>
         <input
@@ -98,7 +98,7 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
               }
             }
           }}
-          className="bg-surface-container-high text-on-surface text-xs rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+          className="bg-surface-container-high text-on-surface text-base rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
         />
       </div>
     </div>

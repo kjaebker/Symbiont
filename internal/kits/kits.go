@@ -31,6 +31,9 @@ type KitDef struct {
 	Parameter  string     `yaml:"parameter"` // must match a measurement_parameters.name
 	Input      KitInput   `yaml:"input"`
 	Conversion Conversion `yaml:"conversion"`
+
+	// Ref is populated by Load and is the fully-qualified reference string ("slug/id").
+	Ref string `yaml:"-"`
 }
 
 // KitInput describes what the user reads off the instrument or test kit.
@@ -100,6 +103,7 @@ func Load(validParams map[string]bool) (*Catalog, error) {
 		for i := range spec.Kits {
 			kit := &spec.Kits[i]
 			ref := spec.Slug + "/" + kit.ID
+			kit.Ref = ref
 
 			if validParams != nil && !validParams[kit.Parameter] {
 				return nil, fmt.Errorf("kit %q references unknown parameter %q (check %s)", ref, kit.Parameter, name)
@@ -129,6 +133,15 @@ func (c *Catalog) All() []*KitDef {
 	out := make([]*KitDef, 0, len(c.kits))
 	for _, k := range c.kits {
 		out = append(out, k)
+	}
+	return out
+}
+
+// GroupedByParameter returns all kits grouped by their parameter name.
+func (c *Catalog) GroupedByParameter() map[string][]*KitDef {
+	out := make(map[string][]*KitDef, len(c.byParam))
+	for param, kits := range c.byParam {
+		out[param] = kits
 	}
 	return out
 }

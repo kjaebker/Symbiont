@@ -826,7 +826,7 @@ function DeviceForm({
     })
   }
 
-  const inputClass = 'w-full bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
+  const inputClass = 'w-full bg-surface-container-high text-on-surface text-base rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
   const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium'
 
   return (
