@@ -589,7 +589,7 @@ export default function LivestockDetail() {
           </div>
 
           {/* Image controls — revealed on hover */}
-          <div className="absolute top-3 left-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-fluid">
+          <div className="absolute top-3 left-3 flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-fluid">
             <button
               onClick={() => itemImageInputRef.current?.click()}
               disabled={uploadItemImage.isPending}
