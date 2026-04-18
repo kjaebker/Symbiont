@@ -174,6 +174,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/livestock/{id}", s.HandleLivestockUpdate)
 	mux.HandleFunc("DELETE /api/livestock/{id}", s.HandleLivestockDelete)
 	mux.HandleFunc("POST /api/livestock/{id}/image", s.HandleLivestockImageUpload)
+	mux.HandleFunc("POST /api/livestock/{id}/image/edit", s.HandleLivestockImageEdit)
+	mux.HandleFunc("POST /api/livestock/{id}/image/reset", s.HandleLivestockImageReset)
 	mux.HandleFunc("DELETE /api/livestock/{id}/image", s.HandleLivestockImageDelete)
 	mux.HandleFunc("GET /api/livestock/{id}/observations", s.HandleLivestockObservationList)
 	mux.HandleFunc("POST /api/livestock/{id}/observations", s.HandleLivestockObservationCreate)

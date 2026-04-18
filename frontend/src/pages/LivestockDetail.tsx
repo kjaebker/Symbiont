@@ -4,7 +4,7 @@ import {
   Fish, Flower2, Shell, Box,
   ArrowLeft, Pencil, Trash2, X,
   Camera, ImagePlus, Plus,
-  ChevronLeft, ChevronRight, ZoomIn,
+  ChevronLeft, ChevronRight, ZoomIn, Crop, History,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn, relativeTime } from '@/lib/utils'
@@ -15,6 +15,8 @@ import {
   useUpdateLivestockItem,
   useDeleteLivestockItem,
   useUploadLivestockImage,
+  useEditLivestockImage,
+  useResetLivestockImage,
   useDeleteLivestockImage,
   useCreateLivestockObservation,
   useUploadObservationImage,
@@ -22,9 +24,10 @@ import {
   useLivestockSpecies,
 } from '@/hooks/useLivestock'
 import { LivestockForm } from '@/components/LivestockForm'
+import { ImageEditModal } from '@/components/ImageEditModal'
 import type { LivestockFormData } from '@/components/LivestockForm'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { thumbUrl } from '@/api/client'
+import { thumbUrl, originalUrl } from '@/api/client'
 
 // ─── type maps ────────────────────────────────────────────────────────────────
 
@@ -317,6 +320,8 @@ export default function LivestockDetail() {
   const updateItem = useUpdateLivestockItem()
   const deleteItem = useDeleteLivestockItem()
   const uploadItemImage = useUploadLivestockImage()
+  const editItemImage = useEditLivestockImage()
+  const resetItemImage = useResetLivestockImage()
   const deleteItemImage = useDeleteLivestockImage()
   const deleteObsImage = useDeleteObservationImage()
 
@@ -326,6 +331,7 @@ export default function LivestockDetail() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [addingObs, setAddingObs] = useState(false)
   const [imageError, setImageError] = useState('')
+  const [editingImage, setEditingImage] = useState(false)
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -445,6 +451,20 @@ export default function LivestockDetail() {
         />
       )}
 
+      {/* Image edit modal */}
+      {editingImage && item.image_path && (
+        <ImageEditModal
+          imageSrc={originalUrl(item.image_path)}
+          fallbackSrc={`/${item.image_path}`}
+          onSave={async (file) => {
+            setImageError('')
+            await editItemImage.mutateAsync({ id: numericId, file })
+            setEditingImage(false)
+          }}
+          onClose={() => setEditingImage(false)}
+        />
+      )}
+
       <div className="max-w-3xl mx-auto">
         {/* ── navigation + actions row ───────────────────────────────────── */}
         <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-2 md:px-8 md:pt-6">
@@ -549,6 +569,29 @@ export default function LivestockDetail() {
             >
               <Camera className="h-4 w-4" />
             </button>
+            {item.image_path && (
+              <button
+                onClick={() => setEditingImage(true)}
+                title="Crop / rotate photo"
+                className="p-2 rounded-xl glass text-on-surface-dim hover:text-on-surface transition-fluid"
+              >
+                <Crop className="h-4 w-4" />
+              </button>
+            )}
+            {item.image_path && (
+              <button
+                onClick={() => {
+                  resetItemImage.mutate(numericId, {
+                    onError: (err) => setImageError(err instanceof Error ? err.message : 'Reset failed'),
+                  })
+                }}
+                disabled={resetItemImage.isPending}
+                title="Reset to original photo"
+                className="p-2 rounded-xl glass text-on-surface-dim hover:text-on-surface transition-fluid disabled:opacity-40"
+              >
+                <History className="h-4 w-4" />
+              </button>
+            )}
             {item.image_path && (
               <button
                 onClick={() => deleteItemImage.mutate(numericId)}

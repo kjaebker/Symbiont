@@ -7,6 +7,8 @@ import {
   updateLivestockItem,
   deleteLivestockItem,
   uploadLivestockImage,
+  editLivestockImage,
+  resetLivestockImage,
   deleteLivestockImage,
   getLivestockObservations,
   createLivestockObservation,
@@ -86,6 +88,28 @@ export function useUploadLivestockImage() {
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['livestock'] })
       queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
+    },
+  })
+}
+
+export function useEditLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) => editLivestockImage(id, file),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
+    },
+  })
+}
+
+export function useResetLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => resetLivestockImage(id),
+    onSuccess: (_result, id) => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', id] })
     },
   })
 }

@@ -42,6 +42,7 @@ its thumbnail (-thumb.jpg). Skips images that already have a thumbnail unless
 
 			var result struct {
 				Total     int      `json:"total"`
+				Migrated  int      `json:"migrated"`
 				Processed int      `json:"processed"`
 				Skipped   int      `json:"skipped"`
 				Failed    int      `json:"failed"`
@@ -57,8 +58,9 @@ its thumbnail (-thumb.jpg). Skips images that already have a thumbnail unless
 			}
 
 			fmt.Printf("Total images: %d\n", result.Total)
-			fmt.Printf("Processed:    %d\n", result.Processed)
-			fmt.Printf("Skipped:      %d  (thumbnail already exists)\n", result.Skipped)
+			fmt.Printf("Migrated:     %d  (renamed to deterministic filenames)\n", result.Migrated)
+			fmt.Printf("Processed:    %d  (thumb/original regenerated)\n", result.Processed)
+			fmt.Printf("Skipped:      %d  (already up to date)\n", result.Skipped)
 			fmt.Printf("Failed:       %d\n", result.Failed)
 			for _, f := range result.Failures {
 				fmt.Printf("  ! %s\n", f)

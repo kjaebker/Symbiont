@@ -1268,6 +1268,19 @@ func (s *SQLiteDB) UpdateLivestockItem(ctx context.Context, id int64, item Lives
 	return nil
 }
 
+// SetLivestockImagePath updates only the image_path for a livestock item.
+// Used by the image edit and reset flows to avoid clobbering metadata.
+func (s *SQLiteDB) SetLivestockImagePath(ctx context.Context, id int64, imagePath *string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE livestock SET image_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		imagePath, id,
+	)
+	if err != nil {
+		return fmt.Errorf("setting livestock image path %d: %w", id, err)
+	}
+	return nil
+}
+
 // DeleteLivestockItem removes a livestock item by ID.
 func (s *SQLiteDB) DeleteLivestockItem(ctx context.Context, id int64) error {
 	res, err := s.db.ExecContext(ctx, "DELETE FROM livestock WHERE id = ?", id)
@@ -1329,6 +1342,29 @@ func (s *SQLiteDB) UpdateLivestockObservationImagePath(ctx context.Context, id i
 		return fmt.Errorf("updating livestock observation image: %w", err)
 	}
 	return nil
+}
+
+// ListAllImagesWithIDs returns every non-null image alongside the IDs needed
+// to compute a deterministic filename. Used by the image reprocess migrator.
+func (s *SQLiteDB) ListAllImagesWithIDs(ctx context.Context) ([]ImageRecord, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT 'livestock', id, id, image_path FROM livestock WHERE image_path IS NOT NULL
+		UNION ALL
+		SELECT 'observation', id, livestock_id, image_path FROM livestock_observations WHERE image_path IS NOT NULL
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("listing images with ids: %w", err)
+	}
+	defer rows.Close()
+	var records []ImageRecord
+	for rows.Next() {
+		var r ImageRecord
+		if err := rows.Scan(&r.Kind, &r.ID, &r.LivestockID, &r.ImagePath); err != nil {
+			return nil, fmt.Errorf("scanning image record: %w", err)
+		}
+		records = append(records, r)
+	}
+	return records, rows.Err()
 }
 
 // ListAllImagePaths returns every non-null image_path stored across the

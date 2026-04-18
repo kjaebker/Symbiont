@@ -167,6 +167,15 @@ type LivestockObservation struct {
 	ImagePath   *string   `json:"image_path"`
 }
 
+// ImageRecord is used by the reprocess migration to enumerate all stored images
+// with their owning IDs so deterministic filenames can be computed.
+type ImageRecord struct {
+	Kind        string // "livestock" or "observation"
+	ID          int64  // livestock item ID or observation ID
+	LivestockID int64  // same as ID for livestock; parent livestock ID for observations
+	ImagePath   string
+}
+
 // LivestockFilter is used to filter ListLivestock queries.
 type LivestockFilter struct {
 	Type   string // empty = all

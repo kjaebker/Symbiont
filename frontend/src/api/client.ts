@@ -44,6 +44,11 @@ export function thumbUrl(imagePath: string): string {
   return `/${stem}-thumb.jpg`
 }
 
+export function originalUrl(imagePath: string): string {
+  const stem = imagePath.replace(/\.[^./]+$/, '')
+  return `/${stem}-original.jpg`
+}
+
 export function getBubblesEnabled(): boolean {
   try { return localStorage.getItem(BUBBLES_KEY) !== 'false' } catch { return true }
 }
@@ -491,6 +496,27 @@ export function uploadLivestockImage(id: number, file: File) {
     }
     return res.json() as Promise<{ image_path: string }>
   })
+}
+
+export function editLivestockImage(id: number, file: File) {
+  const token = getToken()
+  const form = new FormData()
+  form.append('image', file)
+  return fetch(`/api/livestock/${id}/image/edit`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  }).then(async (res) => {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'upload failed', code: 'upload_error' }))
+      throw new Error(err.error ?? 'upload failed')
+    }
+    return res.json() as Promise<{ image_path: string }>
+  })
+}
+
+export function resetLivestockImage(id: number) {
+  return apiFetch<{ image_path: string }>(`/api/livestock/${id}/image/reset`, { method: 'POST' })
 }
 
 export function deleteLivestockImage(id: number) {
