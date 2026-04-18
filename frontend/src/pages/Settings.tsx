@@ -165,7 +165,7 @@ function EditableCell({
         if (e.key === 'Enter') commit()
         if (e.key === 'Escape') setEditing(false)
       }}
-      className="w-full bg-surface-container-high text-on-surface text-sm rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+      className="w-full bg-surface-container-high text-on-surface text-base rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
     />
   )
 }
@@ -197,7 +197,7 @@ function UnitSelect({
     <select
       value={normalized}
       onChange={(e) => onSave(e.target.value)}
-      className="w-full bg-transparent text-on-surface text-sm rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
+      className="w-full bg-transparent text-on-surface text-base rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
     >
       {!knownValues.has(normalized) && normalized !== '' && (
         <option value={normalized} className="bg-surface-container text-on-surface">
@@ -1454,13 +1454,13 @@ function TokensTab() {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Token label (e.g. CLI, MCP)"
-            className="flex-1 bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-1 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
             autoFocus
           />
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as 'read' | 'control' | 'admin')}
-            className="bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer"
+            className="bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer"
           >
             <option value="admin">admin</option>
             <option value="control">control</option>
@@ -1748,7 +1748,7 @@ function NotificationsTab() {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Label (e.g. Phone)"
-            className="flex-1 min-w-32 bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-1 min-w-32 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
             autoFocus
           />
           <input
@@ -1756,7 +1756,7 @@ function NotificationsTab() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://ntfy.sh/your-topic"
-            className="flex-[3] min-w-48 bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-[3] min-w-48 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
           />
           <button
             type="submit"
@@ -2269,7 +2269,7 @@ function AgentTab() {
     })
   }
 
-  const selectClass = 'w-full bg-surface-container-highest text-on-surface text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/40 transition-fluid'
+  const selectClass = 'w-full bg-surface-container-highest text-on-surface text-base rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/40 transition-fluid'
   const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1.5 block'
 
   return (
@@ -2582,7 +2582,7 @@ export default function Settings() {
         <select
           value={activeTab}
           onChange={(e) => setActiveTab(e.target.value as Tab)}
-          className="w-full appearance-none bg-surface-container-high text-on-surface text-sm font-semibold uppercase tracking-wider rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+          className="w-full appearance-none bg-surface-container-high text-on-surface text-base font-semibold uppercase tracking-wider rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
         >
           {tabs.map((tab) => (
             <option key={tab.key} value={tab.key}>
