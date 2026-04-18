@@ -122,7 +122,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
             placeholder="e.g. Ocellaris Clownfish"
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none placeholder:text-on-surface-faint"
+            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none placeholder:text-on-surface-faint"
           />
         </div>
 
@@ -137,7 +137,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             value={form.species}
             onChange={(e) => set('species', e.target.value)}
             placeholder="e.g. Amphiprion ocellaris"
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none placeholder:text-on-surface-faint"
+            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none placeholder:text-on-surface-faint"
           />
           <datalist id="livestock-species-list">
             {speciesSuggestions.map((s) => (
@@ -155,7 +155,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             <select
               value={form.type}
               onChange={(e) => set('type', e.target.value as LivestockType)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
+              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none"
             >
               {TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -169,7 +169,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             <select
               value={form.status}
               onChange={(e) => set('status', e.target.value as LivestockStatus)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
+              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none"
             >
               {STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -189,7 +189,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
               min={1}
               value={form.quantity}
               onChange={(e) => set('quantity', Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
+              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none"
             />
           </div>
           <div>
@@ -200,7 +200,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
               type="date"
               value={form.date_added}
               onChange={(e) => set('date_added', e.target.value)}
-              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none"
+              className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none"
             />
           </div>
         </div>
@@ -215,7 +215,7 @@ export function LivestockForm({ initial, currentImagePath, speciesSuggestions, o
             onChange={(e) => set('notes', e.target.value)}
             placeholder="Optional notes"
             rows={2}
-            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-sm outline-none resize-none placeholder:text-on-surface-faint"
+            className="w-full bg-surface-container-highest text-on-surface rounded-xl px-3 py-2 text-base outline-none resize-none placeholder:text-on-surface-faint"
           />
         </div>
 

@@ -237,7 +237,7 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
       <select
         value={status}
         onChange={(e) => setStatus(e.target.value as LivestockStatus | '')}
-        className="w-full bg-surface-container-highest text-on-surface text-sm rounded-xl px-3 py-2 outline-none"
+        className="w-full bg-surface-container-highest text-on-surface text-base rounded-xl px-3 py-2 outline-none"
       >
         <option value="">Status (optional)</option>
         <option value="healthy">Healthy</option>
@@ -251,7 +251,7 @@ function AddObsForm({ livestockId, onClose }: AddObsFormProps) {
         onChange={(e) => setNote(e.target.value)}
         placeholder="What did you observe? Coloration, behavior, feeding response…"
         rows={3}
-        className="w-full bg-surface-container-highest text-on-surface text-sm rounded-xl px-3 py-2 outline-none resize-none placeholder:text-on-surface-faint"
+        className="w-full bg-surface-container-highest text-on-surface text-base rounded-xl px-3 py-2 outline-none resize-none placeholder:text-on-surface-faint"
       />
 
       {/* Image */}

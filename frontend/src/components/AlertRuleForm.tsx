@@ -78,7 +78,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
   }
 
   const inputClass =
-    'w-full bg-surface-container-high text-on-surface text-sm rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
+    'w-full bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
   const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1.5 block'
 
   return (

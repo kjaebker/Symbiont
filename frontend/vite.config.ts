@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: process.env.VITE_ALLOWED_HOSTS
+      ? process.env.VITE_ALLOWED_HOSTS.split(',')
+      : [],
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL ?? 'http://localhost:8421',
