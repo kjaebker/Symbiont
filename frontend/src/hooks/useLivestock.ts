@@ -7,11 +7,15 @@ import {
   updateLivestockItem,
   deleteLivestockItem,
   uploadLivestockImage,
+  editLivestockImage,
+  resetLivestockImage,
   deleteLivestockImage,
   getLivestockObservations,
   createLivestockObservation,
   uploadObservationImage,
   deleteObservationImage,
+  editObservationImage,
+  resetObservationImage,
 } from '@/api/client'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 
@@ -90,6 +94,28 @@ export function useUploadLivestockImage() {
   })
 }
 
+export function useEditLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) => editLivestockImage(id, file),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
+    },
+  })
+}
+
+export function useResetLivestockImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => resetLivestockImage(id),
+    onSuccess: (_result, id) => {
+      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: ['livestock-item', id] })
+    },
+  })
+}
+
 export function useDeleteLivestockImage() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -126,6 +152,32 @@ export function useDeleteObservationImage() {
   return useMutation({
     mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
       deleteObservationImage(livestockId, obsId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
+    },
+  })
+}
+
+export function useEditObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ livestockId, obsId, file }: { livestockId: number; obsId: number; file: File }) =>
+      editObservationImage(livestockId, obsId, file),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['livestock-observations', variables.livestockId],
+      })
+    },
+  })
+}
+
+export function useResetObservationImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
+      resetObservationImage(livestockId, obsId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['livestock-observations', variables.livestockId],

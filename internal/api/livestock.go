@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/events"
@@ -269,7 +268,7 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		writeError(w, http.StatusBadRequest, "image too large (max 30MB)", "file_too_large")
 		return
 	}
 
@@ -287,7 +286,7 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	full, thumb, err := processImage(file, ext)
+	orig, full, thumb, err := processUpload(file, ext)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
 		return
@@ -299,26 +298,26 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Always stored as JPEG regardless of upload format.
-	filename := fmt.Sprintf("livestock-%d-%d.jpg", id, time.Now().Unix())
-	relPath := filepath.Join("images", filename)
-	absPath := s.dataFilePath(relPath)
-	absThumbPath := s.dataFilePath(thumbPath(relPath))
+	relPath := filepath.Join("images", fmt.Sprintf("livestock-%d.jpg", id))
 
-	if err := os.WriteFile(absPath, full, 0o644); err != nil {
+	if err := os.WriteFile(s.dataFilePath(originalPath(relPath)), orig, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save original image", "io_error")
+		return
+	}
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
 		return
 	}
-	if err := os.WriteFile(absThumbPath, thumb, 0o644); err != nil {
-		os.Remove(absPath)
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
 		return
 	}
 
-	// Remove old image and thumbnail if present.
-	if item.ImagePath != nil {
+	// Remove stale timestamp-based files left over from before deterministic naming.
+	if item.ImagePath != nil && *item.ImagePath != relPath {
 		os.Remove(s.dataFilePath(*item.ImagePath))
 		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
+		os.Remove(s.dataFilePath(originalPath(*item.ImagePath)))
 	}
 
 	item.ImagePath = &relPath
@@ -330,6 +329,7 @@ func (s *Server) HandleLivestockImageUpload(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, map[string]string{
 		"image_path":     relPath,
 		"thumbnail_path": thumbPath(relPath),
+		"original_path":  originalPath(relPath),
 	})
 }
 
@@ -355,6 +355,7 @@ func (s *Server) HandleLivestockImageDelete(w http.ResponseWriter, r *http.Reque
 	if item.ImagePath != nil {
 		os.Remove(s.dataFilePath(*item.ImagePath))
 		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
+		os.Remove(s.dataFilePath(originalPath(*item.ImagePath)))
 	}
 
 	item.ImagePath = nil
@@ -364,6 +365,160 @@ func (s *Server) HandleLivestockImageDelete(w http.ResponseWriter, r *http.Reque
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// HandleLivestockImageEdit accepts a cropped/rotated image blob from the
+// frontend editor and replaces the display copy + thumbnail while leaving the
+// original backup file untouched.
+func (s *Server) HandleLivestockImageEdit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	id, err := strconv.ParseInt(pathValue(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid livestock id", "invalid_param")
+		return
+	}
+
+	item, err := s.sqlite.GetLivestockItem(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "livestock item not found", "not_found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to fetch livestock item", "db_error")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
+	if err := r.ParseMultipartForm(maxImageSize); err != nil {
+		writeError(w, http.StatusBadRequest, "image too large (max 30MB)", "file_too_large")
+		return
+	}
+
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "missing image field", "missing_field")
+		return
+	}
+	defer file.Close()
+
+	// Canvas always exports JPEG.
+	full, thumb, err := processImage(file, ".jpg")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
+		return
+	}
+
+	imagesDir := s.dataFilePath("images")
+	if err := os.MkdirAll(imagesDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create images directory", "io_error")
+		return
+	}
+
+	relPath := filepath.Join("images", fmt.Sprintf("livestock-%d.jpg", id))
+
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
+		return
+	}
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
+		return
+	}
+
+	// Remove stale timestamp-based files; original is untouched (same deterministic name).
+	if item.ImagePath != nil && *item.ImagePath != relPath {
+		os.Remove(s.dataFilePath(*item.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
+	}
+
+	if err := s.sqlite.SetLivestockImagePath(ctx, id, &relPath); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update livestock image", "db_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
+}
+
+// HandleLivestockImageReset re-processes the original backup image and
+// replaces the display copy + thumbnail with a fresh, unedited version.
+func (s *Server) HandleLivestockImageReset(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	id, err := strconv.ParseInt(pathValue(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid livestock id", "invalid_param")
+		return
+	}
+
+	item, err := s.sqlite.GetLivestockItem(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "livestock item not found", "not_found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to fetch livestock item", "db_error")
+		return
+	}
+
+	if item.ImagePath == nil {
+		writeError(w, http.StatusBadRequest, "no image to reset", "no_image")
+		return
+	}
+
+	// Always read from and write to the deterministic path.
+	relPath := filepath.Join("images", fmt.Sprintf("livestock-%d.jpg", id))
+	origAbsPath := s.dataFilePath(originalPath(relPath))
+
+	// Fall back to path derived from item.ImagePath for images not yet migrated.
+	if _, err := os.Stat(origAbsPath); os.IsNotExist(err) && item.ImagePath != nil && *item.ImagePath != relPath {
+		origAbsPath = s.dataFilePath(originalPath(*item.ImagePath))
+	}
+
+	origData, err := os.ReadFile(origAbsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			writeError(w, http.StatusNotFound, "no original image available — run 'images reprocess' to backfill", "no_original")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to read original image", "io_error")
+		return
+	}
+
+	full, thumb, err := processImage(bytesReader(origData), ".jpg")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to reprocess original image", "invalid_image")
+		return
+	}
+
+	// Overwrite in place — same deterministic filenames every time.
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
+		return
+	}
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
+		return
+	}
+
+	// Remove stale timestamp-based files if migration hasn't been run yet.
+	if item.ImagePath != nil && *item.ImagePath != relPath {
+		os.Remove(s.dataFilePath(*item.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*item.ImagePath)))
+	}
+
+	if err := s.sqlite.SetLivestockImagePath(ctx, id, &relPath); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update livestock image", "db_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
 }
 
 func (s *Server) HandleLivestockObservationList(w http.ResponseWriter, r *http.Request) {
@@ -497,7 +652,7 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		writeError(w, http.StatusBadRequest, "image too large (max 5MB)", "file_too_large")
+		writeError(w, http.StatusBadRequest, "image too large (max 30MB)", "file_too_large")
 		return
 	}
 
@@ -515,7 +670,7 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	full, thumb, err := processImage(file, ext)
+	orig, full, thumb, err := processUpload(file, ext)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
 		return
@@ -527,31 +682,26 @@ func (s *Server) HandleObservationImageUpload(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Always stored as JPEG regardless of upload format.
-	filename := fmt.Sprintf("obs-%d-%d.jpg", obsID, time.Now().Unix())
-	relPath := filepath.Join("images", filename)
-	absPath := s.dataFilePath(relPath)
-	absThumbPath := s.dataFilePath(thumbPath(relPath))
+	relPath := filepath.Join("images", fmt.Sprintf("obs-%d-%d.jpg", obs.LivestockID, obsID))
 
-	if err := os.WriteFile(absPath, full, 0o644); err != nil {
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
 		return
 	}
-	if err := os.WriteFile(absThumbPath, thumb, 0o644); err != nil {
-		os.Remove(absPath)
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
 		return
 	}
+	os.WriteFile(s.dataFilePath(originalPath(relPath)), orig, 0o644) //nolint:errcheck
 
-	// Remove old image and thumbnail if present.
-	if obs.ImagePath != nil {
+	// Remove stale timestamp-based files left over from before deterministic naming.
+	if obs.ImagePath != nil && *obs.ImagePath != relPath {
 		os.Remove(s.dataFilePath(*obs.ImagePath))
 		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
+		os.Remove(s.dataFilePath(originalPath(*obs.ImagePath)))
 	}
 
 	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, &relPath); err != nil {
-		os.Remove(absPath)
-		os.Remove(absThumbPath)
 		writeError(w, http.StatusInternalServerError, "failed to update observation image", "db_error")
 		return
 	}
@@ -580,6 +730,7 @@ func (s *Server) HandleObservationImageDelete(w http.ResponseWriter, r *http.Req
 	if obs.ImagePath != nil {
 		os.Remove(s.dataFilePath(*obs.ImagePath))
 		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
+		os.Remove(s.dataFilePath(originalPath(*obs.ImagePath)))
 	}
 
 	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, nil); err != nil {
@@ -588,4 +739,143 @@ func (s *Server) HandleObservationImageDelete(w http.ResponseWriter, r *http.Req
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// HandleObservationImageEdit accepts a cropped/rotated image blob and replaces
+// the display copy + thumbnail while leaving the original backup untouched.
+func (s *Server) HandleObservationImageEdit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	obsID, err := strconv.ParseInt(pathValue(r, "obs_id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid observation id", "invalid_param")
+		return
+	}
+
+	obs, err := s.sqlite.GetLivestockObservation(ctx, obsID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "observation not found", "not_found")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
+	if err := r.ParseMultipartForm(maxImageSize); err != nil {
+		writeError(w, http.StatusBadRequest, "image too large (max 30MB)", "file_too_large")
+		return
+	}
+
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "missing image field", "missing_field")
+		return
+	}
+	defer file.Close()
+
+	full, thumb, err := processImage(file, ".jpg")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "failed to process image", "invalid_image")
+		return
+	}
+
+	imagesDir := s.dataFilePath("images")
+	if err := os.MkdirAll(imagesDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create images directory", "io_error")
+		return
+	}
+
+	relPath := filepath.Join("images", fmt.Sprintf("obs-%d-%d.jpg", obs.LivestockID, obsID))
+
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
+		return
+	}
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
+		return
+	}
+
+	// Remove stale timestamp-based files; original is untouched.
+	if obs.ImagePath != nil && *obs.ImagePath != relPath {
+		os.Remove(s.dataFilePath(*obs.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
+	}
+
+	if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, &relPath); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update observation image", "db_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
+}
+
+// HandleObservationImageReset re-processes the original backup image and
+// replaces the display copy + thumbnail with a fresh, unedited version.
+func (s *Server) HandleObservationImageReset(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	obsID, err := strconv.ParseInt(pathValue(r, "obs_id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid observation id", "invalid_param")
+		return
+	}
+
+	obs, err := s.sqlite.GetLivestockObservation(ctx, obsID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "observation not found", "not_found")
+		return
+	}
+
+	if obs.ImagePath == nil {
+		writeError(w, http.StatusBadRequest, "no image to reset", "no_image")
+		return
+	}
+
+	relPath := filepath.Join("images", fmt.Sprintf("obs-%d-%d.jpg", obs.LivestockID, obsID))
+	origAbsPath := s.dataFilePath(originalPath(relPath))
+
+	if _, err := os.Stat(origAbsPath); os.IsNotExist(err) && *obs.ImagePath != relPath {
+		origAbsPath = s.dataFilePath(originalPath(*obs.ImagePath))
+	}
+
+	origData, err := os.ReadFile(origAbsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			writeError(w, http.StatusNotFound, "no original image available — run 'images reprocess' to backfill", "no_original")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to read original image", "io_error")
+		return
+	}
+
+	full, thumb, err := processImage(bytesReader(origData), ".jpg")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to reprocess original image", "invalid_image")
+		return
+	}
+
+	if err := os.WriteFile(s.dataFilePath(relPath), full, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save image", "io_error")
+		return
+	}
+	if err := os.WriteFile(s.dataFilePath(thumbPath(relPath)), thumb, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save thumbnail", "io_error")
+		return
+	}
+
+	if obs.ImagePath != nil && *obs.ImagePath != relPath {
+		os.Remove(s.dataFilePath(*obs.ImagePath))
+		os.Remove(s.dataFilePath(thumbPath(*obs.ImagePath)))
+		if err := s.sqlite.UpdateLivestockObservationImagePath(ctx, obsID, &relPath); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update observation image", "db_error")
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"image_path":     relPath,
+		"thumbnail_path": thumbPath(relPath),
+	})
 }

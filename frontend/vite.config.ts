@@ -24,6 +24,10 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL ?? 'http://localhost:8421',
           changeOrigin: true,
         },
+        '/images': {
+          target: env.VITE_API_URL ?? 'http://localhost:8421',
+          changeOrigin: true,
+        },
       },
     },
     build: {

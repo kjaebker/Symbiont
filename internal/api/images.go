@@ -16,17 +16,51 @@ import (
 func bytesReader(b []byte) io.Reader { return bytes.NewReader(b) }
 
 const (
-	fullMaxWidth    = 1600    // pixels — compress large uploads
-	fullMaxHeight   = 1600
-	thumbMaxWidth   = 400
-	thumbMaxHeight  = 400
-	fullJPEGQuality = 85
-	thumbJPEGQuality = 72
+	fullMaxWidth      = 1600 // pixels — compress large uploads
+	fullMaxHeight     = 1600
+	thumbMaxWidth     = 400
+	thumbMaxHeight    = 400
+	fullJPEGQuality   = 85
+	thumbJPEGQuality  = 72
+	origJPEGQuality   = 95 // original: full resolution, high quality
 )
 
-// processImage decodes an uploaded image, re-encodes a compressed full-size
-// version and a thumbnail, both as JPEG. The ext parameter is the original
-// file extension (lowercase, with leading dot).
+// processUpload decodes an uploaded image and produces three versions: a
+// full-resolution original (high quality JPEG), a compressed display copy
+// (max 1600px), and a thumbnail (max 400px).
+func processUpload(r io.Reader, ext string) (original, full, thumb []byte, err error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("reading image: %w", err)
+	}
+
+	src, err := decodeImage(bytes.NewReader(data), ext)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("decoding image: %w", err)
+	}
+
+	original, err = encodeJPEG(src, origJPEGQuality)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encoding original: %w", err)
+	}
+
+	fullImg := resizeToFit(src, fullMaxWidth, fullMaxHeight)
+	full, err = encodeJPEG(fullImg, fullJPEGQuality)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encoding full image: %w", err)
+	}
+
+	thumbImg := resizeToFit(src, thumbMaxWidth, thumbMaxHeight)
+	thumb, err = encodeJPEG(thumbImg, thumbJPEGQuality)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encoding thumbnail: %w", err)
+	}
+
+	return original, full, thumb, nil
+}
+
+// processImage decodes an image and produces a compressed display copy and
+// thumbnail. Used for edits and reprocessing (does not produce an original).
 func processImage(r io.Reader, ext string) (full, thumb []byte, err error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
@@ -110,13 +144,24 @@ func encodeJPEG(img image.Image, quality int) ([]byte, error) {
 // file extension with "-thumb.jpg". For example:
 //
 //	"images/livestock-1-123.jpg" → "images/livestock-1-123-thumb.jpg"
-//	"images/obs-2-456.png"       → "images/obs-2-456-thumb.jpg"
 func thumbPath(imagePath string) string {
-	// Strip extension and append -thumb.jpg.
 	for i := len(imagePath) - 1; i >= 0 && imagePath[i] != '/'; i-- {
 		if imagePath[i] == '.' {
 			return imagePath[:i] + "-thumb.jpg"
 		}
 	}
 	return imagePath + "-thumb.jpg"
+}
+
+// originalPath derives the original-backup path from an image path by
+// replacing the file extension with "-original.jpg". For example:
+//
+//	"images/livestock-1-123.jpg" → "images/livestock-1-123-original.jpg"
+func originalPath(imagePath string) string {
+	for i := len(imagePath) - 1; i >= 0 && imagePath[i] != '/'; i-- {
+		if imagePath[i] == '.' {
+			return imagePath[:i] + "-original.jpg"
+		}
+	}
+	return imagePath + "-original.jpg"
 }
