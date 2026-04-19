@@ -250,3 +250,90 @@ export interface AgentSkill {
   description: string
   enabled: boolean
 }
+
+export type DosingProductType =
+  | 'two_part_a' | 'two_part_b' | 'calcium' | 'alkalinity' | 'magnesium'
+  | 'trace' | 'amino' | 'bacteria' | 'carbon_source' | 'other'
+
+export interface DosingProduct {
+  id: number
+  brand: string
+  name: string
+  type: DosingProductType
+  unit: string
+  notes: string | null
+  created_at: string
+}
+
+export type DosingFrequency = 'daily' | 'twice_daily' | 'every_n_days' | 'weekly' | 'as_needed'
+
+export interface DosingSchedule {
+  id: number
+  product_id: number
+  amount: number
+  frequency: DosingFrequency
+  interval_days: number | null
+  day_of_week: number | null
+  enabled: boolean
+  last_completed_at: string | null
+  next_due_at: string | null
+  follow_up_parameter_id: number | null
+  follow_up_days: number | null
+  notes: string | null
+  created_at: string
+  product_brand: string | null
+  product_name: string | null
+  product_unit: string | null
+  follow_up_parameter: string | null
+}
+
+export interface DosingLog {
+  id: number
+  schedule_id: number | null
+  product_id: number
+  amount: number
+  dosed_at: string
+  notes: string | null
+  source: string
+  created_at: string
+  product_brand: string
+  product_name: string
+  product_unit: string
+}
+
+export type MaintenanceFrequency = 'daily' | 'every_n_days' | 'weekly' | 'monthly' | 'as_needed'
+
+export interface MaintenanceTask {
+  id: number
+  name: string
+  description: string | null
+  frequency: MaintenanceFrequency
+  interval_days: number | null
+  day_of_week: number | null
+  enabled: boolean
+  last_completed_at: string | null
+  next_due_at: string | null
+  created_at: string
+}
+
+export interface MaintenanceLog {
+  id: number
+  task_id: number
+  completed_at: string
+  notes: string | null
+  source: string
+  created_at: string
+  task_name: string | null
+}
+
+export interface DueItem {
+  kind: 'dose' | 'task' | 'followup'
+  id: number
+  label: string
+  detail: string
+  next_due_at: string | null
+  is_overdue: boolean
+  product_id: number | null
+  product_unit: string | null
+  amount: number | null
+}

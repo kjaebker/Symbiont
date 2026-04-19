@@ -4,12 +4,11 @@ import {
   Clock,
   FlaskConical,
   Fish,
-  Power,
   Bell,
   Settings,
   LayoutGrid,
   X,
-  ScrollText,
+  Wrench,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useSSE } from '@/hooks/useSSE'
@@ -21,14 +20,13 @@ import { Bubbles } from '@/components/Bubbles'
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/livestock', icon: Fish, label: 'Livestock' },
-  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
-  { to: '/journal', icon: ScrollText, label: 'Journal' },
+  { to: '/chemistry', icon: FlaskConical, label: 'Chemistry' },
+  { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
 ]
 
 const overflowNavItems = [
-  { to: '/control', icon: Power, label: 'Control' },
-  { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/history', icon: Clock, label: 'History' },
+  { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
