@@ -177,6 +177,60 @@ func NewJournalEntryCreated(entryID int64, category, source string) EvtJournalEn
 	return EvtJournalEntryCreated{base: base{At: now()}, EntryID: entryID, Category: category, Source: source}
 }
 
+// EvtDoseLogged is published after a dose is recorded.
+type EvtDoseLogged struct {
+	base
+	LogID      int64   `json:"log_id"`
+	ProductID  int64   `json:"product_id"`
+	ScheduleID *int64  `json:"schedule_id,omitempty"`
+	Brand      string  `json:"brand"`
+	Name       string  `json:"name"`
+	Amount     float64 `json:"amount"`
+	Unit       string  `json:"unit"`
+	Source     string  `json:"source"`
+}
+
+func (e EvtDoseLogged) Kind() string          { return "dose_logged" }
+func (e EvtDoseLogged) CorrelationID() string { return strconv.FormatInt(e.ProductID, 10) }
+
+// NewDoseLogged constructs an EvtDoseLogged with At = now.
+func NewDoseLogged(logID, productID int64, scheduleID *int64, brand, name string, amount float64, unit, source string) EvtDoseLogged {
+	return EvtDoseLogged{
+		base:       base{At: now()},
+		LogID:      logID,
+		ProductID:  productID,
+		ScheduleID: scheduleID,
+		Brand:      brand,
+		Name:       name,
+		Amount:     amount,
+		Unit:       unit,
+		Source:     source,
+	}
+}
+
+// EvtMaintenanceCompleted is published after a maintenance task is logged as done.
+type EvtMaintenanceCompleted struct {
+	base
+	LogID    int64  `json:"log_id"`
+	TaskID   int64  `json:"task_id"`
+	TaskName string `json:"task_name"`
+	Source   string `json:"source"`
+}
+
+func (e EvtMaintenanceCompleted) Kind() string          { return "maintenance_completed" }
+func (e EvtMaintenanceCompleted) CorrelationID() string { return strconv.FormatInt(e.TaskID, 10) }
+
+// NewMaintenanceCompleted constructs an EvtMaintenanceCompleted with At = now.
+func NewMaintenanceCompleted(logID, taskID int64, taskName, source string) EvtMaintenanceCompleted {
+	return EvtMaintenanceCompleted{
+		base:     base{At: now()},
+		LogID:    logID,
+		TaskID:   taskID,
+		TaskName: taskName,
+		Source:   source,
+	}
+}
+
 // EvtPollCycleCompleted is published after each successful Apex poll cycle.
 type EvtPollCycleCompleted struct {
 	base

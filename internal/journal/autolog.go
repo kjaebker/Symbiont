@@ -7,6 +7,8 @@ import (
 	"github.com/kjaebker/symbiont/internal/events"
 )
 
+
+
 // EntryFromEvent maps a typed system event to a journal entry that should be
 // auto-logged. Returns false if this event kind has no journal mapping.
 // Adding support for a new auto-logged event type only requires adding a
@@ -57,6 +59,30 @@ func EntryFromEvent(e events.SystemEvent) (db.JournalEntry, bool) {
 		return db.JournalEntry{
 			Category:  "observation",
 			Sentiment: sentiment,
+			Title:     title,
+			Source:    "system",
+			SourceRef: &sourceRef,
+		}, true
+
+	case events.EvtDoseLogged:
+		neutral := "neutral"
+		title := fmt.Sprintf("Dosed %.4g %s %s %s", ev.Amount, ev.Unit, ev.Brand, ev.Name)
+		sourceRef := fmt.Sprintf("dose_log:%d", ev.LogID)
+		return db.JournalEntry{
+			Category:  "maintenance",
+			Sentiment: &neutral,
+			Title:     title,
+			Source:    "system",
+			SourceRef: &sourceRef,
+		}, true
+
+	case events.EvtMaintenanceCompleted:
+		neutral := "neutral"
+		title := fmt.Sprintf("%s completed", ev.TaskName)
+		sourceRef := fmt.Sprintf("maintenance_log:%d", ev.LogID)
+		return db.JournalEntry{
+			Category:  "maintenance",
+			Sentiment: &neutral,
 			Title:     title,
 			Source:    "system",
 			SourceRef: &sourceRef,

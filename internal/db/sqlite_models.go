@@ -243,6 +243,104 @@ type AuditEvent struct {
 	CorrelationID *string   `json:"correlation_id,omitempty"`
 }
 
+// DosingProduct represents a row in the dosing_products table.
+type DosingProduct struct {
+	ID        int64     `json:"id"`
+	Brand     string    `json:"brand"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Unit      string    `json:"unit"`
+	Notes     *string   `json:"notes"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// DosingSchedule represents a row in the dosing_schedules table, joined with product info.
+type DosingSchedule struct {
+	ID                  int64      `json:"id"`
+	ProductID           int64      `json:"product_id"`
+	Amount              float64    `json:"amount"`
+	Frequency           string     `json:"frequency"`
+	IntervalDays        *float64   `json:"interval_days"`
+	DayOfWeek           *int       `json:"day_of_week"`
+	Enabled             bool       `json:"enabled"`
+	LastCompletedAt     *time.Time `json:"last_completed_at"`
+	NextDueAt           *time.Time `json:"next_due_at"`
+	FollowUpParameterID *int64     `json:"follow_up_parameter_id"`
+	FollowUpDays        *int       `json:"follow_up_days"`
+	Notes               *string    `json:"notes"`
+	CreatedAt           time.Time  `json:"created_at"`
+	// Joined from dosing_products:
+	ProductBrand *string `json:"product_brand,omitempty"`
+	ProductName  *string `json:"product_name,omitempty"`
+	ProductUnit  *string `json:"product_unit,omitempty"`
+	// Joined from measurement_parameters:
+	FollowUpParameter *string `json:"follow_up_parameter,omitempty"`
+}
+
+// DosingLog represents a row in the dosing_logs table, joined with product info.
+type DosingLog struct {
+	ID         int64     `json:"id"`
+	ScheduleID *int64    `json:"schedule_id"`
+	ProductID  int64     `json:"product_id"`
+	Amount     float64   `json:"amount"`
+	DosedAt    time.Time `json:"dosed_at"`
+	Notes      *string   `json:"notes"`
+	Source     string    `json:"source"`
+	CreatedAt  time.Time `json:"created_at"`
+	// Joined from dosing_products:
+	ProductBrand string `json:"product_brand"`
+	ProductName  string `json:"product_name"`
+	ProductUnit  string `json:"product_unit"`
+}
+
+// DosingLogFilter filters ListDosingLogs queries.
+type DosingLogFilter struct {
+	ProductID  *int64
+	ScheduleID *int64
+	From       *time.Time
+	To         *time.Time
+	Limit      int // defaults to 100 if <= 0
+}
+
+// MaintenanceTask represents a row in the maintenance_tasks table.
+type MaintenanceTask struct {
+	ID              int64      `json:"id"`
+	Name            string     `json:"name"`
+	Description     *string    `json:"description"`
+	Frequency       string     `json:"frequency"`
+	IntervalDays    *float64   `json:"interval_days"`
+	DayOfWeek       *int       `json:"day_of_week"`
+	Enabled         bool       `json:"enabled"`
+	LastCompletedAt *time.Time `json:"last_completed_at"`
+	NextDueAt       *time.Time `json:"next_due_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+}
+
+// MaintenanceLog represents a row in the maintenance_logs table.
+type MaintenanceLog struct {
+	ID          int64     `json:"id"`
+	TaskID      int64     `json:"task_id"`
+	CompletedAt time.Time `json:"completed_at"`
+	Notes       *string   `json:"notes"`
+	Source      string    `json:"source"`
+	CreatedAt   time.Time `json:"created_at"`
+	// Joined from maintenance_tasks:
+	TaskName *string `json:"task_name,omitempty"`
+}
+
+// DueItem represents a single due or overdue dosing/maintenance item.
+type DueItem struct {
+	Kind        string     `json:"kind"` // "dose" | "task" | "followup"
+	ID          int64      `json:"id"`   // schedule_id or task_id
+	Label       string     `json:"label"`
+	Detail      string     `json:"detail"` // e.g. "5 mL" or "every 7 days"
+	NextDueAt   *time.Time `json:"next_due_at"`
+	IsOverdue   bool       `json:"is_overdue"`
+	ProductID   *int64     `json:"product_id,omitempty"`   // for dose items
+	ProductUnit *string    `json:"product_unit,omitempty"` // for dose items
+	Amount      *float64   `json:"amount,omitempty"`       // for dose items
+}
+
 // AuditFilter controls which rows ListAuditEvents returns.
 type AuditFilter struct {
 	Kind          string     // empty = all kinds

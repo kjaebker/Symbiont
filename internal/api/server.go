@@ -205,6 +205,29 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/journal/{id}", s.HandleJournalUpdate)
 	mux.HandleFunc("DELETE /api/journal/{id}", s.HandleJournalDelete)
 
+	// Dosing.
+	mux.HandleFunc("GET /api/dosing/products", s.HandleDosingProductList)
+	mux.HandleFunc("POST /api/dosing/products", s.HandleDosingProductCreate)
+	mux.HandleFunc("PUT /api/dosing/products/{id}", s.HandleDosingProductUpdate)
+	mux.HandleFunc("DELETE /api/dosing/products/{id}", s.HandleDosingProductDelete)
+	mux.HandleFunc("GET /api/dosing/schedules", s.HandleDosingScheduleList)
+	mux.HandleFunc("POST /api/dosing/schedules", s.HandleDosingScheduleCreate)
+	mux.HandleFunc("PUT /api/dosing/schedules/{id}", s.HandleDosingScheduleUpdate)
+	mux.HandleFunc("DELETE /api/dosing/schedules/{id}", s.HandleDosingScheduleDelete)
+	mux.HandleFunc("POST /api/dosing/schedules/{id}/log", s.HandleDosingScheduleLog)
+	mux.HandleFunc("GET /api/dosing/logs", s.HandleDosingLogList)
+
+	// Maintenance.
+	mux.HandleFunc("GET /api/maintenance/tasks", s.HandleMaintenanceTaskList)
+	mux.HandleFunc("POST /api/maintenance/tasks", s.HandleMaintenanceTaskCreate)
+	mux.HandleFunc("PUT /api/maintenance/tasks/{id}", s.HandleMaintenanceTaskUpdate)
+	mux.HandleFunc("DELETE /api/maintenance/tasks/{id}", s.HandleMaintenanceTaskDelete)
+	mux.HandleFunc("POST /api/maintenance/tasks/{id}/complete", s.HandleMaintenanceTaskComplete)
+	mux.HandleFunc("GET /api/maintenance/tasks/{id}/logs", s.HandleMaintenanceLogList)
+
+	// Due items (combined dosing + maintenance).
+	mux.HandleFunc("GET /api/tasks/due", s.HandleDueItems)
+
 	// Agent settings, context, and skills.
 	mux.HandleFunc("GET /api/agent/settings", s.HandleAgentSettingsGet)
 	mux.HandleFunc("PUT /api/agent/settings", s.HandleAgentSettingsPut)
