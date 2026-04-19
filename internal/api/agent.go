@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/kjaebker/symbiont/internal/agent"
 	"github.com/kjaebker/symbiont/internal/db"
@@ -152,13 +153,29 @@ func (s *Server) HandleAgentContext(w http.ResponseWriter, r *http.Request) {
 	}
 	enabledSkills := filterEnabledSkills(allSkills, settings.EnabledSkills)
 
+	dosingSchedules, err := s.sqlite.ListDosingSchedules(ctx)
+	if err != nil {
+		s.logger.Error("failed to list dosing schedules", "err", err)
+		// Non-fatal — continue without dosing context.
+		dosingSchedules = nil
+	}
+
+	dueHorizon := time.Now().Add(24 * time.Hour)
+	dueItems, err := s.sqlite.ListDueItems(ctx, dueHorizon)
+	if err != nil {
+		s.logger.Error("failed to list due items", "err", err)
+		dueItems = nil
+	}
+
 	markdown := agent.BuildContext(agent.ContextInput{
-		Settings:   settings,
-		Display:    display,
-		Sump:       sump,
-		Livestock:  livestock,
-		AlertRules: alertRules,
-		Skills:     enabledSkills,
+		Settings:        settings,
+		Display:         display,
+		Sump:            sump,
+		Livestock:       livestock,
+		AlertRules:      alertRules,
+		Skills:          enabledSkills,
+		DosingSchedules: dosingSchedules,
+		DueItems:        dueItems,
 	})
 
 	// Accept: text/plain → return raw markdown; default → JSON envelope.
