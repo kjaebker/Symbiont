@@ -33,7 +33,7 @@ function parseRange(searchParams: URLSearchParams): {
   }
 }
 
-export default function History() {
+export default function History({ hideHeader = false }: { hideHeader?: boolean }) {
   usePageTitle('History')
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -162,14 +162,16 @@ export default function History() {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <p className="text-xs text-primary uppercase tracking-widest mb-2">
-          Telemetry Archive
-        </p>
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-          Aquatic History
-        </h1>
-      </div>
+      {!hideHeader && (
+        <div>
+          <p className="text-xs text-primary uppercase tracking-widest mb-2">
+            Telemetry Archive
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
+            Aquatic History
+          </h1>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

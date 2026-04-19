@@ -327,31 +327,35 @@ export default function MaintenancePage() {
 
   return (
     <div>
-      <div className="px-6 md:px-8 pt-6 max-w-6xl mx-auto flex gap-1.5">
-        <button
-          onClick={() => setTab('tasks')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            tab === 'tasks'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <Wrench size={13} />
-          Tasks
-        </button>
-        <button
-          onClick={() => setTab('control')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            tab === 'control'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <Power size={13} />
-          Control
-        </button>
+      <div className="px-6 md:px-8 pt-8 max-w-6xl mx-auto">
+        <p className="text-xs text-primary uppercase tracking-widest mb-2">Tank Command</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight mb-6">Maintenance</h1>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setTab('tasks')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+              tab === 'tasks'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            <Wrench size={13} />
+            Tasks
+          </button>
+          <button
+            onClick={() => setTab('control')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+              tab === 'control'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            <Power size={13} />
+            Control
+          </button>
+        </div>
       </div>
 
       {tab === 'tasks' ? (
@@ -359,7 +363,7 @@ export default function MaintenancePage() {
           <TasksTab />
         </div>
       ) : (
-        <Control />
+        <Control hideHeader />
       )}
     </div>
   )

@@ -531,36 +531,39 @@ export default function Chemistry() {
 
   return (
     <div>
-      {/* Tab switcher — inline, no borders, matches Journal's view-tabs pattern */}
-      <div className="px-6 md:px-8 pt-6 max-w-6xl mx-auto flex gap-1.5">
-        <button
-          onClick={() => setTab('water-tests')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            tab === 'water-tests'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <FlaskConical size={13} />
-          Water Tests
-        </button>
-        <button
-          onClick={() => setTab('dosing')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            tab === 'dosing'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <Droplets size={13} />
-          Dosing
-        </button>
+      <div className="px-6 md:px-8 pt-8 max-w-6xl mx-auto">
+        <p className="text-xs text-primary uppercase tracking-widest mb-2">Chemical Balance</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight mb-6">Water Chemistry</h1>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setTab('water-tests')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+              tab === 'water-tests'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            <FlaskConical size={13} />
+            Measurements
+          </button>
+          <button
+            onClick={() => setTab('dosing')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+              tab === 'dosing'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            <Droplets size={13} />
+            Dosing
+          </button>
+        </div>
       </div>
 
       {tab === 'water-tests' ? (
-        <Measurements />
+        <Measurements hideHeader />
       ) : (
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
           <DosingTab />

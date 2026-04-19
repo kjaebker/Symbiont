@@ -264,7 +264,7 @@ function AddForm({ parameters, onClose }: AddFormProps) {
   )
 }
 
-export default function Measurements() {
+export default function Measurements({ hideHeader = false }: { hideHeader?: boolean }) {
   usePageTitle('Measurements')
 
   const { data: paramsData } = useMeasurementParameters()
@@ -293,28 +293,45 @@ export default function Measurements() {
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-primary uppercase tracking-widest mb-2">
-            Water Chemistry
-          </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-            Measurements
-          </h1>
+      {!hideHeader ? (
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs text-primary uppercase tracking-widest mb-2">
+              Water Chemistry
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
+              Measurements
+            </h1>
+          </div>
+          <button
+            onClick={() => { setShowForm((v) => !v) }}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
+              showForm
+                ? 'bg-surface-container-high text-on-surface-dim'
+                : 'bg-primary/20 text-primary hover:bg-primary/30',
+            )}
+          >
+            <Plus size={16} />
+            Add Measurement
+          </button>
         </div>
-        <button
-          onClick={() => { setShowForm((v) => !v) }}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
-            showForm
-              ? 'bg-surface-container-high text-on-surface-dim'
-              : 'bg-primary/20 text-primary hover:bg-primary/30',
-          )}
-        >
-          <Plus size={16} />
-          Add Measurement
-        </button>
-      </div>
+      ) : (
+        <div className="flex justify-end">
+          <button
+            onClick={() => { setShowForm((v) => !v) }}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
+              showForm
+                ? 'bg-surface-container-high text-on-surface-dim'
+                : 'bg-primary/20 text-primary hover:bg-primary/30',
+            )}
+          >
+            <Plus size={16} />
+            Add Measurement
+          </button>
+        </div>
+      )}
 
       {/* Add form */}
       {showForm && parameters.length > 0 && (
