@@ -326,43 +326,34 @@ export default function MaintenancePage() {
   }
 
   return (
-    <div className="min-h-full">
-      {/* Tab bar */}
-      <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-md border-b border-surface-container">
-        <div className="max-w-6xl mx-auto px-6 pt-6 pb-0">
-          <div className="flex items-center gap-1 mb-0">
-            <h1 className="text-xl font-bold text-on-surface mr-4">Maintenance</h1>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setTab('tasks')}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-t-xl text-sm font-medium transition-fluid border-b-2',
-                  tab === 'tasks'
-                    ? 'text-primary border-primary bg-primary/5'
-                    : 'text-on-surface-dim border-transparent hover:text-on-surface',
-                )}
-              >
-                <Wrench size={15} />
-                Tasks
-              </button>
-              <button
-                onClick={() => setTab('control')}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-t-xl text-sm font-medium transition-fluid border-b-2',
-                  tab === 'control'
-                    ? 'text-primary border-primary bg-primary/5'
-                    : 'text-on-surface-dim border-transparent hover:text-on-surface',
-                )}
-              >
-                <Power size={15} />
-                Control
-              </button>
-            </div>
-          </div>
-        </div>
+    <div>
+      <div className="px-6 md:px-8 pt-6 max-w-6xl mx-auto flex gap-1.5">
+        <button
+          onClick={() => setTab('tasks')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+            tab === 'tasks'
+              ? 'bg-primary/20 text-primary'
+              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+          )}
+        >
+          <Wrench size={13} />
+          Tasks
+        </button>
+        <button
+          onClick={() => setTab('control')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+            tab === 'control'
+              ? 'bg-primary/20 text-primary'
+              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+          )}
+        >
+          <Power size={13} />
+          Control
+        </button>
       </div>
 
-      {/* Tab content */}
       {tab === 'tasks' ? (
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
           <TasksTab />
