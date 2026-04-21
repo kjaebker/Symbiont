@@ -173,7 +173,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
             {primaryProbe && (
               <button
                 onClick={() =>
-                  navigate(`/history?probe=${encodeURIComponent(primaryProbe.name)}`)
+                  navigate(`/history?tab=telemetry&probe=${encodeURIComponent(primaryProbe.name)}`)
                 }
                 className="text-left group"
               >
@@ -195,7 +195,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                   <button
                     key={probe.name}
                     onClick={() =>
-                      navigate(`/history?probe=${encodeURIComponent(probe.name)}`)
+                      navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)
                     }
                     className="flex items-center justify-end gap-2 w-full group"
                   >

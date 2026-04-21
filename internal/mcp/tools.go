@@ -52,6 +52,12 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(getSkillTool(), getSkillHandler(client))
 	s.AddTool(listProbeConfigsTool(), listProbeConfigsHandler(client))
 	s.AddTool(updateProbeConfigTool(), updateProbeConfigHandler(client))
+	s.AddTool(getDosingScheduleTool(), getDosingScheduleHandler(client))
+	s.AddTool(logDoseTool(), logDoseHandler(client))
+	s.AddTool(getDosingHistoryTool(), getDosingHistoryHandler(client))
+	s.AddTool(getDueTasksTool(), getDueTasksHandler(client))
+	s.AddTool(listMaintenanceTasksTool(), listMaintenanceTasksHandler(client))
+	s.AddTool(completeMaintenanceTaskTool(), completeMaintenanceTaskHandler(client))
 }
 
 type contextKeyClient struct{}
@@ -1658,5 +1664,195 @@ func getSkillHandler(client *cli.APIClient) server.ToolHandlerFunc {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return mcp.NewToolResultText(resp.Body), nil
+	}
+}
+
+// --- get_dosing_schedule ---
+
+func getDosingScheduleTool() mcp.Tool {
+	return mcp.NewTool("get_dosing_schedule",
+		mcp.WithDescription("Get the current dosing schedule — all enabled products with their dose amounts, frequency, last dosed time, and next due time. Use to understand what supplements the tank receives and when."),
+	)
+}
+
+func getDosingScheduleHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/dosing/schedules", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- log_dose ---
+
+func logDoseTool() mcp.Tool {
+	return mcp.NewTool("log_dose",
+		mcp.WithDescription("Log that a dose was administered. Use when the user says they dosed a supplement or asks to record a dose. Provide the schedule_id from get_dosing_schedule to record against a scheduled dose, or provide product_id and amount for an ad-hoc dose."),
+		mcp.WithNumber("schedule_id",
+			mcp.Description("ID of the dosing schedule (from get_dosing_schedule). Preferred when logging a scheduled dose — automatically advances next_due_at."),
+		),
+		mcp.WithNumber("product_id",
+			mcp.Description("Product ID for an ad-hoc dose (not tied to a schedule). Required if schedule_id is not provided."),
+		),
+		mcp.WithNumber("amount",
+			mcp.Description("Amount dosed. If schedule_id is provided and amount is omitted, uses the scheduled amount."),
+		),
+		mcp.WithString("dosed_at",
+			mcp.Description("ISO 8601 timestamp of when the dose was given. Defaults to now."),
+		),
+		mcp.WithString("notes",
+			mcp.Description("Optional notes about this dose."),
+		),
+	)
+}
+
+func logDoseHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		scheduleID := request.GetFloat("schedule_id", 0)
+		productID := request.GetFloat("product_id", 0)
+
+		if scheduleID == 0 && productID == 0 {
+			return toolError("Either schedule_id or product_id is required"), nil
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		if scheduleID > 0 {
+			// Scheduled dose — POST to /api/dosing/schedules/{id}/log
+			body := map[string]any{"source": "ai"}
+			if v := request.GetFloat("amount", 0); v > 0 {
+				body["amount"] = v
+			}
+			if v := request.GetString("dosed_at", ""); v != "" {
+				body["dosed_at"] = v
+			}
+			if v := request.GetString("notes", ""); v != "" {
+				body["notes"] = v
+			}
+			var resp any
+			path := fmt.Sprintf("/api/dosing/schedules/%d/log", int64(scheduleID))
+			if err := clientFromCtx(ctx, client).Post(timeoutCtx, path, body, &resp); err != nil {
+				return toolError(fmt.Sprintf("Failed to log dose: %v", err)), nil
+			}
+			return jsonResult(resp)
+		}
+
+		// Ad-hoc dose — not yet exposed as a separate endpoint; use schedule log with product info
+		return toolError("Ad-hoc doses (without schedule_id) are not yet supported. Use get_dosing_schedule to find the schedule_id."), nil
+	}
+}
+
+// --- get_dosing_history ---
+
+func getDosingHistoryTool() mcp.Tool {
+	return mcp.NewTool("get_dosing_history",
+		mcp.WithDescription("Get recent dosing history — what was dosed, when, how much. Useful for reviewing supplement consistency and correlating dosing with water chemistry changes."),
+		mcp.WithNumber("product_id",
+			mcp.Description("Filter to a specific product ID. Omit for all products."),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Maximum number of log entries to return. Defaults to 50, max 100."),
+		),
+	)
+}
+
+func getDosingHistoryHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		q := url.Values{}
+		if v := request.GetFloat("product_id", 0); v > 0 {
+			q.Set("product_id", fmt.Sprintf("%d", int64(v)))
+		}
+		limit := min(request.GetInt("limit", 50), 100)
+		q.Set("limit", fmt.Sprintf("%d", limit))
+
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/dosing/logs?"+q.Encode(), &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- get_due_tasks ---
+
+func getDueTasksTool() mcp.Tool {
+	return mcp.NewTool("get_due_tasks",
+		mcp.WithDescription("Get all dosing and maintenance tasks that are currently due or overdue. Use to tell the user what care actions are needed today and what is overdue."),
+	)
+}
+
+func getDueTasksHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/tasks/due", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- list_maintenance_tasks ---
+
+func listMaintenanceTasksTool() mcp.Tool {
+	return mcp.NewTool("list_maintenance_tasks",
+		mcp.WithDescription("Get all maintenance tasks (water changes, glass cleaning, skimmer service, etc.) with their frequency, last completed time, and next due time. Use to understand the full maintenance schedule, not just what is due today."),
+	)
+}
+
+func listMaintenanceTasksHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/maintenance/tasks", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- complete_maintenance_task ---
+
+func completeMaintenanceTaskTool() mcp.Tool {
+	return mcp.NewTool("complete_maintenance_task",
+		mcp.WithDescription("Mark a maintenance task as completed. Use when the user says they did a water change, cleaned the glass, serviced the skimmer, or completed any other scheduled maintenance task."),
+		mcp.WithNumber("task_id",
+			mcp.Required(),
+			mcp.Description("ID of the maintenance task (from get_due_tasks or list of tasks)."),
+		),
+		mcp.WithString("completed_at",
+			mcp.Description("ISO 8601 timestamp of when the task was completed. Defaults to now."),
+		),
+		mcp.WithString("notes",
+			mcp.Description("Optional notes about this completion — e.g. 'changed 15 gallons'."),
+		),
+	)
+}
+
+func completeMaintenanceTaskHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		taskID, err := request.RequireInt("task_id")
+		if err != nil {
+			return toolError("task_id is required"), nil
+		}
+
+		body := map[string]any{"source": "ai"}
+		if v := request.GetString("completed_at", ""); v != "" {
+			body["completed_at"] = v
+		}
+		if v := request.GetString("notes", ""); v != "" {
+			body["notes"] = v
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		path := fmt.Sprintf("/api/maintenance/tasks/%d/complete", taskID)
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx, path, body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to complete task: %v", err)), nil
+		}
+		return jsonResult(resp)
 	}
 }

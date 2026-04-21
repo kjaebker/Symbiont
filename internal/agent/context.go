@@ -9,12 +9,14 @@ import (
 
 // ContextInput bundles all DB data needed to assemble the agent context block.
 type ContextInput struct {
-	Settings   *db.AgentSettings
-	Display    *db.TankProfile // may be nil
-	Sump       *db.TankProfile // may be nil
-	Livestock  []db.LivestockItem
-	AlertRules []db.AlertRule
-	Skills     []Skill // enabled skills to list under Available Workflows
+	Settings         *db.AgentSettings
+	Display          *db.TankProfile // may be nil
+	Sump             *db.TankProfile // may be nil
+	Livestock        []db.LivestockItem
+	AlertRules       []db.AlertRule
+	Skills           []Skill // enabled skills to list under Available Workflows
+	DosingSchedules  []db.DosingSchedule
+	DueItems         []db.DueItem
 }
 
 // BuildContext assembles a system-prompt context block as a markdown string.
@@ -82,13 +84,56 @@ func BuildContext(in ContextInput) string {
 		b.WriteString("\n")
 	}
 
-	// --- Dosing preferences ---
-	b.WriteString("## Dosing Preferences\n\n")
+	// --- Dosing schedule ---
+	b.WriteString("## Dosing\n\n")
 	productLine := "generic"
 	if in.Settings != nil && in.Settings.DosingProductLine != "" {
 		productLine = in.Settings.DosingProductLine
 	}
-	fmt.Fprintf(&b, "- **Product line:** %s\n\n", productLine)
+	fmt.Fprintf(&b, "- **Product line:** %s\n", productLine)
+	if len(in.DosingSchedules) == 0 {
+		b.WriteString("- No dosing schedules configured.\n")
+	} else {
+		for _, ds := range in.DosingSchedules {
+			if !ds.Enabled {
+				continue
+			}
+			brand, name, unit := "", "", ""
+			if ds.ProductBrand != nil {
+				brand = *ds.ProductBrand
+			}
+			if ds.ProductName != nil {
+				name = *ds.ProductName
+			}
+			if ds.ProductUnit != nil {
+				unit = *ds.ProductUnit
+			}
+			last := "never"
+			if ds.LastCompletedAt != nil {
+				last = ds.LastCompletedAt.Format("2006-01-02")
+			}
+			next := "not scheduled"
+			if ds.NextDueAt != nil {
+				next = ds.NextDueAt.Format("2006-01-02")
+			}
+			fmt.Fprintf(&b, "- **%s %s:** %.4g %s, %s — last: %s, next: %s\n",
+				brand, name, ds.Amount, unit, ds.Frequency, last, next)
+		}
+	}
+	b.WriteString("\n")
+
+	// --- Due/overdue tasks ---
+	if len(in.DueItems) > 0 {
+		b.WriteString("## Tasks Due Now\n\n")
+		for _, item := range in.DueItems {
+			status := "due"
+			if item.IsOverdue {
+				status = "OVERDUE"
+			}
+			fmt.Fprintf(&b, "- [%s] **%s** — %s\n", status, item.Label, item.Detail)
+		}
+		b.WriteString("\n")
+	}
 
 	// --- Custom guardrails (user-supplied freetext appended verbatim) ---
 	if in.Settings != nil && in.Settings.CustomGuardrails != nil && *in.Settings.CustomGuardrails != "" {

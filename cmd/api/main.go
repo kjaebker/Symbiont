@@ -61,6 +61,17 @@ func main() {
 		fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 	}
 
+	// Seed dosing products on first run (no-op if table already has rows).
+	agentSettings, err := sqliteDB.GetAgentSettings(ctx)
+	if err != nil {
+		logger.Warn("failed to load agent settings for dosing seed", "err", err)
+	} else {
+		seeds := db.DosingProductSeeds(agentSettings.DosingProductLine)
+		if err := sqliteDB.SeedDosingProducts(ctx, seeds); err != nil {
+			logger.Warn("failed to seed dosing products", "err", err)
+		}
+	}
+
 	// Create Apex client.
 	apexClient := apex.NewClient(cfg.ApexURL, cfg.ApexUser, cfg.ApexPass)
 

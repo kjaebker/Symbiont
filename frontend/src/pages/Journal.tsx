@@ -417,7 +417,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   )
 }
 
-function FullTimeline() {
+export function FullTimeline() {
   const [kindFilter, setKindFilter] = useState('')
   const { data, isLoading, isError } = useAuditEvents({
     kind: kindFilter || undefined,
@@ -479,12 +479,12 @@ function FullTimeline() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Journal() {
+export default function Journal({ hideHeader = false }: { hideHeader?: boolean }) {
   usePageTitle('Journal')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [view, setView] = useState<'journal' | 'timeline'>(
-    (searchParams.get('view') as 'journal' | 'timeline') ?? 'journal',
+    hideHeader ? 'journal' : ((searchParams.get('view') as 'journal' | 'timeline') ?? 'journal'),
   )
   const [categoryFilter, setCategoryFilter] = useState<JournalCategory | ''>(
     (searchParams.get('category') as JournalCategory) ?? '',
@@ -506,8 +506,9 @@ export default function Journal() {
   )
 
   useEffect(() => {
+    if (hideHeader) return
     syncUrl(view, categoryFilter, sentimentFilter)
-  }, [view, categoryFilter, sentimentFilter, syncUrl])
+  }, [view, categoryFilter, sentimentFilter, syncUrl, hideHeader])
 
   const { data, isLoading, isError } = useJournalEntries({
     category: categoryFilter || undefined,
@@ -538,12 +539,55 @@ export default function Journal() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">Tank Log</p>
-          <h1 className="text-2xl font-bold text-on-surface mt-0.5">Journal</h1>
-        </div>
-        {view === 'journal' && (
+      {!hideHeader ? (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">Tank Log</p>
+              <h1 className="text-2xl font-bold text-on-surface mt-0.5">Journal</h1>
+            </div>
+            {view === 'journal' && (
+              <button
+                onClick={() => setShowForm(v => !v)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
+                  showForm
+                    ? 'bg-surface-container-high text-on-surface'
+                    : 'bg-primary/10 text-primary hover:bg-primary/20',
+                )}
+              >
+                {showForm ? <X size={14} /> : <Plus size={14} />}
+                {showForm ? 'Cancel' : 'New Entry'}
+              </button>
+            )}
+          </div>
+
+          {/* View tabs */}
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setView('journal')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+                view === 'journal' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              )}
+            >
+              <ScrollText size={13} />
+              Journal
+            </button>
+            <button
+              onClick={() => setView('timeline')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+                view === 'timeline' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              )}
+            >
+              <Activity size={13} />
+              Full Timeline
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="flex justify-end">
           <button
             onClick={() => setShowForm(v => !v)}
             className={cn(
@@ -556,32 +600,8 @@ export default function Journal() {
             {showForm ? <X size={14} /> : <Plus size={14} />}
             {showForm ? 'Cancel' : 'New Entry'}
           </button>
-        )}
-      </div>
-
-      {/* View tabs */}
-      <div className="flex gap-1.5">
-        <button
-          onClick={() => setView('journal')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            view === 'journal' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <ScrollText size={13} />
-          Journal
-        </button>
-        <button
-          onClick={() => setView('timeline')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-            view === 'timeline' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          <Activity size={13} />
-          Full Timeline
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* Full timeline view */}
       {view === 'timeline' && <FullTimeline />}

@@ -176,6 +176,64 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			payload_json    TEXT     NOT NULL,
 			correlation_id  TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS dosing_products (
+			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+			brand       TEXT     NOT NULL,
+			name        TEXT     NOT NULL,
+			type        TEXT     NOT NULL CHECK(type IN (
+			             'two_part_a','two_part_b','calcium','alkalinity','magnesium',
+			             'trace','amino','bacteria','carbon_source','other')),
+			unit        TEXT     NOT NULL DEFAULT 'mL',
+			notes       TEXT,
+			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS dosing_schedules (
+			id                    INTEGER  PRIMARY KEY AUTOINCREMENT,
+			product_id            INTEGER  NOT NULL REFERENCES dosing_products(id) ON DELETE CASCADE,
+			amount                REAL     NOT NULL,
+			frequency             TEXT     NOT NULL CHECK(frequency IN (
+			                       'daily','twice_daily','every_n_days','weekly','as_needed')),
+			interval_days         REAL,
+			day_of_week           INTEGER,
+			enabled               INTEGER  NOT NULL DEFAULT 1,
+			last_completed_at     DATETIME,
+			next_due_at           DATETIME,
+			follow_up_parameter_id INTEGER REFERENCES measurement_parameters(id) ON DELETE SET NULL,
+			follow_up_days        INTEGER,
+			notes                 TEXT,
+			created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS dosing_logs (
+			id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+			schedule_id  INTEGER  REFERENCES dosing_schedules(id) ON DELETE SET NULL,
+			product_id   INTEGER  NOT NULL REFERENCES dosing_products(id),
+			amount       REAL     NOT NULL,
+			dosed_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			notes        TEXT,
+			source       TEXT     NOT NULL DEFAULT 'manual' CHECK(source IN ('manual','ai')),
+			created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS maintenance_tasks (
+			id                INTEGER  PRIMARY KEY AUTOINCREMENT,
+			name              TEXT     NOT NULL,
+			description       TEXT,
+			frequency         TEXT     NOT NULL CHECK(frequency IN (
+			                   'daily','every_n_days','weekly','monthly','as_needed')),
+			interval_days     REAL,
+			day_of_week       INTEGER,
+			enabled           INTEGER  NOT NULL DEFAULT 1,
+			last_completed_at DATETIME,
+			next_due_at       DATETIME,
+			created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS maintenance_logs (
+			id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+			task_id      INTEGER  NOT NULL REFERENCES maintenance_tasks(id) ON DELETE CASCADE,
+			completed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			notes        TEXT,
+			source       TEXT     NOT NULL DEFAULT 'manual' CHECK(source IN ('manual','ai')),
+			created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	indexes := []string{
@@ -191,6 +249,12 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_journal_entries_category ON journal_entries(category, ts DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_kind_ts ON events(kind, ts DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_dosing_schedules_product ON dosing_schedules(product_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_dosing_schedules_due ON dosing_schedules(next_due_at) WHERE enabled=1`,
+		`CREATE INDEX IF NOT EXISTS idx_dosing_logs_schedule ON dosing_logs(schedule_id, dosed_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_dosing_logs_product ON dosing_logs(product_id, dosed_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_due ON maintenance_tasks(next_due_at) WHERE enabled=1`,
+		`CREATE INDEX IF NOT EXISTS idx_maintenance_logs_task ON maintenance_logs(task_id, completed_at DESC)`,
 	}
 
 	for _, stmt := range tables {

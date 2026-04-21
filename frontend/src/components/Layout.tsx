@@ -1,15 +1,14 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Clock,
+  BookOpen,
   FlaskConical,
   Fish,
-  Power,
   Bell,
   Settings,
   LayoutGrid,
   X,
-  ScrollText,
+  Wrench,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useSSE } from '@/hooks/useSSE'
@@ -21,14 +20,13 @@ import { Bubbles } from '@/components/Bubbles'
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/livestock', icon: Fish, label: 'Livestock' },
-  { to: '/measurements', icon: FlaskConical, label: 'Measurements' },
-  { to: '/journal', icon: ScrollText, label: 'Journal' },
+  { to: '/chemistry', icon: FlaskConical, label: 'Chemistry' },
+  { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
 ]
 
 const overflowNavItems = [
-  { to: '/control', icon: Power, label: 'Control' },
+  { to: '/history', icon: BookOpen, label: 'Log' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
-  { to: '/history', icon: Clock, label: 'History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
@@ -177,34 +175,34 @@ export default function Layout() {
 
       {/* Mobile bottom nav — z-50 stays above the sheet (z-49) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center justify-around py-3">
           {primaryNavItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
+              aria-label={label}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
+                  'flex items-center justify-center p-3 rounded-xl transition-fluid',
                   isActive ? 'text-primary' : 'text-on-surface-dim',
                 )
               }
             >
-              <Icon size={20} />
-              <span>{label}</span>
+              <Icon size={24} />
             </NavLink>
           ))}
 
           {/* More button */}
           <button
+            aria-label="More"
             onClick={() => setMoreOpen((v) => !v)}
             className={cn(
-              'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
+              'flex items-center justify-center p-3 rounded-xl transition-fluid',
               moreOpen || activeRouteIsOverflow ? 'text-primary' : 'text-on-surface-dim',
             )}
           >
-            <LayoutGrid size={20} />
-            <span>More</span>
+            <LayoutGrid size={24} />
           </button>
         </div>
       </nav>

@@ -131,7 +131,7 @@ function parseOutletPayload(event: AuditEvent) {
   }
 }
 
-export default function Control() {
+export default function Control({ hideHeader = false }: { hideHeader?: boolean }) {
   usePageTitle('Control')
   const { data, isLoading } = useOutlets()
   const [eventLimit, setEventLimit] = useState(50)
@@ -151,14 +151,16 @@ export default function Control() {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <p className="text-xs text-primary uppercase tracking-widest mb-2">
-          Energy Command
-        </p>
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-          Outlet Control
-        </h1>
-      </div>
+      {!hideHeader && (
+        <div>
+          <p className="text-xs text-primary uppercase tracking-widest mb-2">
+            Energy Command
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
+            Outlet Control
+          </h1>
+        </div>
+      )}
 
       {/* Outlet Table */}
       <div className="bg-surface-container rounded-2xl overflow-hidden">

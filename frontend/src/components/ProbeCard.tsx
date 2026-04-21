@@ -100,7 +100,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
 
   return (
     <button
-      onClick={() => navigate(`/history?probe=${encodeURIComponent(probe.name)}`)}
+      onClick={() => navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)}
       className={cn(
         'rounded-2xl p-5 text-left transition-fluid cursor-pointer w-full',
         config.hoverGlow,

@@ -3,12 +3,11 @@ import { getToken } from '@/api/client'
 import Layout from '@/components/Layout'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
-import History from '@/pages/History'
-import Journal from '@/pages/Journal'
-import Measurements from '@/pages/Measurements'
+import Chemistry from '@/pages/Chemistry'
+import MaintenancePage from '@/pages/MaintenancePage'
+import HistoryPage from '@/pages/HistoryPage'
 import Livestock from '@/pages/Livestock'
 import LivestockDetail from '@/pages/LivestockDetail'
-import Control from '@/pages/Control'
 import Alerts from '@/pages/Alerts'
 import Settings from '@/pages/Settings'
 
@@ -31,14 +30,17 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="history" element={<History />} />
-        <Route path="measurements" element={<Measurements />} />
-        <Route path="journal" element={<Journal />} />
+        <Route path="chemistry" element={<Chemistry />} />
+        <Route path="maintenance" element={<MaintenancePage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="livestock" element={<Livestock />} />
         <Route path="livestock/:id" element={<LivestockDetail />} />
-        <Route path="control" element={<Control />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="settings" element={<Settings />} />
+        {/* Legacy redirects */}
+        <Route path="measurements" element={<Navigate to="/chemistry" replace />} />
+        <Route path="journal" element={<Navigate to="/history?tab=journal" replace />} />
+        <Route path="control" element={<Navigate to="/maintenance?tab=control" replace />} />
       </Route>
     </Routes>
   )
