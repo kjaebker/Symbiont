@@ -154,10 +154,10 @@ function ScheduleForm({
   loading,
 }: {
   products: DosingProduct[]
-  initial?: { productId: number; amount: number; frequency: DosingFrequency; intervalDays?: number; notes?: string }
+  initial?: { productId: number; amount: number; frequency: DosingFrequency; intervalDays?: number; dayOfWeek?: number; notes?: string }
   onSubmit: (data: {
     product_id: number; amount: number; frequency: DosingFrequency;
-    interval_days?: number; notes?: string; enabled: boolean
+    interval_days?: number; day_of_week?: number; notes?: string; enabled: boolean
   }) => void
   onCancel: () => void
   loading: boolean
@@ -166,6 +166,7 @@ function ScheduleForm({
   const [amount, setAmount] = useState(String(initial?.amount ?? ''))
   const [frequency, setFrequency] = useState<DosingFrequency>(initial?.frequency ?? 'daily')
   const [intervalDays, setIntervalDays] = useState(String(initial?.intervalDays ?? ''))
+  const [dayOfWeek, setDayOfWeek] = useState(initial?.dayOfWeek ?? 0)
   const [notes, setNotes] = useState(initial?.notes ?? '')
 
   const product = products.find(p => p.id === productId)
@@ -225,6 +226,20 @@ function ScheduleForm({
           />
         </div>
       )}
+      {frequency === 'weekly' && (
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
+          <select
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            value={dayOfWeek}
+            onChange={e => setDayOfWeek(Number(e.target.value))}
+          >
+            {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
+              <option key={i} value={i}>{d}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Notes (optional)</label>
         <input
@@ -248,6 +263,7 @@ function ScheduleForm({
             amount: Number(amount),
             frequency,
             interval_days: frequency === 'every_n_days' && intervalDays ? Number(intervalDays) : undefined,
+            day_of_week: frequency === 'weekly' ? dayOfWeek : undefined,
             notes: notes || undefined,
             enabled: true,
           })}

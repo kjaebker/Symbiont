@@ -37,7 +37,7 @@ interface TaskFormProps {
   initial?: MaintenanceTask
   onSubmit: (data: {
     name: string; description?: string; frequency: MaintenanceFrequency;
-    interval_days?: number; enabled: boolean
+    interval_days?: number; day_of_week?: number; enabled: boolean
   }) => void
   onCancel: () => void
   loading: boolean
@@ -48,6 +48,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
   const [description, setDescription] = useState(initial?.description ?? '')
   const [frequency, setFrequency] = useState<MaintenanceFrequency>(initial?.frequency ?? 'weekly')
   const [intervalDays, setIntervalDays] = useState(String(initial?.interval_days ?? ''))
+  const [dayOfWeek, setDayOfWeek] = useState(initial?.day_of_week ?? 0)
   const [enabled] = useState(initial?.enabled ?? true)
 
   return (
@@ -96,6 +97,20 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
             />
           </div>
         )}
+        {frequency === 'weekly' && (
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
+            <select
+              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+              value={dayOfWeek}
+              onChange={e => setDayOfWeek(Number(e.target.value))}
+            >
+              {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
+                <option key={i} value={i}>{d}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       <div className="flex gap-2 justify-end">
         <button
@@ -111,6 +126,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
             description: description || undefined,
             frequency,
             interval_days: frequency === 'every_n_days' && intervalDays ? Number(intervalDays) : undefined,
+            day_of_week: frequency === 'weekly' ? dayOfWeek : undefined,
             enabled,
           })}
           className="px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
