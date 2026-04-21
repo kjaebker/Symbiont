@@ -63,10 +63,11 @@ export default function History({ hideHeader = false }: { hideHeader?: boolean }
     [setSearchParams],
   )
 
-  // Sync on changes
+  // Sync on changes — skip when embedded (parent owns the URL)
   useEffect(() => {
+    if (hideHeader) return
     syncUrl(selectedProbes, selectedMeas, range, interval)
-  }, [selectedProbes, selectedMeas, range, interval, syncUrl])
+  }, [selectedProbes, selectedMeas, range, interval, syncUrl, hideHeader])
 
   const historyParams = useMemo(
     () => ({
