@@ -19,8 +19,12 @@ export function useSetFeedMode() {
       // Optimistically set the expected state immediately so the UI updates
       // without waiting for the Apex to reflect the change in its status poll.
       queryClient.setQueryData(['feed'], { name: active ? name : 0, active: active ? 1 : 0 })
-      // Then confirm with the real state in the background.
-      queryClient.invalidateQueries({ queryKey: ['feed'] })
+      // For cancel, delay the refetch — the Apex takes a moment to reflect the
+      // change and an immediate refetch can overwrite the optimistic clear.
+      setTimeout(
+        () => queryClient.invalidateQueries({ queryKey: ['feed'] }),
+        active ? 0 : 15_000,
+      )
     },
   })
 }
