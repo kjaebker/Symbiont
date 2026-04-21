@@ -109,7 +109,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers['Content-Type'] = 'application/json'
   }
 
-  const res = await fetch(path, { ...init, headers })
+  const res = await fetch(path, { ...init, headers, cache: 'no-store' })
 
   if (res.status === 401) {
     clearToken()
@@ -163,6 +163,25 @@ export function setOutletState(id: string, state: 'ON' | 'OFF' | 'AUTO') {
   )
 }
 
+
+// Programs
+export interface TDataPoint {
+  t: number    // seconds since midnight
+  ch: number[] // 13 channel values (0–100)
+}
+
+export interface OutputProgram {
+  did: string
+  name: string
+  type: string
+  icon: string
+  prog: string
+  tdata?: TDataPoint[]
+}
+
+export function getPrograms() {
+  return apiFetch<{ programs: OutputProgram[] }>('/api/programs')
+}
 
 // Feed mode
 export function getFeedStatus() {

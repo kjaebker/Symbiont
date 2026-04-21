@@ -147,6 +147,27 @@ type FeedControlRequest struct {
 	Active int `json:"active"` // always 1; the URL path controls start vs cancel
 }
 
+// ConfigResponse is the top-level response from GET /rest/config.
+type ConfigResponse struct {
+	OConf []OutputConfig `json:"oconf"`
+}
+
+// OutputConfig is a single output's configuration entry from /rest/config.
+// The Prog field contains the Apex program code as a plain text string.
+type OutputConfig struct {
+	Name  string `json:"name"`
+	Icon  string `json:"icon"`
+	CType string `json:"ctype"`
+	Log   bool   `json:"log"`
+	InUse bool   `json:"inuse"`
+	Type  string `json:"type"`
+	DID   string `json:"did"`
+	GID   string `json:"gid"`
+	GType string `json:"gtype"`
+	ID    string `json:"ID"`
+	Prog  string `json:"prog"`
+}
+
 // OutletState represents valid states for outlet control via
 // PUT /rest/status/outputs/<did>.
 type OutletState string

@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { Power, Zap } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Power, Zap, ChevronDown } from 'lucide-react'
 import { useOutlets, useSetOutlet } from '@/hooks/useOutlets'
 import { useAuditEvents } from '@/hooks/useEvents'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { usePrograms } from '@/hooks/usePrograms'
 import { cn, relativeTime } from '@/lib/utils'
+import { ProgramView } from '@/components/ProgramView'
 import type { Outlet, AuditEvent } from '@/api/client'
 
 const stateLabels: Record<string, string> = {
@@ -37,88 +39,122 @@ const initiatedByColors: Record<string, string> = {
   api: 'bg-on-surface-faint/15 text-on-surface-dim',
 }
 
-function OutletRow({ outlet }: { outlet: Outlet }) {
+function OutletRow({ outlet, programsByDID }: { outlet: Outlet; programsByDID: Map<string, import('@/api/client').OutputProgram> }) {
   const mutation = useSetOutlet()
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
   const isAuto = outlet.state === 'AON' || outlet.state === 'AOF' || outlet.state === 'TBL'
+  const [showProgram, setShowProgram] = useState(false)
+  const program = programsByDID.get(outlet.id)
 
   function handleControl(state: 'ON' | 'OFF' | 'AUTO') {
     mutation.mutate({ id: outlet.id, state })
   }
 
   return (
-    <tr className="group transition-fluid hover:bg-surface-container-high/50">
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-3">
-          <div
+    <>
+      <tr className="group transition-fluid hover:bg-surface-container-high/50">
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
+              )}
+            >
+              {isOn ? (
+                <Zap size={14} className="text-primary" />
+              ) : (
+                <Power size={14} className="text-on-surface-faint" />
+              )}
+            </div>
+            <span className="text-sm font-medium text-on-surface">
+              {outlet.display_name || outlet.name}
+            </span>
+          </div>
+        </td>
+        <td className="py-3 px-4">
+          <span
             className={cn(
-              'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-              isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
+              'text-xs font-semibold uppercase tracking-wider',
+              stateColors[outlet.state] ?? 'text-on-surface-dim',
             )}
           >
-            {isOn ? (
-              <Zap size={14} className="text-primary" />
-            ) : (
-              <Power size={14} className="text-on-surface-faint" />
+            {stateLabels[outlet.state] ?? outlet.state}
+          </span>
+        </td>
+        <td className="py-3 px-4">
+          <span className="text-xs text-on-surface-dim uppercase tracking-wider">
+            {outlet.type}
+          </span>
+        </td>
+        <td className="py-3 px-4">
+          <div className="flex gap-1.5 items-center">
+            {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
+              const active =
+                (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
+                (s === 'ON' && outlet.state === 'ON') ||
+                (s === 'AUTO' && isAuto)
+
+              return (
+                <button
+                  key={s}
+                  onClick={() => handleControl(s)}
+                  disabled={mutation.isPending}
+                  className={cn(
+                    'px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid cursor-pointer',
+                    active
+                      ? s === 'AUTO'
+                        ? 'bg-primary text-on-primary'
+                        : s === 'ON'
+                          ? 'bg-secondary text-on-secondary'
+                          : 'bg-surface-container-highest text-on-surface'
+                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+                    mutation.isPending && 'opacity-50 cursor-not-allowed',
+                  )}
+                >
+                  {s}
+                </button>
+              )
+            })}
+            {program && (
+              <button
+                onClick={() => setShowProgram((v) => !v)}
+                className={cn(
+                  'ml-1 px-2 py-1 rounded-lg text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer flex items-center gap-1',
+                  showProgram
+                    ? 'bg-primary/15 text-primary'
+                    : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+                )}
+                title="View program"
+              >
+                Prog
+                <ChevronDown
+                  size={11}
+                  className={cn('transition-transform duration-200', showProgram && 'rotate-180')}
+                />
+              </button>
             )}
           </div>
-          <span className="text-sm font-medium text-on-surface">
-            {outlet.display_name || outlet.name}
-          </span>
-        </div>
-      </td>
-      <td className="py-3 px-4">
-        <span
-          className={cn(
-            'text-xs font-semibold uppercase tracking-wider',
-            stateColors[outlet.state] ?? 'text-on-surface-dim',
+          {mutation.isError && (
+            <p className="text-xs text-tertiary mt-1">
+              Failed to set state
+            </p>
           )}
-        >
-          {stateLabels[outlet.state] ?? outlet.state}
-        </span>
-      </td>
-      <td className="py-3 px-4">
-        <span className="text-xs text-on-surface-dim uppercase tracking-wider">
-          {outlet.type}
-        </span>
-      </td>
-      <td className="py-3 px-4">
-        <div className="flex gap-1.5">
-          {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-            const active =
-              (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-              (s === 'ON' && outlet.state === 'ON') ||
-              (s === 'AUTO' && isAuto)
-
-            return (
-              <button
-                key={s}
-                onClick={() => handleControl(s)}
-                disabled={mutation.isPending}
-                className={cn(
-                  'px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-fluid cursor-pointer',
-                  active
-                    ? s === 'AUTO'
-                      ? 'bg-primary text-on-primary'
-                      : s === 'ON'
-                        ? 'bg-secondary text-on-secondary'
-                        : 'bg-surface-container-highest text-on-surface'
-                    : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
-                  mutation.isPending && 'opacity-50 cursor-not-allowed',
-                )}
-              >
-                {s}
-              </button>
-            )
-          })}
-        </div>
-        {mutation.isError && (
-          <p className="text-xs text-tertiary mt-1">
-            Failed to set state
-          </p>
-        )}
-      </td>
-    </tr>
+        </td>
+      </tr>
+      {program && showProgram && (
+        <tr>
+          <td
+            colSpan={4}
+            className="px-4 pb-4 pt-0 bg-surface-container-high/30"
+          >
+            <div className="pl-11 pr-2 pt-3">
+              <ProgramView program={program} />
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }
 
@@ -134,6 +170,7 @@ function parseOutletPayload(event: AuditEvent) {
 export default function Control({ hideHeader = false }: { hideHeader?: boolean }) {
   usePageTitle('Control')
   const { data, isLoading } = useOutlets()
+  const { data: programsData } = usePrograms()
   const [eventLimit, setEventLimit] = useState(50)
   const [sourceFilter, setSourceFilter] = useState<string>('')
   const { data: eventsData } = useAuditEvents({
@@ -143,6 +180,10 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
   })
 
   const outlets = data?.outlets ?? []
+  const programsByDID = useMemo(
+    () => new Map((programsData?.programs ?? []).map((p) => [p.did, p])),
+    [programsData],
+  )
   const outletDisplayNames = Object.fromEntries(
     outlets.map((o) => [o.id, o.display_name || o.name]),
   )
@@ -194,13 +235,13 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
                     Type
                   </th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
-                    Control
+                    Control / Program
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {outlets.map((outlet) => (
-                  <OutletRow key={outlet.id} outlet={outlet} />
+                  <OutletRow key={outlet.id} outlet={outlet} programsByDID={programsByDID} />
                 ))}
               </tbody>
             </table>

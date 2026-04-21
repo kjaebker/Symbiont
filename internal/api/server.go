@@ -33,7 +33,7 @@ type Server struct {
 	catalog          *kits.Catalog
 	events           *events.Bus
 	journalTemplates *journal.Catalog
-
+	programCache     *programCache
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the
@@ -65,6 +65,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		catalog:          catalog,
 		events:           bus,
 		journalTemplates: journalCatalog,
+		programCache:     newProgramCache(5 * time.Minute),
 	}
 
 	mux := http.NewServeMux()
@@ -104,6 +105,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Outlets.
 	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
 	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
+
+	// Programs (Apex output programs from /rest/config).
+	mux.HandleFunc("GET /api/programs", s.HandleProgramList)
 
 	// Feed mode.
 	mux.HandleFunc("GET /api/feed", s.HandleFeedGet)
