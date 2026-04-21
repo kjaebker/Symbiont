@@ -175,34 +175,34 @@ export default function Layout() {
 
       {/* Mobile bottom nav — z-50 stays above the sheet (z-49) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center justify-around py-3">
           {primaryNavItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
+              aria-label={label}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
+                  'flex items-center justify-center p-3 rounded-xl transition-fluid',
                   isActive ? 'text-primary' : 'text-on-surface-dim',
                 )
               }
             >
-              <Icon size={20} />
-              <span>{label}</span>
+              <Icon size={24} />
             </NavLink>
           ))}
 
           {/* More button */}
           <button
+            aria-label="More"
             onClick={() => setMoreOpen((v) => !v)}
             className={cn(
-              'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-fluid',
+              'flex items-center justify-center p-3 rounded-xl transition-fluid',
               moreOpen || activeRouteIsOverflow ? 'text-primary' : 'text-on-surface-dim',
             )}
           >
-            <LayoutGrid size={20} />
-            <span>More</span>
+            <LayoutGrid size={24} />
           </button>
         </div>
       </nav>
