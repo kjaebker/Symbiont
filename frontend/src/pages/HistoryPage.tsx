@@ -7,7 +7,7 @@ import Journal, { FullTimeline } from '@/pages/Journal'
 
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') ?? 'telemetry'
+  const tab = searchParams.get('tab') ?? 'journal'
   usePageTitle('History')
 
   function setTab(t: string) {
@@ -21,18 +21,6 @@ export default function HistoryPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight mb-6">Aquatic History</h1>
         <div className="flex gap-1.5">
           <button
-            onClick={() => setTab('telemetry')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-              tab === 'telemetry'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            <Clock size={13} />
-            Telemetry
-          </button>
-          <button
             onClick={() => setTab('journal')}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
@@ -43,6 +31,18 @@ export default function HistoryPage() {
           >
             <ScrollText size={13} />
             Journal
+          </button>
+          <button
+            onClick={() => setTab('telemetry')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+              tab === 'telemetry'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+            )}
+          >
+            <Clock size={13} />
+            Telemetry
           </button>
           <button
             onClick={() => setTab('timeline')}
