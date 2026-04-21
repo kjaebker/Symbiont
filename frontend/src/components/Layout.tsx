@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Clock,
+  BookOpen,
   FlaskConical,
   Fish,
   Bell,
@@ -25,7 +25,7 @@ const primaryNavItems = [
 ]
 
 const overflowNavItems = [
-  { to: '/history', icon: Clock, label: 'History' },
+  { to: '/history', icon: BookOpen, label: 'Log' },
   { to: '/alerts', icon: Bell, label: 'Alerts' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

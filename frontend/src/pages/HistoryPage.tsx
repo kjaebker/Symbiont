@@ -8,7 +8,7 @@ import Journal, { FullTimeline } from '@/pages/Journal'
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab') ?? 'journal'
-  usePageTitle('History')
+  usePageTitle('Log')
 
   function setTab(t: string) {
     setSearchParams({ tab: t }, { replace: true })
