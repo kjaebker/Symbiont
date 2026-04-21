@@ -468,7 +468,7 @@ function DosingTab() {
             <div className="flex justify-end pt-4">
               <button
                 onClick={() => setShowProductForm(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-surface-container-high text-on-surface-dim hover:text-on-surface transition-fluid"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-fluid"
               >
                 <Plus size={14} />
                 Add Product
