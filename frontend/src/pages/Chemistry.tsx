@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FlaskConical, Droplets, Plus, Pencil, Trash2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -283,6 +283,12 @@ function DosingTab() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [loggingId, setLoggingId] = useState<number | null>(null)
 
+  const noProducts = productsData !== undefined && products.length === 0
+
+  useEffect(() => {
+    if (noProducts) setCatalogOpen(true)
+  }, [noProducts])
+
   const overdue = schedules.filter(s => {
     if (!s.enabled || s.frequency === 'as_needed' || !s.next_due_at) return false
     return new Date(s.next_due_at) <= new Date()
@@ -349,7 +355,9 @@ function DosingTab() {
           <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold">Dosing Schedules</h2>
           <button
             onClick={() => setShowScheduleForm(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-fluid"
+            disabled={noProducts}
+            title={noProducts ? 'Add products to your catalog first' : undefined}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-fluid"
           >
             <Plus size={14} />
             Add Schedule
@@ -371,9 +379,16 @@ function DosingTab() {
         )}
 
         {schedules.length === 0 ? (
-          <p className="text-sm text-on-surface-dim text-center py-6">
-            No dosing schedules. Add one above.
-          </p>
+          <div className="text-center py-6 space-y-1">
+            {noProducts ? (
+              <>
+                <p className="text-sm text-on-surface-dim">No products in your catalog yet.</p>
+                <p className="text-xs text-on-surface-faint">Add products below, then come back to create a schedule.</p>
+              </>
+            ) : (
+              <p className="text-sm text-on-surface-dim">No dosing schedules. Add one above.</p>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {schedules.map(s => (
