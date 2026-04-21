@@ -78,6 +78,8 @@ func main() {
 	rootCmd.AddCommand(cli.NewMeasurementsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewLivestockCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewJournalCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewDosingCmd(sharedClient))
+	rootCmd.AddCommand(cli.NewMaintenanceCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewTankCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewEventsCmd(sharedClient))
 	rootCmd.AddCommand(cli.NewImagesCmd(sharedClient))

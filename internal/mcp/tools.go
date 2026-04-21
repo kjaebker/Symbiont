@@ -56,6 +56,7 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(logDoseTool(), logDoseHandler(client))
 	s.AddTool(getDosingHistoryTool(), getDosingHistoryHandler(client))
 	s.AddTool(getDueTasksTool(), getDueTasksHandler(client))
+	s.AddTool(listMaintenanceTasksTool(), listMaintenanceTasksHandler(client))
 	s.AddTool(completeMaintenanceTaskTool(), completeMaintenanceTaskHandler(client))
 }
 
@@ -1787,6 +1788,24 @@ func getDueTasksHandler(client *cli.APIClient) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var resp any
 		if err := apiCall(clientFromCtx(ctx, client), "/api/tasks/due", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- list_maintenance_tasks ---
+
+func listMaintenanceTasksTool() mcp.Tool {
+	return mcp.NewTool("list_maintenance_tasks",
+		mcp.WithDescription("Get all maintenance tasks (water changes, glass cleaning, skimmer service, etc.) with their frequency, last completed time, and next due time. Use to understand the full maintenance schedule, not just what is due today."),
+	)
+}
+
+func listMaintenanceTasksHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/maintenance/tasks", &resp); err != nil {
 			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
 		}
 		return jsonResult(resp)
