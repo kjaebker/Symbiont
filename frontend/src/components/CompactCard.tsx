@@ -60,7 +60,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
 
   return (
     <button
-      onClick={() => navigate(`/history?probe=${encodeURIComponent(probe.name)}`)}
+      onClick={() => navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)}
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
       style={{
         background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
@@ -278,7 +278,7 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
     <button
       onClick={() =>
         primaryProbe
-          ? navigate(`/history?probe=${encodeURIComponent(primaryProbe.name)}`)
+          ? navigate(`/history?tab=telemetry&probe=${encodeURIComponent(primaryProbe.name)}`)
           : undefined
       }
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
