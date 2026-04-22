@@ -183,6 +183,10 @@ export function getPrograms() {
   return apiFetch<{ programs: OutputProgram[] }>('/api/programs')
 }
 
+export function syncPrograms() {
+  return apiFetch<{ total: number; changed: number }>('/api/programs/sync', { method: 'POST' })
+}
+
 // Feed mode
 export function getFeedStatus() {
   return apiFetch<FeedStatus>('/api/feed')
