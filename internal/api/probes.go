@@ -4,16 +4,24 @@ import (
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/kjaebker/symbiont/internal/apex"
+	"github.com/kjaebker/symbiont/internal/db"
 )
 
 type probeResponse struct {
-	Name        string  `json:"name"`
-	DisplayName string  `json:"display_name"`
-	Type        string  `json:"type"`
-	Value       float64 `json:"value"`
-	Unit        string  `json:"unit"`
-	TS          string  `json:"ts"`
-	Status      string  `json:"status"`
+	Name          string  `json:"name"`
+	DisplayName   string  `json:"display_name"`
+	Type          string  `json:"type"`
+	Value         float64 `json:"value"`
+	Unit          string  `json:"unit"`
+	TS            string  `json:"ts"`
+	Status        string  `json:"status"`
+	InputCategory string  `json:"input_category"`
+	OnLabel       *string `json:"on_label"`
+	OffLabel      *string `json:"off_label"`
+	IsBinary      bool    `json:"is_binary"`
+	Hidden        bool    `json:"hidden"`
 }
 
 func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
@@ -32,42 +40,65 @@ func (s *Server) HandleProbeList(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to fetch probe configs", "db_error")
 		return
 	}
-	cfgMap := make(map[string]*probeConfigLookup, len(configs))
+	cfgMap := make(map[string]*db.ProbeConfig, len(configs))
 	for i := range configs {
-		c := &configs[i]
-		cfgMap[c.ProbeName] = &probeConfigLookup{
-			displayName: derefStr(c.DisplayName, c.ProbeName),
-			unit:        derefStr(c.UnitOverride, ""),
-			minNormal:   c.MinNormal,
-			maxNormal:   c.MaxNormal,
-			minWarning:  c.MinWarning,
-			maxWarning:  c.MaxWarning,
+		cfgMap[configs[i].ProbeName] = &configs[i]
+	}
+
+	// Auto-init classification defaults for any probe seen for the first time.
+	for _, rd := range readings {
+		if _, exists := cfgMap[rd.Name]; !exists {
+			cls := apex.ClassifyInput(apex.Input{Name: rd.Name, Type: rd.Type})
+			_ = s.sqlite.InitProbeConfig(ctx, db.ProbeConfig{
+				ProbeName:     rd.Name,
+				InputCategory: cls.Category,
+				OnLabel:       cls.OnLabel,
+				OffLabel:      cls.OffLabel,
+				OkValue:       cls.OkValue,
+				IsBinary:      cls.IsBinary,
+				Hidden:        cls.Hidden,
+			})
 		}
 	}
 
 	probes := make([]probeResponse, 0, len(readings))
 	for _, rd := range readings {
-		cfg := cfgMap[rd.Name]
+		c := cfgMap[rd.Name]
+
 		displayName := splitCamelCase(rd.Name)
 		unit := probeTypeToUnit(rd.Type)
-		status := "unknown"
+		category := "probe"
+		var onLabel, offLabel *string
+		isBinary := false
+		hidden := false
 
-		if cfg != nil {
-			displayName = cfg.displayName
-			if cfg.unit != "" {
-				unit = cfg.unit
+		if c != nil {
+			displayName = derefStr(c.DisplayName, displayName)
+			if c.UnitOverride != nil && *c.UnitOverride != "" {
+				unit = *c.UnitOverride
 			}
-			status = computeProbeStatus(rd.Value, cfg)
+			category = c.InputCategory
+			onLabel = c.OnLabel
+			offLabel = c.OffLabel
+			isBinary = c.IsBinary
+			hidden = c.Hidden
 		}
 
+		status := computeProbeStatus(rd.Value, c)
+
 		probes = append(probes, probeResponse{
-			Name:        rd.Name,
-			DisplayName: displayName,
-			Type:        rd.Type,
-			Value:       rd.Value,
-			Unit:        unit,
-			TS:          rd.Timestamp.Format(time.RFC3339),
-			Status:      status,
+			Name:          rd.Name,
+			DisplayName:   displayName,
+			Type:          rd.Type,
+			Value:         rd.Value,
+			Unit:          unit,
+			TS:            rd.Timestamp.Format(time.RFC3339),
+			Status:        status,
+			InputCategory: category,
+			OnLabel:       onLabel,
+			OffLabel:      offLabel,
+			IsBinary:      isBinary,
+			Hidden:        hidden,
 		})
 	}
 
@@ -183,44 +214,51 @@ func validInterval(interval string) bool {
 	return validIntervals[interval]
 }
 
-type probeConfigLookup struct {
-	displayName string
-	unit        string
-	minNormal   *float64
-	maxNormal   *float64
-	minWarning  *float64
-	maxWarning  *float64
-}
-
 // computeProbeStatus determines probe status from config thresholds.
-func computeProbeStatus(value float64, cfg *probeConfigLookup) string {
+// For binary categories (fluid/alarm) with ok_value set, status is derived
+// from whether the current value matches the expected "OK" value.
+// For analog probes, standard min/max threshold logic applies.
+func computeProbeStatus(value float64, cfg *db.ProbeConfig) string {
 	if cfg == nil {
 		return "unknown"
 	}
 
-	hasNormal := cfg.minNormal != nil || cfg.maxNormal != nil
-	hasWarning := cfg.minWarning != nil || cfg.maxWarning != nil
+	// Binary inputs: derive status from ok_value if set.
+	if cfg.IsBinary && cfg.OkValue != nil {
+		if value == *cfg.OkValue {
+			return "normal"
+		}
+		switch cfg.InputCategory {
+		case "alarm":
+			return "critical"
+		case "fluid":
+			return "warning"
+		}
+		return "unknown"
+	}
+
+	// Analog probes: threshold-based status.
+	hasNormal := cfg.MinNormal != nil || cfg.MaxNormal != nil
+	hasWarning := cfg.MinWarning != nil || cfg.MaxWarning != nil
 
 	if !hasNormal && !hasWarning {
 		return "unknown"
 	}
 
-	// Check critical (outside warning thresholds).
 	if hasWarning {
-		if cfg.minWarning != nil && value < *cfg.minWarning {
+		if cfg.MinWarning != nil && value < *cfg.MinWarning {
 			return "critical"
 		}
-		if cfg.maxWarning != nil && value > *cfg.maxWarning {
+		if cfg.MaxWarning != nil && value > *cfg.MaxWarning {
 			return "critical"
 		}
 	}
 
-	// Check warning (outside normal thresholds but within warning).
 	if hasNormal {
-		if cfg.minNormal != nil && value < *cfg.minNormal {
+		if cfg.MinNormal != nil && value < *cfg.MinNormal {
 			return "warning"
 		}
-		if cfg.maxNormal != nil && value > *cfg.maxNormal {
+		if cfg.MaxNormal != nil && value > *cfg.MaxNormal {
 			return "warning"
 		}
 	}

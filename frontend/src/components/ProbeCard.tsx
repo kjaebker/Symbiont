@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Thermometer, FlaskConical, Zap, ToggleLeft } from 'lucide-react'
+import { Thermometer, FlaskConical, Zap, ToggleLeft, Droplets, AlertTriangle } from 'lucide-react'
 import { getProbeHistory } from '@/api/client'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
@@ -78,6 +78,21 @@ function getCategory(type: string): ProbeCategory {
   }
 }
 
+function getBinaryLabel(probe: Probe): string {
+  if (probe.value !== 0) {
+    return probe.on_label ?? 'On'
+  }
+  return probe.off_label ?? 'Off'
+}
+
+function getBinaryIcon(probe: Probe) {
+  switch (probe.input_category) {
+    case 'fluid': return Droplets
+    case 'alarm': return AlertTriangle
+    default: return ToggleLeft
+  }
+}
+
 interface ProbeCardProps {
   probe: Probe
 }
@@ -86,7 +101,9 @@ export function ProbeCard({ probe }: ProbeCardProps) {
   const navigate = useNavigate()
   const category = getCategory(probe.type)
   const config = categoryConfig[category]
-  const Icon = config.icon
+
+  const isBinary = probe.is_binary
+  const Icon = isBinary ? getBinaryIcon(probe) : config.icon
 
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
   const { data: history } = useQuery({
@@ -94,24 +111,41 @@ export function ProbeCard({ probe }: ProbeCardProps) {
     queryFn: () =>
       getProbeHistory(probe.name, { from: twoHoursAgo, interval: '5m' }),
     staleTime: 60_000,
+    enabled: !isBinary,
   })
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
+  const statusDotColor = statusColor[probe.status]
+  const isAlarmActive = probe.input_category === 'alarm' && probe.status === 'critical'
+  const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
+
   return (
     <button
-      onClick={() => navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)}
+      onClick={() =>
+        !isBinary &&
+        navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)
+      }
       className={cn(
-        'rounded-2xl p-5 text-left transition-fluid cursor-pointer w-full',
-        config.hoverGlow,
+        'rounded-2xl p-5 text-left transition-fluid w-full',
+        !isBinary && 'cursor-pointer',
+        isBinary && 'cursor-default',
+        isAlarmActive ? 'hover:shadow-glow-tertiary' : config.hoverGlow,
       )}
       style={{
-        background: `linear-gradient(135deg, var(--color-surface-container) 45%, ${config.tint})`,
+        background: isAlarmActive
+          ? 'linear-gradient(135deg, var(--color-surface-container) 45%, rgba(255,135,150,0.08))'
+          : `linear-gradient(135deg, var(--color-surface-container) 45%, ${config.tint})`,
       }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Icon className={cn('h-4 w-4', config.color)} />
+          <Icon
+            className={cn(
+              'h-4 w-4',
+              isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color,
+            )}
+          />
           <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
             {probe.display_name}
           </span>
@@ -119,27 +153,40 @@ export function ProbeCard({ probe }: ProbeCardProps) {
         <span
           className={cn(
             'h-2.5 w-2.5 rounded-full',
-            statusColor[probe.status],
+            statusDotColor,
             probe.status === 'normal' && 'animate-bio-pulse',
+            isAlarmActive && 'animate-pulse',
           )}
         />
       </div>
 
-      <div className="flex items-baseline gap-1.5 mb-1">
-        <span className={`text-4xl font-bold tracking-tight ${config.color} ${config.glowClass}`}>
-          {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
-        </span>
-        <span className="text-lg text-on-surface-dim font-light">
-          {probe.unit}
-        </span>
-      </div>
-
-      {/* Spacer to match PowerPairCard's secondary metric line */}
-      <div className="h-[28px] mb-3" />
-
-      <div className="h-10">
-        <Sparkline data={sparklineData} color={config.sparklineColor} />
-      </div>
+      {isBinary ? (
+        <div className="flex items-baseline gap-1.5 mb-1">
+          <span
+            className={cn(
+              'text-2xl font-bold tracking-tight',
+              isAlarmActive ? 'text-tertiary text-glow-tertiary' : isFluidWarn ? 'text-amber-400' : 'text-secondary',
+            )}
+          >
+            {getBinaryLabel(probe)}
+          </span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-baseline gap-1.5 mb-1">
+            <span className={`text-4xl font-bold tracking-tight ${config.color} ${config.glowClass}`}>
+              {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
+            </span>
+            <span className="text-lg text-on-surface-dim font-light">
+              {probe.unit}
+            </span>
+          </div>
+          <div className="h-[28px] mb-3" />
+          <div className="h-10">
+            <Sparkline data={sparklineData} color={config.sparklineColor} />
+          </div>
+        </>
+      )}
     </button>
   )
 }

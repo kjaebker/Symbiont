@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList, Activity, Droplets, Waves, Bot, ChevronDown, ChevronUp } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Trash2, Copy, Check, Download, RefreshCw, GripVertical, Bell, Terminal, Cpu, Sparkles, LayoutGrid, LayoutList, Activity, Droplets, Waves, Bot, ChevronDown, ChevronUp, AlertTriangle, ToggleLeft, ArrowRight } from 'lucide-react'
 import { cn, relativeTime, formatBytes } from '@/lib/utils'
 import {
   useProbeConfigs,
@@ -53,7 +53,7 @@ import {
 } from '@/hooks/useDevices'
 import { useTankProfile, useUpsertTankProfile } from '@/hooks/useTankProfile'
 import { useAgentSettings, useUpdateAgentSettings, useAgentContext, useAgentSkills } from '@/hooks/useAgent'
-import type { ProbeConfig, OutletConfig, NotificationTarget, SystemLogLine, Device, DeviceSuggestion } from '@/api/types'
+import type { ProbeConfig, OutletConfig, NotificationTarget, SystemLogLine, Device, DeviceSuggestion, InputCategory } from '@/api/types'
 import type { TankSection, TankType, TankProfileInput } from '@/api/client'
 
 const unitOptions = [
@@ -205,6 +205,40 @@ function UnitSelect({
         </option>
       )}
       {unitOptions.map((opt) => (
+        <option key={opt.value} value={opt.value} className="bg-surface-container text-on-surface">
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+// --- Binary input category select ---
+
+const binaryCategoryOptions: { value: InputCategory; label: string }[] = [
+  { value: 'switch', label: 'Switch' },
+  { value: 'fluid', label: 'Fluid Sensor' },
+  { value: 'alarm', label: 'Alarm' },
+  { value: 'virtual', label: 'Virtual' },
+]
+
+function getCategoryIcon(category: InputCategory): { Icon: typeof ToggleLeft; color: string; bg: string } {
+  switch (category) {
+    case 'fluid': return { Icon: Droplets, color: 'text-amber-400', bg: 'bg-amber-400/10' }
+    case 'alarm': return { Icon: AlertTriangle, color: 'text-tertiary', bg: 'bg-tertiary/10' }
+    case 'virtual': return { Icon: Activity, color: 'text-primary', bg: 'bg-primary/10' }
+    default: return { Icon: ToggleLeft, color: 'text-on-surface-dim', bg: 'bg-surface-container-high' }
+  }
+}
+
+function CategorySelect({ value, onSave }: { value: InputCategory; onSave: (val: string) => void }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onSave(e.target.value)}
+      className="w-full bg-transparent text-on-surface text-sm rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
+    >
+      {binaryCategoryOptions.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-container text-on-surface">
           {opt.label}
         </option>
@@ -568,7 +602,7 @@ function DashboardTab() {
 // =============================================================================
 
 function useMergedProbeConfigs(
-  probes: { name: string; display_name: string; type: string; unit: string }[] | undefined,
+  probes: { name: string; display_name: string; type: string; unit: string; input_category?: string; on_label?: string | null; off_label?: string | null; is_binary?: boolean; hidden?: boolean }[] | undefined,
   configs: ProbeConfig[] | undefined,
 ): ProbeConfig[] {
   if (!probes) return configs ?? []
@@ -586,6 +620,12 @@ function useMergedProbeConfigs(
       min_warning: existing?.min_warning ?? null,
       max_warning: existing?.max_warning ?? null,
       device_id: existing?.device_id ?? null,
+      input_category: (existing?.input_category ?? p.input_category ?? 'probe') as ProbeConfig['input_category'],
+      on_label: existing?.on_label ?? p.on_label ?? null,
+      off_label: existing?.off_label ?? p.off_label ?? null,
+      ok_value: existing?.ok_value ?? null,
+      is_binary: existing?.is_binary ?? p.is_binary ?? false,
+      hidden: existing?.hidden ?? p.hidden ?? false,
     }
   })
 }
@@ -596,19 +636,27 @@ function ProbesTab() {
   const updateMutation = useUpdateProbeConfig()
 
   const isLoading = configsLoading || probesLoading
-  const items = useMergedProbeConfigs(probesData?.probes, configData?.configs)
+  const allItems = useMergedProbeConfigs(probesData?.probes, configData?.configs)
 
-  function handleUpdate(name: string, field: keyof ProbeConfig, raw: string) {
-    const numericFields: (keyof ProbeConfig)[] = [
-      'min_normal', 'max_normal', 'min_warning', 'max_warning',
-    ]
-    const value = numericFields.includes(field) ? (raw === '' ? null : Number(raw)) : raw
+  // Split into analog probes and binary inputs.
+  const analogProbes = allItems.filter((c) => !c.is_binary)
+  const binaryInputs = allItems.filter((c) => c.is_binary)
+
+  // Map probe name → raw type so we can identify mis-categorized digital probes.
+  const probeTypeMap = new Map((probesData?.probes ?? []).map((p) => [p.name, p.type]))
+
+  function handleUpdate(name: string, field: keyof ProbeConfig, raw: string | boolean | null) {
+    const numericFields: (keyof ProbeConfig)[] = ['min_normal', 'max_normal', 'min_warning', 'max_warning']
+    const value =
+      typeof raw === 'boolean' ? raw
+      : numericFields.includes(field) ? (raw === '' || raw === null ? null : Number(raw))
+      : raw
     updateMutation.mutate({ name, config: { [field]: value } })
   }
 
   if (isLoading) return <LoadingState label="Loading probe configs..." />
 
-  if (items.length === 0) {
+  if (allItems.length === 0) {
     return (
       <EmptyState
         icon={<SettingsIcon size={32} />}
@@ -618,43 +666,129 @@ function ProbesTab() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[750px]">
-        <thead>
-          <tr className="bg-surface-container-high/50">
-            {['Probe', 'Display Name', 'Unit', 'Min Normal', 'Max Normal', 'Min Warn', 'Max Warn'].map((h) => (
-              <th key={h} className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((c) => (
-            <tr key={c.probe_name} className="transition-fluid hover:bg-surface-container-high/50">
-              <td className="py-2 px-4 text-sm font-medium text-on-surface">{c.probe_name}</td>
-              <td className="py-2 px-4">
-                <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
-              </td>
-              <td className="py-2 px-4">
-                <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
-              </td>
-              <td className="py-2 px-4">
-                <EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} />
-              </td>
-              <td className="py-2 px-4">
-                <EditableCell value={c.max_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_normal', v)} />
-              </td>
-              <td className="py-2 px-4">
-                <EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} />
-              </td>
-              <td className="py-2 px-4">
-                <EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-6 pt-5">
+      {analogProbes.length > 0 && (
+        <div>
+          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold px-5 mb-2">Analog Probes</p>
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[750px]">
+            <thead>
+              <tr className="bg-surface-container-high">
+                {['Probe', 'Display Name', 'Unit', 'Min Normal', 'Max Normal', 'Min Warn', 'Max Warn', ''].map((h) => (
+                  <th key={h} className="text-left py-3.5 px-5 text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {analogProbes.map((c) => {
+                const isDigital = probeTypeMap.get(c.probe_name) === 'digital'
+                return (
+                  <tr key={c.probe_name} className="transition-fluid hover:bg-surface-container-high/50">
+                    <td className="py-2 px-5 text-sm font-medium text-on-surface">{c.probe_name}</td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.max_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_normal', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      {isDigital && (
+                        <button
+                          onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
+                          className="inline-flex items-center gap-1 text-xs text-on-surface-faint hover:text-primary transition-fluid whitespace-nowrap"
+                          title="Move to Binary Inputs"
+                        >
+                          <ArrowRight size={11} />
+                          <span>binary</span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
+
+      {binaryInputs.length > 0 && (
+        <div>
+          <div className="flex items-baseline justify-between px-5 mb-2">
+            <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold">Binary Inputs</p>
+            <p className="text-xs text-on-surface-faint">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
+          </div>
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead>
+              <tr className="bg-surface-container-high">
+                {['Input', 'Category', 'Display Name', 'On Label', 'Off Label', 'Hidden'].map((h) => (
+                  <th key={h} className="text-left py-3.5 px-5 text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {binaryInputs.filter((c) => c.probe_name !== '').map((c) => {
+                const { Icon, color, bg } = getCategoryIcon(c.input_category)
+                return (
+                  <tr key={c.probe_name} className="transition-fluid hover:bg-surface-container-high/50">
+                    <td className="py-2 px-5">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', bg)}>
+                          <Icon size={13} className={color} />
+                        </div>
+                        <span className="text-sm font-medium text-on-surface">{c.probe_name}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-5">
+                      <CategorySelect value={c.input_category} onSave={(v) => handleUpdate(c.probe_name, 'input_category', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.on_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'on_label', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <EditableCell value={c.off_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'off_label', v)} />
+                    </td>
+                    <td className="py-2 px-5">
+                      <button
+                        onClick={() => handleUpdate(c.probe_name, 'hidden', !c.hidden)}
+                        className={cn(
+                          'text-xs px-2 py-1 rounded-full transition-fluid',
+                          c.hidden
+                            ? 'bg-surface-container-high text-on-surface-faint'
+                            : 'bg-secondary/15 text-secondary',
+                        )}
+                      >
+                        {c.hidden ? 'Hidden' : 'Visible'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

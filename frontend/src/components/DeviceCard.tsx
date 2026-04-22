@@ -65,7 +65,7 @@ function worstProbeStatus(probes: Probe[]): ProbeStatus {
   return 'unknown'
 }
 
-/** Pick the primary probe — prefer the "monitoring" probe (temp, pH, ORP) over power probes. */
+/** Pick the primary probe — prefer monitoring probes (temp, pH, binary sensors) over power probes. */
 export function pickPrimaryProbe(probes: Probe[]): Probe | undefined {
   const powerTypes = new Set(['pwr', 'Amps'])
   return (
@@ -73,6 +73,16 @@ export function pickPrimaryProbe(probes: Probe[]): Probe | undefined {
     probes.find((p) => p.type === 'pwr') ??
     probes[0]
   )
+}
+
+function getBinaryLabel(probe: Probe): string {
+  return probe.value !== 0 ? (probe.on_label ?? 'On') : (probe.off_label ?? 'Off')
+}
+
+function getBinaryColor(probe: Probe): string {
+  if (probe.status === 'critical') return 'text-tertiary'
+  if (probe.status === 'warning') return 'text-amber-400'
+  return 'text-secondary'
 }
 
 interface DeviceCardProps {
@@ -97,7 +107,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
     queryFn: () =>
       getProbeHistory(primaryProbe!.name, { from: twoHoursAgo, interval: '5m' }),
     staleTime: 60_000,
-    enabled: !!primaryProbe,
+    enabled: !!primaryProbe && !primaryProbe.is_binary,
   })
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
@@ -171,21 +181,27 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           <div className="flex items-start justify-between mb-3">
             {/* Primary probe — large hero value */}
             {primaryProbe && (
-              <button
-                onClick={() =>
-                  navigate(`/history?tab=telemetry&probe=${encodeURIComponent(primaryProbe.name)}`)
-                }
-                className="text-left group"
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className={`text-4xl font-bold tracking-tight transition-fluid ${probeColors.value} ${probeColors.glow}`}>
-                    {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
-                  </span>
-                  <span className="text-lg text-on-surface-dim font-light">
-                    {primaryProbe.unit}
-                  </span>
+              primaryProbe.is_binary ? (
+                <div className={`text-4xl font-bold tracking-tight ${getBinaryColor(primaryProbe)}`}>
+                  {getBinaryLabel(primaryProbe)}
                 </div>
-              </button>
+              ) : (
+                <button
+                  onClick={() =>
+                    navigate(`/history?tab=telemetry&probe=${encodeURIComponent(primaryProbe.name)}`)
+                  }
+                  className="text-left group"
+                >
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-4xl font-bold tracking-tight transition-fluid ${probeColors.value} ${probeColors.glow}`}>
+                      {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
+                    </span>
+                    <span className="text-lg text-on-surface-dim font-light">
+                      {primaryProbe.unit}
+                    </span>
+                  </div>
+                </button>
+              )
             )}
 
             {/* Secondary probes — compact stack */}
@@ -195,30 +211,36 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                   <button
                     key={probe.name}
                     onClick={() =>
+                      !probe.is_binary &&
                       navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)
                     }
-                    className="flex items-center justify-end gap-2 w-full group"
+                    className={cn(
+                      'flex items-center justify-end gap-2 w-full',
+                      !probe.is_binary && 'group',
+                    )}
                   >
-                    <span className="text-sm font-bold text-on-surface group-hover:text-primary transition-fluid">
-                      {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
-                    </span>
-                    <span className="text-xs text-on-surface-dim">
-                      {probe.unit}
-                    </span>
-                    <span
-                      className={cn(
-                        'h-1.5 w-1.5 rounded-full',
-                        statusColor[probe.status],
-                      )}
-                    />
+                    {probe.is_binary ? (
+                      <span className={`text-sm font-bold ${getBinaryColor(probe)}`}>
+                        {getBinaryLabel(probe)}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-sm font-bold text-on-surface group-hover:text-primary transition-fluid">
+                          {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
+                        </span>
+                        <span className="text-xs text-on-surface-dim">
+                          {probe.unit}
+                        </span>
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Sparkline for primary probe */}
-          {primaryProbe && (
+          {/* Sparkline for primary probe — omit for binary probes */}
+          {primaryProbe && !primaryProbe.is_binary && (
             <div className="h-10">
               <Sparkline data={sparklineData} color={probeColors.sparkline} />
             </div>

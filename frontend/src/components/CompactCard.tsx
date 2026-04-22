@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Thermometer, FlaskConical, Zap, ToggleLeft, Power, Utensils } from 'lucide-react'
+import { Thermometer, FlaskConical, Zap, ToggleLeft, Power, Utensils, Droplets, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMeasurements } from '@/hooks/useMeasurements'
 import { useFeedStatus } from '@/hooks/useFeed'
@@ -52,30 +52,58 @@ interface ProbeCompactCardProps {
   probe: Probe
 }
 
+function getBinaryCompactIcon(probe: Probe) {
+  switch (probe.input_category) {
+    case 'fluid': return Droplets
+    case 'alarm': return AlertTriangle
+    default: return ToggleLeft
+  }
+}
+
 export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
   const navigate = useNavigate()
   const category = getCategory(probe.type)
   const config = categoryCompact[category]
-  const Icon = config.icon
+
+  const isBinary = probe.is_binary
+  const Icon = isBinary ? getBinaryCompactIcon(probe) : config.icon
+  const isAlarmActive = probe.input_category === 'alarm' && probe.status === 'critical'
+  const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
+
+  const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color
+  const iconBg = isAlarmActive ? 'bg-tertiary/10' : isFluidWarn ? 'bg-amber-400/10' : config.bg
+
+  const binaryLabel = probe.value !== 0 ? (probe.on_label ?? 'On') : (probe.off_label ?? 'Off')
 
   return (
     <button
-      onClick={() => navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)}
-      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
+      onClick={() => !isBinary && navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)}
+      className={cn(
+        'rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid w-full text-left',
+        isBinary ? 'cursor-default' : 'cursor-pointer',
+      )}
       style={{
-        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
+        background: isAlarmActive
+          ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(255,135,150,0.08))'
+          : `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
       }}
     >
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', config.bg)}>
-        <Icon size={16} className={config.color} />
+      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', iconBg)}>
+        <Icon size={16} className={iconColor} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-1 mb-0.5">
-          <span className={`text-base font-bold leading-none ${config.color} ${config.glowClass}`}>
-            {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
-          </span>
-          <span className="text-xs text-on-surface-dim font-normal leading-none">{probe.unit}</span>
-        </div>
+        {isBinary ? (
+          <p className={cn('text-base font-bold leading-none mb-0.5', iconColor)}>
+            {binaryLabel}
+          </p>
+        ) : (
+          <div className="flex items-baseline gap-1 mb-0.5">
+            <span className={`text-base font-bold leading-none ${config.color} ${config.glowClass}`}>
+              {probe.value.toFixed(probe.type === 'pH' ? 2 : 1)}
+            </span>
+            <span className="text-xs text-on-surface-dim font-normal leading-none">{probe.unit}</span>
+          </div>
+        )}
         <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
           {probe.display_name}
         </p>
@@ -85,6 +113,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
           'h-1.5 w-1.5 rounded-full shrink-0',
           statusDot[probe.status],
           probe.status === 'normal' && 'animate-bio-pulse',
+          isAlarmActive && 'animate-pulse',
         )}
       />
     </button>

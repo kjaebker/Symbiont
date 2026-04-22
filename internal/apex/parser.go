@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+
 // Canonical probe type constants returned by NormalizeProbeType.
 const (
 	ProbeTypeTemp    = "temp"
@@ -36,6 +37,28 @@ func NormalizeProbeType(input Input) string {
 	default:
 		return ProbeTypeUnknown
 	}
+}
+
+// InputClass holds the semantic classification derived from an Apex input at
+// ingest time. It is used to populate probe_config defaults so category logic
+// stays at the Apex boundary and out of the API layer.
+type InputClass struct {
+	Category string   // probe | switch | fluid | alarm | virtual
+	OnLabel  *string  // label when value != 0 (nil = use default "On")
+	OffLabel *string  // label when value == 0 (nil = use default "Off")
+	OkValue  *float64 // the value that means "normal"; nil = no auto-status
+	IsBinary bool     // true when the input has no meaningful numeric value
+	Hidden   bool     // true for inputs with no user-facing meaning by default
+}
+
+// ClassifyInput derives the semantic InputClass for an Apex Input from its
+// type alone. Name-based heuristics are intentionally absent — users configure
+// labels and categories per-probe in the app after first poll.
+func ClassifyInput(input Input) InputClass {
+	if NormalizeProbeType(input) == ProbeTypeDigital {
+		return InputClass{Category: "switch", IsBinary: true}
+	}
+	return InputClass{Category: "probe"}
 }
 
 // PowerEvent represents a parsed power failure or restoration event.

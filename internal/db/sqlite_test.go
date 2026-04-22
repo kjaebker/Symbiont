@@ -539,6 +539,7 @@ func TestMigrateDashboardLayout(t *testing.T) {
 	ctx := context.Background()
 
 	// Simulate an upgrade from the old schema by adding legacy columns.
+	// Some columns may already exist in newer schemas; duplicate column errors are ignored.
 	for _, alt := range []string{
 		"ALTER TABLE probe_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
 		"ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
@@ -547,7 +548,7 @@ func TestMigrateDashboardLayout(t *testing.T) {
 		"ALTER TABLE devices ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
 		"ALTER TABLE devices ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
 	} {
-		if _, err := rawDB.ExecContext(ctx, alt); err != nil {
+		if _, err := rawDB.ExecContext(ctx, alt); err != nil && !isDuplicateColumn(err) {
 			t.Fatalf("adding legacy column: %v", err)
 		}
 	}
@@ -601,6 +602,7 @@ func TestMigrateDashboardLayoutIdempotent(t *testing.T) {
 	ctx := context.Background()
 
 	// Simulate upgrade from old schema with legacy columns.
+	// Some columns may already exist in newer schemas; duplicate column errors are ignored.
 	for _, alt := range []string{
 		"ALTER TABLE probe_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
 		"ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
@@ -609,7 +611,7 @@ func TestMigrateDashboardLayoutIdempotent(t *testing.T) {
 		"ALTER TABLE devices ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
 		"ALTER TABLE devices ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
 	} {
-		if _, err := rawDB.ExecContext(ctx, alt); err != nil {
+		if _, err := rawDB.ExecContext(ctx, alt); err != nil && !isDuplicateColumn(err) {
 			t.Fatalf("adding legacy column: %v", err)
 		}
 	}
