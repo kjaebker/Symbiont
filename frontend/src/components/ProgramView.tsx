@@ -102,7 +102,7 @@ function TDataChart({ points }: TDataChartProps) {
         })}
 
         {/* Area fills */}
-        {channels.map((ch, i) => (
+        {channels.map((ch) => (
           <path
             key={`area-${ch}`}
             d={buildAreaPath(points, ch, W, H)}
