@@ -180,7 +180,7 @@ export interface OutputProgram {
 }
 
 export function getPrograms() {
-  return apiFetch<{ programs: OutputProgram[] }>('/api/programs')
+  return apiFetch<{ programs: OutputProgram[]; synced_at: string | null }>('/api/programs')
 }
 
 export function syncPrograms() {
