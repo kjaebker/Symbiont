@@ -18,6 +18,9 @@ type Client interface {
 	// Status fetches the full status snapshot from the Apex.
 	Status(ctx context.Context) (*StatusResponse, error)
 
+	// Config fetches the full output configuration, including programs, from the Apex.
+	Config(ctx context.Context) (*ConfigResponse, error)
+
 	// SetOutlet changes an outlet's runtime state without modifying its program.
 	SetOutlet(ctx context.Context, did string, state OutletState) error
 
@@ -195,6 +198,34 @@ func (c *client) Status(ctx context.Context) (*StatusResponse, error) {
 		return nil, fmt.Errorf("decoding status response: %w", err)
 	}
 	return &status, nil
+}
+
+// Config fetches the full output configuration from GET /rest/config.
+func (c *client) Config(ctx context.Context) (*ConfigResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/rest/config", nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating config request: %w", err)
+	}
+
+	resp, err := c.do(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching config: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("config request failed: status %d, body unreadable: %w", resp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("config request failed: status %d, body %s", resp.StatusCode, body)
+	}
+
+	var cfg ConfigResponse
+	if err := json.NewDecoder(resp.Body).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("decoding config response: %w", err)
+	}
+	return &cfg, nil
 }
 
 // SetOutlet changes an outlet's runtime state. This is a safe toggle that

@@ -234,6 +234,21 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			source       TEXT     NOT NULL DEFAULT 'manual' CHECK(source IN ('manual','ai')),
 			created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS outlet_programs (
+			did        TEXT     NOT NULL PRIMARY KEY,
+			name       TEXT     NOT NULL,
+			type       TEXT     NOT NULL,
+			icon       TEXT     NOT NULL DEFAULT '',
+			prog       TEXT     NOT NULL,
+			fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS outlet_program_history (
+			id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+			did        TEXT     NOT NULL,
+			prog       TEXT     NOT NULL,
+			changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	indexes := []string{
@@ -255,6 +270,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_dosing_logs_product ON dosing_logs(product_id, dosed_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_due ON maintenance_tasks(next_due_at) WHERE enabled=1`,
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_logs_task ON maintenance_logs(task_id, completed_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_outlet_program_history_did ON outlet_program_history(did, changed_at DESC)`,
 	}
 
 	for _, stmt := range tables {

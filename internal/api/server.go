@@ -33,7 +33,6 @@ type Server struct {
 	catalog          *kits.Catalog
 	events           *events.Bus
 	journalTemplates *journal.Catalog
-
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the
@@ -104,6 +103,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Outlets.
 	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
 	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
+
+	// Programs (Apex output programs from /rest/config, stored in SQLite).
+	mux.HandleFunc("GET /api/programs", s.HandleProgramList)
+	mux.HandleFunc("POST /api/programs/sync", s.HandleProgramSync)
 
 	// Feed mode.
 	mux.HandleFunc("GET /api/feed", s.HandleFeedGet)
@@ -274,6 +277,15 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 func (s *Server) Run(ctx context.Context) error {
 	// Start background SSE poller.
 	s.StartSSEPoller(ctx)
+
+	// Synthetic request used to pass the server context into program sync helpers.
+	syncReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+
+	// Seed programs on first run (no-op if DB already has records).
+	s.SyncProgramsIfEmpty(syncReq)
+
+	// Daily background sync to pick up any program changes.
+	s.startDailyProgramSync(syncReq)
 
 	// Start server in a goroutine.
 	errCh := make(chan error, 1)

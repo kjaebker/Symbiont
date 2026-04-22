@@ -39,6 +39,10 @@ func (m *mockApexClient) SetFeedMode(ctx context.Context, name int, active bool)
 	return nil
 }
 
+func (m *mockApexClient) Config(ctx context.Context) (*apex.ConfigResponse, error) {
+	return &apex.ConfigResponse{}, nil
+}
+
 func sampleStatus() *apex.StatusResponse {
 	intensity := 100
 	return &apex.StatusResponse{
