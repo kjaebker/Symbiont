@@ -113,9 +113,9 @@ func (s *SQLiteDB) DeleteToken(ctx context.Context, id int64) error {
 func (s *SQLiteDB) GetProbeConfig(ctx context.Context, probeName string) (*ProbeConfig, error) {
 	var c ProbeConfig
 	err := s.db.QueryRowContext(ctx,
-		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id FROM probe_config WHERE probe_name = ?",
+		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id, input_category, on_label, off_label, ok_value, is_binary, hidden FROM probe_config WHERE probe_name = ?",
 		probeName,
-	).Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID)
+	).Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID, &c.InputCategory, &c.OnLabel, &c.OffLabel, &c.OkValue, &c.IsBinary, &c.Hidden)
 	if err != nil {
 		return nil, fmt.Errorf("getting probe config %s: %w", probeName, err)
 	}
@@ -125,7 +125,7 @@ func (s *SQLiteDB) GetProbeConfig(ctx context.Context, probeName string) (*Probe
 // ListProbeConfigs returns all probe configs ordered by name.
 func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id FROM probe_config ORDER BY probe_name",
+		"SELECT probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, device_id, input_category, on_label, off_label, ok_value, is_binary, hidden FROM probe_config ORDER BY probe_name",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("listing probe configs: %w", err)
@@ -135,7 +135,7 @@ func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) 
 	var configs []ProbeConfig
 	for rows.Next() {
 		var c ProbeConfig
-		if err := rows.Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID); err != nil {
+		if err := rows.Scan(&c.ProbeName, &c.DisplayName, &c.UnitOverride, &c.MinNormal, &c.MaxNormal, &c.MinWarning, &c.MaxWarning, &c.DeviceID, &c.InputCategory, &c.OnLabel, &c.OffLabel, &c.OkValue, &c.IsBinary, &c.Hidden); err != nil {
 			return nil, fmt.Errorf("scanning probe config: %w", err)
 		}
 		configs = append(configs, c)
@@ -146,20 +146,44 @@ func (s *SQLiteDB) ListProbeConfigs(ctx context.Context) ([]ProbeConfig, error) 
 // UpsertProbeConfig inserts or updates a probe config.
 func (s *SQLiteDB) UpsertProbeConfig(ctx context.Context, cfg ProbeConfig) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO probe_config (probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO probe_config (probe_name, display_name, unit_override, min_normal, max_normal, min_warning, max_warning, input_category, on_label, off_label, ok_value, is_binary, hidden)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(probe_name) DO UPDATE SET
 			display_name = excluded.display_name,
 			unit_override = excluded.unit_override,
 			min_normal = excluded.min_normal,
 			max_normal = excluded.max_normal,
 			min_warning = excluded.min_warning,
-			max_warning = excluded.max_warning`,
+			max_warning = excluded.max_warning,
+			input_category = excluded.input_category,
+			on_label = excluded.on_label,
+			off_label = excluded.off_label,
+			ok_value = excluded.ok_value,
+			is_binary = excluded.is_binary,
+			hidden = excluded.hidden`,
 		cfg.ProbeName, cfg.DisplayName, cfg.UnitOverride,
 		cfg.MinNormal, cfg.MaxNormal, cfg.MinWarning, cfg.MaxWarning,
+		cfg.InputCategory, cfg.OnLabel, cfg.OffLabel, cfg.OkValue, cfg.IsBinary, cfg.Hidden,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting probe config %s: %w", cfg.ProbeName, err)
+	}
+	return nil
+}
+
+// InitProbeConfig inserts classification defaults for a probe only if no row
+// exists yet. Existing user config is never overwritten.
+func (s *SQLiteDB) InitProbeConfig(ctx context.Context, cfg ProbeConfig) error {
+	if cfg.InputCategory == "" {
+		cfg.InputCategory = "probe"
+	}
+	_, err := s.db.ExecContext(ctx,
+		`INSERT OR IGNORE INTO probe_config (probe_name, input_category, on_label, off_label, ok_value, is_binary, hidden)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		cfg.ProbeName, cfg.InputCategory, cfg.OnLabel, cfg.OffLabel, cfg.OkValue, cfg.IsBinary, cfg.Hidden,
+	)
+	if err != nil {
+		return fmt.Errorf("init probe config %s: %w", cfg.ProbeName, err)
 	}
 	return nil
 }

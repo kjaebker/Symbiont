@@ -22,14 +22,20 @@ type TokenAuth struct {
 
 // ProbeConfig represents a row in the probe_config table.
 type ProbeConfig struct {
-	ProbeName    string   `json:"probe_name"`
-	DisplayName  *string  `json:"display_name"`
-	UnitOverride *string  `json:"unit_override"`
-	MinNormal    *float64 `json:"min_normal"`
-	MaxNormal    *float64 `json:"max_normal"`
-	MinWarning   *float64 `json:"min_warning"`
-	MaxWarning   *float64 `json:"max_warning"`
-	DeviceID     *int64   `json:"device_id"`
+	ProbeName     string   `json:"probe_name"`
+	DisplayName   *string  `json:"display_name"`
+	UnitOverride  *string  `json:"unit_override"`
+	MinNormal     *float64 `json:"min_normal"`
+	MaxNormal     *float64 `json:"max_normal"`
+	MinWarning    *float64 `json:"min_warning"`
+	MaxWarning    *float64 `json:"max_warning"`
+	DeviceID      *int64   `json:"device_id"`
+	InputCategory string   `json:"input_category"` // probe | switch | fluid | alarm | virtual
+	OnLabel       *string  `json:"on_label"`
+	OffLabel      *string  `json:"off_label"`
+	OkValue       *float64 `json:"ok_value"` // value meaning "normal" for binary inputs
+	IsBinary      bool     `json:"is_binary"`
+	Hidden        bool     `json:"hidden"`
 }
 
 // Device represents a row in the devices table.

@@ -39,7 +39,7 @@ func (s *Server) HandleProbeConfigUpdate(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "failed to fetch existing config", "db_error")
 		return
 	}
-	cfg := db.ProbeConfig{ProbeName: name}
+	cfg := db.ProbeConfig{ProbeName: name, InputCategory: "probe"}
 	if existing != nil {
 		cfg = *existing
 	}
@@ -68,6 +68,39 @@ func (s *Server) HandleProbeConfigUpdate(w http.ResponseWriter, r *http.Request)
 	}
 	if v, ok := patch["max_warning"]; ok {
 		cfg.MaxWarning = unmarshalOptionalFloat(v)
+	}
+	if v, ok := patch["input_category"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.InputCategory = s
+		}
+	}
+	if v, ok := patch["on_label"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.OnLabel = &s
+		}
+	}
+	if v, ok := patch["off_label"]; ok {
+		var s string
+		if json.Unmarshal(v, &s) == nil {
+			cfg.OffLabel = &s
+		}
+	}
+	if v, ok := patch["ok_value"]; ok {
+		cfg.OkValue = unmarshalOptionalFloat(v)
+	}
+	if v, ok := patch["is_binary"]; ok {
+		var b bool
+		if json.Unmarshal(v, &b) == nil {
+			cfg.IsBinary = b
+		}
+	}
+	if v, ok := patch["hidden"]; ok {
+		var b bool
+		if json.Unmarshal(v, &b) == nil {
+			cfg.Hidden = b
+		}
 	}
 
 	if err := s.sqlite.UpsertProbeConfig(ctx, cfg); err != nil {

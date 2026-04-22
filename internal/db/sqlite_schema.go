@@ -291,6 +291,13 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`ALTER TABLE livestock_observations ADD COLUMN image_path TEXT`,
 		// Token scope: existing tokens default to 'admin' to preserve current behaviour.
 		`ALTER TABLE auth_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'admin'`,
+		// Input reclassification: semantic category, binary labels, ok_value, hidden flag.
+		`ALTER TABLE probe_config ADD COLUMN input_category TEXT NOT NULL DEFAULT 'probe'`,
+		`ALTER TABLE probe_config ADD COLUMN on_label TEXT`,
+		`ALTER TABLE probe_config ADD COLUMN off_label TEXT`,
+		`ALTER TABLE probe_config ADD COLUMN ok_value REAL`,
+		`ALTER TABLE probe_config ADD COLUMN is_binary INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

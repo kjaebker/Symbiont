@@ -1,4 +1,5 @@
 export type ProbeStatus = 'normal' | 'warning' | 'critical' | 'unknown'
+export type InputCategory = 'probe' | 'switch' | 'fluid' | 'alarm' | 'virtual'
 
 export interface Probe {
   name: string
@@ -8,6 +9,11 @@ export interface Probe {
   unit: string
   ts: string
   status: ProbeStatus
+  input_category: InputCategory
+  on_label: string | null
+  off_label: string | null
+  is_binary: boolean
+  hidden: boolean
 }
 
 export interface ProbeHistoryPoint {
@@ -73,6 +79,12 @@ export interface ProbeConfig {
   min_warning: number | null
   max_warning: number | null
   device_id: number | null
+  input_category: InputCategory
+  on_label: string | null
+  off_label: string | null
+  ok_value: number | null
+  is_binary: boolean
+  hidden: boolean
 }
 
 export interface OutletConfig {

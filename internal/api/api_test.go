@@ -194,25 +194,34 @@ func TestProbeList(t *testing.T) {
 }
 
 func TestProbeStatusComputation(t *testing.T) {
+	okVal1 := 1.0
+	okVal0 := 0.0
 	tests := []struct {
 		name   string
 		value  float64
-		cfg    *probeConfigLookup
+		cfg    *db.ProbeConfig
 		expect string
 	}{
 		{"no config", 78.0, nil, "unknown"},
-		{"no thresholds", 78.0, &probeConfigLookup{}, "unknown"},
-		{"normal", 78.0, &probeConfigLookup{minNormal: ptr(76.0), maxNormal: ptr(82.0)}, "normal"},
-		{"warning low", 75.0, &probeConfigLookup{minNormal: ptr(76.0), maxNormal: ptr(82.0)}, "warning"},
-		{"warning high", 83.0, &probeConfigLookup{minNormal: ptr(76.0), maxNormal: ptr(82.0)}, "warning"},
-		{"critical low", 70.0, &probeConfigLookup{
-			minNormal: ptr(76.0), maxNormal: ptr(82.0),
-			minWarning: ptr(74.0), maxWarning: ptr(84.0),
+		{"no thresholds", 78.0, &db.ProbeConfig{InputCategory: "probe"}, "unknown"},
+		{"normal", 78.0, &db.ProbeConfig{InputCategory: "probe", MinNormal: ptr(76.0), MaxNormal: ptr(82.0)}, "normal"},
+		{"warning low", 75.0, &db.ProbeConfig{InputCategory: "probe", MinNormal: ptr(76.0), MaxNormal: ptr(82.0)}, "warning"},
+		{"warning high", 83.0, &db.ProbeConfig{InputCategory: "probe", MinNormal: ptr(76.0), MaxNormal: ptr(82.0)}, "warning"},
+		{"critical low", 70.0, &db.ProbeConfig{
+			InputCategory: "probe",
+			MinNormal: ptr(76.0), MaxNormal: ptr(82.0),
+			MinWarning: ptr(74.0), MaxWarning: ptr(84.0),
 		}, "critical"},
-		{"critical high", 85.0, &probeConfigLookup{
-			minNormal: ptr(76.0), maxNormal: ptr(82.0),
-			minWarning: ptr(74.0), maxWarning: ptr(84.0),
+		{"critical high", 85.0, &db.ProbeConfig{
+			InputCategory: "probe",
+			MinNormal: ptr(76.0), MaxNormal: ptr(82.0),
+			MinWarning: ptr(74.0), MaxWarning: ptr(84.0),
 		}, "critical"},
+		// Binary categories.
+		{"fluid ok", 1.0, &db.ProbeConfig{InputCategory: "fluid", IsBinary: true, OkValue: &okVal1}, "normal"},
+		{"fluid warn", 0.0, &db.ProbeConfig{InputCategory: "fluid", IsBinary: true, OkValue: &okVal1}, "warning"},
+		{"alarm ok", 0.0, &db.ProbeConfig{InputCategory: "alarm", IsBinary: true, OkValue: &okVal0}, "normal"},
+		{"alarm critical", 1.0, &db.ProbeConfig{InputCategory: "alarm", IsBinary: true, OkValue: &okVal0}, "critical"},
 	}
 
 	for _, tt := range tests {
