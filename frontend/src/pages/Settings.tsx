@@ -670,12 +670,12 @@ function ProbesTab() {
       {analogProbes.length > 0 && (
         <div>
           <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold px-5 mb-2">Analog Probes</p>
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {analogProbes.map((c) => {
               const isDigital = probeTypeMap.get(c.probe_name) === 'digital'
               return (
-                <div key={c.probe_name} className="px-4 py-3 space-y-2">
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-on-surface">{c.probe_name}</span>
                     {isDigital && (
@@ -782,12 +782,12 @@ function ProbesTab() {
             <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold">Binary Inputs</p>
             <p className="text-xs text-on-surface-faint hidden sm:block">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
           </div>
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {binaryInputs.filter((c) => c.probe_name !== '').map((c) => {
               const { Icon, color, bg } = getCategoryIcon(c.input_category)
               return (
-                <div key={c.probe_name} className="px-4 py-3 space-y-2">
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', bg)}>
@@ -940,10 +940,10 @@ function OutletsTab() {
 
   return (
     <>
-      {/* Mobile cards */}
-      <div className="sm:hidden divide-y divide-outline-variant/10">
+      {/* Mobile: individual cards */}
+      <div className="sm:hidden space-y-3">
         {items.map((item) => (
-          <div key={item.outlet_id} className="px-4 py-3 space-y-1.5">
+          <div key={item.outlet_id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-on-surface">{item.outletName}</span>
               <span className="text-xs text-on-surface-faint font-mono">{item.outlet_id}</span>
@@ -1746,10 +1746,10 @@ function TokensTab() {
         />
       ) : (
         <>
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {tokens.map((t) => (
-              <div key={t.id} className="px-4 py-3 space-y-2">
+              <div key={t.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="text-sm font-medium text-on-surface">{t.label}</span>
@@ -1928,10 +1928,10 @@ function BackupTab() {
         />
       ) : (
         <>
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {backups.map((b) => (
-              <div key={b.id} className="px-4 py-3 space-y-1">
+              <div key={b.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm text-on-surface-dim">{relativeTime(b.ts)}</span>
                   <div className="flex items-center gap-2">
@@ -2139,10 +2139,10 @@ function NotificationsTab() {
         />
       ) : (
         <>
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {targets.map((t) => (
-              <div key={t.id} className="px-4 py-3 space-y-1.5">
+              <div key={t.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-on-surface">{t.label}</span>
                   <div className="flex items-center gap-2 shrink-0">

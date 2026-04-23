@@ -388,11 +388,11 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
           </button>
         </div>
       ) : (
-        <div className="bg-surface-container rounded-2xl overflow-hidden">
-          {/* Mobile cards */}
-          <div className="sm:hidden divide-y divide-outline-variant/10">
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
             {measurements.map((m) => (
-              <div key={m.id} className="flex items-start gap-3 px-4 py-3">
+              <div key={m.id} className="bg-surface-container rounded-2xl px-4 py-3 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-base font-bold font-mono text-on-surface tabular-nums">
@@ -425,7 +425,8 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
             ))}
           </div>
           {/* Desktop table */}
-          <table className="w-full text-sm hidden sm:table">
+          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-outline-variant/20">
                 <th className="text-left px-5 py-3.5 text-xs text-on-surface-dim uppercase tracking-widest font-medium">
@@ -491,7 +492,8 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   )

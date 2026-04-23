@@ -87,102 +87,101 @@ export default function Alerts() {
       </div>
 
       {/* Rules Table */}
-      <div className="bg-surface-container rounded-2xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
-              <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-                Loading alert rules...
-              </span>
-            </div>
-          </div>
-        ) : rules.length === 0 ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-3">
-            <Bell size={32} className="text-on-surface-faint" />
-            <span className="text-on-surface-dim text-sm text-center max-w-sm">
-              No alert rules configured. Add one to get notified when parameters go out of range.
+      {isLoading ? (
+        <div className="bg-surface-container rounded-2xl p-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
+            <span className="text-xs text-on-surface-faint uppercase tracking-widest">
+              Loading alert rules...
             </span>
           </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="sm:hidden divide-y divide-outline-variant/10">
-              {rules.map((rule) => (
-                <div key={rule.id} className="px-4 py-3 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-sm font-medium text-on-surface">
-                        {rule.probe_display_name ?? rule.probe_name}
+        </div>
+      ) : rules.length === 0 ? (
+        <div className="bg-surface-container rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
+          <Bell size={32} className="text-on-surface-faint" />
+          <span className="text-on-surface-dim text-sm text-center max-w-sm">
+            No alert rules configured. Add one to get notified when parameters go out of range.
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {rules.map((rule) => (
+              <div key={rule.id} className="bg-surface-container rounded-2xl px-4 py-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-sm font-medium text-on-surface">
+                      {rule.probe_display_name ?? rule.probe_name}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs text-on-surface-dim uppercase tracking-wider">
+                        {conditionLabels[rule.condition] ?? rule.condition}
                       </span>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-xs text-on-surface-dim uppercase tracking-wider">
-                          {conditionLabels[rule.condition] ?? rule.condition}
-                        </span>
-                        <span className="text-xs text-on-surface font-mono">{formatThreshold(rule)}</span>
-                        <span
-                          className={cn(
-                            'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                            rule.severity === 'critical'
-                              ? 'bg-tertiary/15 text-tertiary'
-                              : 'bg-amber-400/15 text-amber-400',
-                          )}
-                        >
-                          {rule.severity}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleToggle(rule)}
+                      <span className="text-xs text-on-surface font-mono">{formatThreshold(rule)}</span>
+                      <span
                         className={cn(
-                          'relative w-10 h-5 rounded-full transition-fluid cursor-pointer',
-                          rule.enabled ? 'bg-primary' : 'bg-surface-container-highest',
+                          'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
+                          rule.severity === 'critical'
+                            ? 'bg-tertiary/15 text-tertiary'
+                            : 'bg-amber-400/15 text-amber-400',
                         )}
                       >
-                        <span
-                          className={cn(
-                            'absolute top-0.5 h-4 w-4 rounded-full bg-on-surface transition-fluid',
-                            rule.enabled ? 'left-5.5' : 'left-0.5',
-                          )}
-                        />
-                      </button>
-                      <button
-                        onClick={() => setEditingRule(rule)}
-                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      {deleteConfirm === rule.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleDelete(rule.id)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirm(rule.id)}
-                          className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                        {rule.severity}
+                      </span>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleToggle(rule)}
+                      className={cn(
+                        'relative w-10 h-5 rounded-full transition-fluid cursor-pointer',
+                        rule.enabled ? 'bg-primary' : 'bg-surface-container-highest',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'absolute top-0.5 h-4 w-4 rounded-full bg-on-surface transition-fluid',
+                          rule.enabled ? 'left-5.5' : 'left-0.5',
+                        )}
+                      />
+                    </button>
+                    <button
+                      onClick={() => setEditingRule(rule)}
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {deleteConfirm === rule.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDelete(rule.id)}
+                          className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(rule.id)}
+                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-            {/* Desktop table */}
-            <div className="hidden sm:block overflow-x-auto">
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-surface-container-high/50">
@@ -289,7 +288,6 @@ export default function Alerts() {
             </div>
           </>
         )}
-      </div>
 
       {/* Mutation errors */}
       {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
@@ -344,60 +342,59 @@ function AlertEventLog() {
         </h2>
       </div>
 
-      <div className="bg-surface-container rounded-2xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-primary/20 animate-bio-pulse" />
-          </div>
-        ) : events.length === 0 ? (
-          <div className="p-8 flex flex-col items-center justify-center gap-2">
-            <Activity size={24} className="text-on-surface-faint" />
-            <span className="text-on-surface-dim text-sm">
-              No alert events yet.
-            </span>
-          </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="sm:hidden divide-y divide-outline-variant/10">
-              {events.map((event) => (
-                <div key={event.id} className="px-4 py-3 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-on-surface">
-                      {event.probe_display_name ?? event.probe_name ?? '--'}
-                    </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span
-                        className={cn(
-                          'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                          event.severity === 'critical'
-                            ? 'bg-tertiary/15 text-tertiary'
-                            : 'bg-amber-400/15 text-amber-400',
-                        )}
-                      >
-                        {event.severity ?? '--'}
-                      </span>
-                      {event.cleared_at ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-secondary/15 text-secondary">
-                          Cleared
-                        </span>
-                      ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-tertiary/15 text-tertiary animate-bio-pulse">
-                          Active
-                        </span>
+      {isLoading ? (
+        <div className="bg-surface-container rounded-2xl p-8 flex items-center justify-center">
+          <div className="h-6 w-6 rounded-full bg-primary/20 animate-bio-pulse" />
+        </div>
+      ) : events.length === 0 ? (
+        <div className="bg-surface-container rounded-2xl p-8 flex flex-col items-center justify-center gap-2">
+          <Activity size={24} className="text-on-surface-faint" />
+          <span className="text-on-surface-dim text-sm">
+            No alert events yet.
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {events.map((event) => (
+              <div key={event.id} className="bg-surface-container rounded-2xl px-4 py-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-on-surface">
+                    {event.probe_display_name ?? event.probe_name ?? '--'}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={cn(
+                        'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
+                        event.severity === 'critical'
+                          ? 'bg-tertiary/15 text-tertiary'
+                          : 'bg-amber-400/15 text-amber-400',
                       )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-on-surface-dim flex-wrap">
-                    <span>Peak: <span className="font-mono text-on-surface">{event.peak_value.toFixed(2)}</span></span>
-                    <span>Fired: {formatTime(event.fired_at)}</span>
-                    {event.cleared_at && <span>Cleared: {formatTime(event.cleared_at)}</span>}
+                    >
+                      {event.severity ?? '--'}
+                    </span>
+                    {event.cleared_at ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-secondary/15 text-secondary">
+                        Cleared
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-tertiary/15 text-tertiary animate-bio-pulse">
+                        Active
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-            {/* Desktop table */}
-            <div className="hidden sm:block overflow-x-auto">
+                <div className="flex items-center gap-3 text-xs text-on-surface-dim flex-wrap">
+                  <span>Peak: <span className="font-mono text-on-surface">{event.peak_value.toFixed(2)}</span></span>
+                  <span>Fired: {formatTime(event.fired_at)}</span>
+                  {event.cleared_at && <span>Cleared: {formatTime(event.cleared_at)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-surface-container-high/50">
@@ -469,7 +466,6 @@ function AlertEventLog() {
             </div>
           </>
         )}
-      </div>
     </div>
   )
 }
