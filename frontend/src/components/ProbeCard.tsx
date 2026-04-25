@@ -170,7 +170,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
             boxShadow: isAlarmActive ? '0 0 16px rgba(255,135,150,0.55)'
               : (isFluidWarn || probe.status === 'warning') ? '0 0 14px rgba(251,191,36,0.45)'
               : probe.status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
-              : 'none',
+              : `0 0 10px ${config.hexColor}1a`,
             animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
               : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
               : undefined,

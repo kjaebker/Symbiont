@@ -44,6 +44,7 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
             style={{
               borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
               background: 'rgba(109, 254, 156, 0.10)',
+              boxShadow: '0 0 10px #6dfe9c1a',
             }}
           >
             <FlaskConical size={14} className="text-secondary" />
