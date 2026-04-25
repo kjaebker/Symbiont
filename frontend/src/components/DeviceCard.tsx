@@ -18,7 +18,7 @@ import { getProbeHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
-import { getPersonality } from '@/lib/devicePersonality'
+import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
 import { BioDot } from './BioDot'
 import { getCategory } from './ProbeCard'
@@ -99,7 +99,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   const mutation = useSetOutlet()
 
   const Icon = deviceTypeIcons[device.device_type ?? ''] ?? Zap
-  const personality = getPersonality(device.device_type ?? '')
+  const personality = inferPersonality(device.name, device.device_type)
   const status = worstProbeStatus(probes)
   const primaryProbe = pickPrimaryProbe(probes)
   const secondaryProbes = probes.filter((p) => p !== primaryProbe)

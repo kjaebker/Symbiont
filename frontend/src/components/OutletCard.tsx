@@ -2,7 +2,7 @@ import { Flame, Waves, Sun, Filter, FlaskConical, Droplet, Snowflake, Fan, Zap, 
 import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
-import { getPersonality } from '@/lib/devicePersonality'
+import { inferPersonality } from '@/lib/devicePersonality'
 import { BioDot } from './BioDot'
 
 const stateLabels: Record<string, string> = {
@@ -54,7 +54,8 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
   const mutation = useSetOutlet()
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
   const isAuto = outlet.state === 'AON' || outlet.state === 'AOF' || outlet.state === 'TBL'
-  const personality = getPersonality(outlet.type)
+  // outlet.type is Neptune port type ("outlet", "serial", etc.), not device category — use name
+  const personality = inferPersonality(outlet.display_name || outlet.name, null)
   const DeviceIcon = deviceIcons[outlet.type] ?? (isOn ? Zap : Power)
 
   const dotColor =

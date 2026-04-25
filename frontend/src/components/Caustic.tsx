@@ -3,6 +3,8 @@ import { usePageTheme } from '@/lib/pageTheme'
 export function Caustic() {
   const { accent, sub } = usePageTheme()
 
+  const blobStyle = { transition: 'background 600ms ease-in-out' }
+
   return (
     <div
       className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
@@ -12,11 +14,12 @@ export function Caustic() {
       <div
         className="absolute animate-caustic-a"
         style={{
+          ...blobStyle,
           top: -60,
           left: -40,
-          width: 320,
-          height: 220,
-          background: `radial-gradient(ellipse at center, ${accent}2e, transparent 70%)`,
+          width: 380,
+          height: 260,
+          background: `radial-gradient(ellipse at center, ${accent}55, transparent 70%)`,
           filter: 'blur(24px)',
         }}
       />
@@ -24,11 +27,12 @@ export function Caustic() {
       <div
         className="absolute animate-caustic-b"
         style={{
+          ...blobStyle,
           top: -40,
           right: -60,
-          width: 260,
-          height: 340,
-          background: `radial-gradient(ellipse at center, ${sub}26, transparent 70%)`,
+          width: 300,
+          height: 400,
+          background: `radial-gradient(ellipse at center, ${sub}44, transparent 70%)`,
           filter: 'blur(28px)',
         }}
       />
@@ -36,11 +40,12 @@ export function Caustic() {
       <div
         className="absolute animate-caustic-c"
         style={{
+          ...blobStyle,
           bottom: -40,
-          left: 'calc(50% - 120px)',
-          width: 240,
-          height: 240,
-          background: `radial-gradient(ellipse at center, ${accent}1f, transparent 70%)`,
+          left: 'calc(50% - 140px)',
+          width: 280,
+          height: 280,
+          background: `radial-gradient(ellipse at center, ${accent}33, transparent 70%)`,
           filter: 'blur(22px)',
         }}
       />

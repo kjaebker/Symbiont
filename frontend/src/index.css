@@ -154,8 +154,8 @@
 @utility animate-caustic-a { animation: caustic-a 18s ease-in-out infinite; }
 @utility animate-caustic-b { animation: caustic-b 24s ease-in-out infinite; }
 @utility animate-caustic-c { animation: caustic-c 14s ease-in-out infinite; }
-@utility animate-sway      { animation: sway 6s ease-in-out infinite; transform-origin: bottom center; }
-@utility animate-sway2     { animation: sway2 8s ease-in-out infinite; transform-origin: bottom center; }
+@utility animate-sway      { animation: sway 6s ease-in-out infinite; transform-origin: bottom center; transform-box: fill-box; }
+@utility animate-sway2     { animation: sway2 8s ease-in-out infinite; transform-origin: bottom center; transform-box: fill-box; }
 @utility animate-jellyfish { animation: jellyfish 3.5s ease-in-out infinite; }
 
 /* Smooth transitions — "resistance of water" */

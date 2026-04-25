@@ -24,3 +24,24 @@ export type PersonalityKey = keyof typeof typePersonality
 export function getPersonality(type: string) {
   return (typePersonality as Record<string, typeof defaultPersonality>)[type] ?? defaultPersonality
 }
+
+/** Infer personality from device_type (if set) then fall back to name-based matching. */
+export function inferPersonality(name: string, deviceType: string | null | undefined) {
+  if (deviceType) {
+    const byType = (typePersonality as Record<string, typeof defaultPersonality>)[deviceType.toLowerCase()]
+    if (byType) return byType
+  }
+  const n = (name ?? '').toLowerCase()
+  if (/heat/.test(n)) return typePersonality.heater
+  if (/skim/.test(n)) return typePersonality.skimmer
+  if (/gyre|wave|tunze|vortech/.test(n)) return typePersonality.wavemaker
+  if (/light|led|kessil|radion|hydra|blu\b|wht\b|grow/.test(n)) return typePersonality.light
+  if (/\bato\b|auto.?top|top.?off|ato\s/.test(n)) return typePersonality.ato
+  if (/chill/.test(n)) return typePersonality.chiller
+  if (/\bfan\b/.test(n)) return typePersonality.fan
+  if (/reactor|kalk|carx/.test(n)) return typePersonality.reactor
+  if (/doser|\bdos\b|two.?part/.test(n)) return typePersonality.doser
+  if (/chem|calcium|magnesium|alkalin/.test(n)) return typePersonality.chemistry
+  if (/pump|return|sump|flow/.test(n)) return typePersonality.pump
+  return defaultPersonality
+}

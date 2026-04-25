@@ -177,9 +177,14 @@ export default function Layout() {
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-fluid relative z-10',
                   isActive
-                    ? 'bg-surface-container-high text-primary shadow-glow-primary'
+                    ? 'bg-surface-container-high'
                     : 'text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60',
                 )
+              }
+              style={({ isActive }) =>
+                isActive
+                  ? { color: ctx.accent, boxShadow: `0 0 20px ${ctx.accent}22` }
+                  : {}
               }
             >
               <Icon size={18} />
