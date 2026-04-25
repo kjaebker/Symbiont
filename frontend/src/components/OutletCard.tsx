@@ -1,4 +1,4 @@
-import { Flame, Waves, Sun, Filter, FlaskConical, Droplet, Snowflake, Fan, Zap, Power, Box } from 'lucide-react'
+import { Flame, Waves, Sun, Filter, FlaskConical, Droplet, Snowflake, Fan, Zap, Power } from 'lucide-react'
 import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
