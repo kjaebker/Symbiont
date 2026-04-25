@@ -45,7 +45,7 @@ export function PowerPairCard({ watts, amps, label }: PowerPairCardProps) {
   return (
     <button
       onClick={() => navigate(`/history?tab=telemetry&probe=${encodeURIComponent(watts.name)}`)}
-      className="bg-surface-container rounded-2xl p-5 text-left transition-fluid hover:bg-surface-container-high hover:shadow-glow-primary cursor-pointer w-full"
+      className="bg-surface-container rounded-2xl p-5 text-left transition-fluid hover:bg-surface-container-high hover:shadow-glow-primary cursor-pointer w-full overflow-hidden"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">

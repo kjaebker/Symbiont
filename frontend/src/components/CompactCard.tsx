@@ -308,7 +308,7 @@ export function FeedCompactCard() {
 
   return (
     <div
-      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid"
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid overflow-hidden"
       style={{
         background: isActive
           ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(58,223,250,0.06))'
@@ -361,7 +361,7 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
           ? navigate(`/history?tab=telemetry&probe=${encodeURIComponent(primaryProbe.name)}`)
           : undefined
       }
-      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left overflow-hidden"
       style={{
         background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}18)`,
       }}
