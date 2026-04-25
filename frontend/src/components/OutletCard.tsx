@@ -73,7 +73,7 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
       className="rounded-2xl p-5 transition-fluid relative overflow-hidden"
       style={{
         background: isOn
-          ? `linear-gradient(135deg, var(--color-surface-container) 40%, ${personality.bg})`
+          ? `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}33)`
           : 'var(--color-surface-container)',
       }}
     >
@@ -96,11 +96,12 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
       <div className="flex items-center justify-between mb-1 relative">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-              isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
-            )}
-            style={isOn ? { backgroundColor: `${personality.color}18` } : undefined}
+            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+            style={{
+              borderRadius: personality.blob,
+              background: isOn ? personality.bg : 'rgba(255,255,255,0.04)',
+              boxShadow: isOn ? `0 0 14px ${personality.color}33` : 'none',
+            }}
           >
             <DeviceIcon size={18} style={{ color: isOn ? personality.color : 'var(--color-on-surface-faint)' }} />
           </div>

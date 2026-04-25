@@ -140,7 +140,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
       style={{
         background: outlet && isOn
-          ? `linear-gradient(135deg, var(--color-surface-container) 40%, ${personality.bg})`
+          ? `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}33)`
           : 'var(--color-surface-container)',
       }}
     >
@@ -163,11 +163,12 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       <div className="flex items-start justify-between mb-4 relative">
         <div className="flex items-center gap-3">
           <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-              outlet && isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
-            )}
-            style={outlet && isOn ? { backgroundColor: `${personality.color}18` } : undefined}
+            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+            style={{
+              borderRadius: personality.blob,
+              background: outlet && isOn ? personality.bg : 'rgba(255,255,255,0.04)',
+              boxShadow: outlet && isOn ? `0 0 14px ${personality.color}33` : 'none',
+            }}
           >
             <Icon
               size={18}

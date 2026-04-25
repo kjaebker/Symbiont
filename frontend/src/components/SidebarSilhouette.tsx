@@ -268,7 +268,7 @@ const silhouetteMap: Record<PageKey, () => JSX.Element> = {
 export function SidebarSilhouette({ page }: SidebarSilhouetteProps) {
   const Scene = silhouetteMap[page] ?? DashboardSilhouette
   return (
-    <div className="absolute bottom-10 left-0 right-0 h-24 overflow-hidden pointer-events-none transition-fluid">
+    <div className="absolute bottom-14 left-0 right-0 h-24 overflow-hidden pointer-events-none transition-fluid">
       <Scene />
     </div>
   )
