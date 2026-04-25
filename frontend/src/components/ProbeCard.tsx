@@ -62,9 +62,9 @@ const categoryConfig: Record<
     sparklineColor: '#8a90a8',
     glowClass: '',
     hoverGlow: 'hover:shadow-glow-primary',
-    tint: 'transparent',
+    tint: 'rgba(138, 144, 168, 0.12)',
     blobShape: '50% 50% 60% 40% / 40% 60% 50% 50%',
-    blobBg: 'rgba(255, 255, 255, 0.04)',
+    blobBg: 'rgba(138, 144, 168, 0.08)',
   },
 }
 

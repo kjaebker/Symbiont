@@ -86,7 +86,7 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
             style={{
               borderRadius: personality.blob,
               background: isOn ? personality.bg : `${personality.color}0a`,
-              boxShadow: isOn ? `0 0 14px ${personality.color}33` : 'none',
+              boxShadow: isOn ? `0 0 14px ${personality.color}33` : `0 0 8px ${personality.color}1a`,
             }}
           >
             <DeviceIcon size={18} style={{ color: isOn ? personality.color : 'var(--color-on-surface-faint)' }} />

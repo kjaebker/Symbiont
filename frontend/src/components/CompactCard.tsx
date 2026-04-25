@@ -42,9 +42,9 @@ const categoryCompact = {
     color: 'text-on-surface-dim',
     glowClass: '',
     hexColor: '#8a90a8',
-    tint: 'transparent',
+    tint: 'rgba(138, 144, 168, 0.12)',
     blobShape: '50% 50% 60% 40% / 40% 60% 50% 50%',
-    blobBg: 'rgba(255, 255, 255, 0.04)',
+    blobBg: 'rgba(138, 144, 168, 0.08)',
   },
 }
 
@@ -173,17 +173,30 @@ export function OutletCompactCard({ outlet }: OutletCompactCardProps) {
 
   return (
     <div
-      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid"
+      className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid relative overflow-hidden"
       style={{
         background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}${isOn ? '22' : '0f'})`,
       }}
     >
       <div
+        style={{
+          position: 'absolute',
+          top: -16,
+          right: -16,
+          width: 80,
+          height: 80,
+          borderRadius: personality.blob,
+          background: personality.bg,
+          filter: 'blur(16px)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
         className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
         style={{
           borderRadius: personality.blob,
           background: isOn ? personality.bg : `${personality.color}0a`,
-          boxShadow: isOn ? `0 0 10px ${personality.color}26` : 'none',
+          boxShadow: isOn ? `0 0 10px ${personality.color}26` : `0 0 8px ${personality.color}1a`,
         }}
       >
         {isOn ? (
