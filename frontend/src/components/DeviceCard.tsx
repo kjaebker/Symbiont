@@ -181,15 +181,15 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           </div>
         </div>
         {outlet && (
-          <div className="flex items-center gap-1 shrink-0 ml-2">
+          <div className="flex items-center gap-1 shrink-0 ml-2 text-on-surface-dim">
             {isAuto ? (
-              <RefreshCw size={11} className="text-on-surface opacity-60" />
+              <RefreshCw size={11} />
             ) : isOn ? (
-              <Zap size={11} className="text-on-surface opacity-60" />
+              <Zap size={11} />
             ) : (
-              <Power size={11} className="text-on-surface opacity-60" />
+              <Power size={11} />
             )}
-            <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+            <span className="text-xs font-semibold uppercase tracking-wider">
               {stateLabels[outlet.state] ?? outlet.state}
             </span>
           </div>
