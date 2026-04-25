@@ -21,9 +21,22 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
   return (
     <button
       onClick={() => navigate('/measurements')}
-      className="rounded-2xl p-5 text-left transition-fluid hover:shadow-glow-secondary cursor-pointer w-full"
+      className="rounded-2xl p-5 text-left transition-fluid hover:shadow-glow-secondary cursor-pointer w-full relative overflow-hidden"
       style={{ background: 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(109,254,156,0.22))' }}
     >
+      <div
+        style={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 120,
+          height: 120,
+          borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
+          background: 'rgba(109,254,156,0.10)',
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+        }}
+      />
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div

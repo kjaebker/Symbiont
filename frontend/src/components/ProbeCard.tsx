@@ -134,7 +134,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
         navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)
       }
       className={cn(
-        'rounded-2xl p-5 text-left transition-fluid w-full',
+        'rounded-2xl p-5 text-left transition-fluid w-full relative overflow-hidden',
         !isBinary && 'cursor-pointer',
         isBinary && 'cursor-default',
         isAlarmActive ? 'hover:shadow-glow-tertiary' : config.hoverGlow,
@@ -145,6 +145,19 @@ export function ProbeCard({ probe }: ProbeCardProps) {
           : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
+      <div
+        style={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 120,
+          height: 120,
+          borderRadius: config.blobShape,
+          background: isAlarmActive ? 'rgba(255,135,150,0.18)' : config.blobBg,
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+        }}
+      />
       <div className="flex items-center gap-2 mb-3">
         <div
           className="w-8 h-8 flex items-center justify-center shrink-0"
@@ -158,8 +171,8 @@ export function ProbeCard({ probe }: ProbeCardProps) {
               : (isFluidWarn || probe.status === 'warning') ? '0 0 14px rgba(251,191,36,0.45)'
               : probe.status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
               : 'none',
-            animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
-              : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+            animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
+              : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
               : undefined,
           }}
         >
