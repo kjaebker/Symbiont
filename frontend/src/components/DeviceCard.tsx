@@ -13,13 +13,14 @@ import {
   Zap,
   Box,
   Power,
+  RefreshCw,
 } from 'lucide-react'
 import { getProbeHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
+import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
-import { getCategory } from './ProbeCard'
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
   heater: Flame,
@@ -35,19 +36,12 @@ const deviceTypeIcons: Record<string, typeof Flame> = {
   other: Box,
 }
 
-const statusColor = {
-  normal: 'bg-secondary',
-  warning: 'bg-amber-400',
-  critical: 'bg-tertiary',
-  unknown: 'bg-on-surface-faint',
-} as const
-
 const stateLabels: Record<string, string> = {
-  ON: 'On',
-  OFF: 'Off',
-  AON: 'Auto',
-  AOF: 'Auto Off',
-  TBL: 'Schedule',
+  ON: 'ON',
+  OFF: 'OFF',
+  AON: 'AUTO',
+  AOF: 'AUTO OFF',
+  TBL: 'SCHEDULE',
 }
 
 const stateColors: Record<string, string> = {
@@ -97,6 +91,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   const mutation = useSetOutlet()
 
   const Icon = deviceTypeIcons[device.device_type ?? ''] ?? Zap
+  const personality = inferPersonality(device.name, device.device_type)
   const status = worstProbeStatus(probes)
   const primaryProbe = pickPrimaryProbe(probes)
   const secondaryProbes = probes.filter((p) => p !== primaryProbe)
@@ -112,15 +107,6 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
-  const probeCategory = primaryProbe ? getCategory(primaryProbe.type) : 'power'
-  const probeCategoryColors = {
-    temperature: { value: 'text-tertiary', glow: 'text-glow-tertiary', sparkline: '#ff8796' },
-    chemistry:   { value: 'text-secondary', glow: 'text-glow-secondary', sparkline: '#6dfe9c' },
-    power:       { value: 'text-primary', glow: 'text-glow-primary', sparkline: '#3adffa' },
-    digital:     { value: 'text-on-surface-dim', glow: '', sparkline: '#8a90a8' },
-  }
-  const probeColors = probeCategoryColors[probeCategory]
-
   const isOn = outlet
     ? outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
     : false
@@ -134,45 +120,80 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   return (
     <div
-      className="rounded-2xl p-5 transition-fluid flex flex-col"
+      className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
       style={{
-        background: outlet && isOn
-          ? 'linear-gradient(135deg, var(--color-surface-container) 40%, rgba(58,223,250,0.07))'
-          : 'var(--color-surface-container)',
+        background: `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
       }}
     >
-      {/* Header: icon + name + type badge + status */}
-      <div className="flex items-start justify-between mb-4">
+      {/* Personality blob */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 120,
+          height: 120,
+          borderRadius: personality.blob,
+          background: personality.bg,
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Header: icon + name + type badge + state */}
+      <div className="flex items-center justify-between mb-4 relative">
         <div className="flex items-center gap-3">
           <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-              outlet && isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
-            )}
+            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+            style={{
+              borderRadius: personality.blob,
+              background: status === 'critical' ? 'rgba(255,135,150,0.22)'
+                : status === 'warning' ? 'rgba(251,191,36,0.18)'
+                : isOn ? personality.bg : `${personality.color}0a`,
+              boxShadow: status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
+                : status === 'warning' ? '0 0 14px rgba(251,191,36,0.45)'
+                : isOn ? `0 0 14px ${personality.color}33` : 'none',
+              animation: status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
+                : status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
+                : undefined,
+            }}
           >
             <Icon
               size={18}
-              className={outlet && isOn ? 'text-primary' : 'text-on-surface-faint'}
+              style={{
+                color: status === 'critical' ? '#ff8796'
+                  : status === 'warning' ? '#fbbf24'
+                  : personality.color,
+                opacity: (status === 'normal' || status === 'unknown') && !isOn ? 0.5 : 1,
+              }}
             />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-on-surface truncate">
               {device.name}
             </div>
-            {device.device_type && (
-              <span className="text-xs text-primary/80 font-medium uppercase tracking-wider">
-                {device.device_type}
-              </span>
-            )}
+            <div
+              className="text-[10px] uppercase tracking-[0.12em] font-semibold"
+              style={{ color: personality.color, opacity: 0.75 }}
+            >
+              {personality.label}
+            </div>
           </div>
         </div>
-        <span
-          className={cn(
-            'h-2.5 w-2.5 rounded-full shrink-0 mt-1',
-            statusColor[status],
-            status === 'normal' && 'animate-bio-pulse',
-          )}
-        />
+        {outlet && (
+          <div className="flex items-center gap-1 shrink-0 ml-2 text-on-surface-dim">
+            {isAuto ? (
+              <RefreshCw size={11} />
+            ) : isOn ? (
+              <Zap size={11} />
+            ) : (
+              <Power size={11} />
+            )}
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              {stateLabels[outlet.state] ?? outlet.state}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Probe readings: primary large left, secondary compact right */}
@@ -193,7 +214,10 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                   className="text-left group"
                 >
                   <div className="flex items-baseline gap-1.5">
-                    <span className={`text-4xl font-bold tracking-tight transition-fluid ${probeColors.value} ${probeColors.glow}`}>
+                    <span
+                      className="text-4xl font-bold tracking-tight transition-fluid"
+                      style={{ color: personality.color, textShadow: `0 0 8px ${personality.color}4d` }}
+                    >
                       {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
                     </span>
                     <span className="text-lg text-on-surface-dim font-light">
@@ -242,7 +266,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           {/* Sparkline for primary probe — omit for binary probes */}
           {primaryProbe && !primaryProbe.is_binary && (
             <div className="h-10">
-              <Sparkline data={sparklineData} color={probeColors.sparkline} />
+              <Sparkline data={sparklineData} color={personality.color} />
             </div>
           )}
         </div>
@@ -254,22 +278,6 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       {/* Outlet controls */}
       {outlet && (
         <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            {isOn ? (
-              <Zap size={12} className="text-primary" />
-            ) : (
-              <Power size={12} className="text-on-surface-faint" />
-            )}
-            <span
-              className={cn(
-                'text-xs font-semibold uppercase tracking-wider',
-                stateColors[outlet.state] ?? 'text-on-surface-dim',
-              )}
-            >
-              {stateLabels[outlet.state] ?? outlet.state}
-            </span>
-          </div>
-
           {/* Controls — revealed when unlocked */}
           <div
             className="grid overflow-hidden"

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Lock, Unlock } from 'lucide-react'
+import { PageThemeContext } from '@/lib/pageTheme'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
 import { useDevices } from '@/hooks/useDevices'
@@ -335,6 +336,17 @@ export default function Dashboard() {
     if (p.status === 'warning' && worst !== 'critical') return 'warning'
     return worst
   }, 'normal')
+
+  const { setTheme } = useContext(PageThemeContext)
+  const causticColors = {
+    normal:   { accent: '#3adffa', sub: '#6dfe9c' },
+    warning:  { accent: '#fbbf24', sub: '#3adffa' },
+    critical: { accent: '#ff8796', sub: '#fbbf24' },
+  } as const
+  useEffect(() => {
+    const colors = causticColors[worstStatus as keyof typeof causticColors] ?? causticColors.normal
+    setTheme(colors)
+  }, [worstStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeOutlets = allOutlets.filter(
     (o) => o.state === 'ON' || o.state === 'AON' || o.state === 'TBL',

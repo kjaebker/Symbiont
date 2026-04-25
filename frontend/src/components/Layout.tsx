@@ -16,6 +16,10 @@ import { useSystemStatus } from '@/hooks/useSystem'
 import { cn, relativeTime } from '@/lib/utils'
 import { getBubblesEnabled } from '@/api/client'
 import { Bubbles } from '@/components/Bubbles'
+import { Caustic } from '@/components/Caustic'
+import { SidebarSilhouette } from '@/components/SidebarSilhouette'
+import { routeThemes, defaultRouteTheme, PageThemeContext } from '@/lib/pageTheme'
+import type { PageTheme } from '@/lib/pageTheme'
 
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -127,88 +131,117 @@ export default function Layout() {
   const closeMore = useCallback(() => setMoreOpen(false), [])
   const bubblesEnabled = getBubblesEnabled()
 
+  const routeDefault = routeThemes[location.pathname] ?? defaultRouteTheme
+  const [theme, setThemeState] = useState<Pick<PageTheme, 'accent' | 'sub'>>({
+    accent: routeDefault.accent,
+    sub: routeDefault.sub,
+  })
+
+  // Reset to route default when navigating
+  useEffect(() => {
+    const rd = routeThemes[location.pathname] ?? defaultRouteTheme
+    setThemeState({ accent: rd.accent, sub: rd.sub })
+  }, [location.pathname])
+
+  const ctx: PageTheme = {
+    ...theme,
+    page: routeDefault.page,
+    setTheme: (t) => setThemeState((prev) => ({ ...prev, ...t })),
+  }
+
   const activeRouteIsOverflow = overflowNavItems.some(
     (item) => item.to === location.pathname,
   )
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {bubblesEnabled && <Bubbles />}
+    <PageThemeContext.Provider value={ctx}>
+      <div className="flex h-screen overflow-hidden">
+        <Caustic />
+        {bubblesEnabled && <Bubbles />}
 
-      {/* Desktop sidebar */}
-      <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0">
-        <div className="flex items-center gap-3 px-2 py-3 mb-4">
-          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
-            <img src="/icon-192.png" alt="" className="w-full h-full object-cover scale-150" />
+        {/* Desktop sidebar */}
+        <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0 relative overflow-hidden">
+          <div className="flex items-center gap-3 px-2 py-3 mb-4">
+            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
+              <img src="/icon-192.png" alt="" className="w-full h-full object-cover scale-150" />
+            </div>
+            <span className="text-lg font-bold text-on-surface tracking-tight">Symbiont</span>
           </div>
-          <span className="text-lg font-bold text-on-surface tracking-tight">Symbiont</span>
-        </div>
 
-        {allNavItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-fluid',
-                isActive
-                  ? 'bg-surface-container-high text-primary shadow-glow-primary'
-                  : 'text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60',
-              )
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
-        ))}
-
-        <div className="mt-auto px-3 py-3">
-          <StatusBadge />
-        </div>
-      </nav>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-        <Outlet />
-      </main>
-
-      {/* Mobile bottom nav — z-50 stays above the sheet (z-49) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
-        <div className="flex items-center justify-around py-3">
-          {primaryNavItems.map(({ to, icon: Icon, label }) => (
+          {allNavItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
-              aria-label={label}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center justify-center p-3 rounded-xl transition-fluid',
-                  isActive ? 'text-primary' : 'text-on-surface-dim',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-fluid relative z-10',
+                  isActive
+                    ? 'bg-surface-container-high'
+                    : 'text-on-surface-dim hover:text-on-surface hover:bg-surface-container/60',
                 )
               }
+              style={({ isActive }) =>
+                isActive
+                  ? { color: ctx.accent, boxShadow: `0 0 20px ${ctx.accent}22` }
+                  : {}
+              }
             >
-              <Icon size={24} />
+              <Icon size={18} />
+              {label}
             </NavLink>
           ))}
 
-          {/* More button */}
-          <button
-            aria-label="More"
-            onClick={() => setMoreOpen((v) => !v)}
-            className={cn(
-              'flex items-center justify-center p-3 rounded-xl transition-fluid',
-              moreOpen || activeRouteIsOverflow ? 'text-primary' : 'text-on-surface-dim',
-            )}
-          >
-            <LayoutGrid size={24} />
-          </button>
-        </div>
-      </nav>
+          <div className="mt-auto px-3 py-3 relative z-10">
+            <StatusBadge />
+          </div>
 
-      {/* Mobile overflow sheet */}
-      <MobileMoreSheet open={moreOpen} onClose={closeMore} />
-    </div>
+          {/* Per-page reef silhouette */}
+          <SidebarSilhouette page={routeDefault.page} />
+        </nav>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+          <Outlet />
+        </main>
+
+        {/* Mobile bottom nav — z-50 stays above the sheet (z-49) */}
+        <nav className="md:hidden fixed bottom-0 inset-x-0 bg-surface-container-low/90 backdrop-blur-lg z-50">
+          <div className="flex items-center justify-around py-3">
+            {primaryNavItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                aria-label={label}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center justify-center p-3 rounded-xl transition-fluid',
+                    isActive ? 'text-primary' : 'text-on-surface-dim',
+                  )
+                }
+              >
+                <Icon size={24} />
+              </NavLink>
+            ))}
+
+            {/* More button */}
+            <button
+              aria-label="More"
+              onClick={() => setMoreOpen((v) => !v)}
+              className={cn(
+                'flex items-center justify-center p-3 rounded-xl transition-fluid',
+                moreOpen || activeRouteIsOverflow ? 'text-primary' : 'text-on-surface-dim',
+              )}
+            >
+              <LayoutGrid size={24} />
+            </button>
+          </div>
+        </nav>
+
+        {/* Mobile overflow sheet */}
+        <MobileMoreSheet open={moreOpen} onClose={closeMore} />
+      </div>
+    </PageThemeContext.Provider>
   )
 }

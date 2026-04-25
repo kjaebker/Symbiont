@@ -35,15 +35,20 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
     : 'Active'
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 transition-fluid">
+    <div
+      className="rounded-2xl p-5 transition-fluid"
+      style={{ background: `linear-gradient(145deg, var(--color-surface-container) 20%, rgba(58,223,250,${isActive ? '0.18' : '0.10'}))` }}
+    >
       {/* Header: icon + name + status */}
       <div className="flex items-start justify-between mb-1">
         <div className="flex items-center gap-3">
           <div
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-              isActive ? 'bg-primary/10' : 'bg-surface-container-highest',
-            )}
+            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+            style={{
+              borderRadius: '50% 60% 40% 60% / 60% 50% 60% 40%',
+              background: isActive ? 'rgba(58,223,250,0.12)' : 'rgba(58,223,250,0.06)',
+              boxShadow: isActive ? '0 0 14px rgba(58,223,250,0.20)' : 'none',
+            }}
           >
             <Utensils
               size={18}
