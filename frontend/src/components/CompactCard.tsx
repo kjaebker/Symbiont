@@ -5,6 +5,8 @@ import { useMeasurements } from '@/hooks/useMeasurements'
 import { useFeedStatus } from '@/hooks/useFeed'
 import type { Probe, Outlet, Device } from '@/api/types'
 import { getCategory } from './ProbeCard'
+import { BioDot } from './BioDot'
+import { inferPersonality } from '@/lib/devicePersonality'
 
 // --- Category config ---
 
@@ -15,27 +17,34 @@ const statusDot = {
   unknown: 'bg-on-surface-faint',
 } as const
 
+const statusDotHex = {
+  normal: '#6dfe9c',
+  warning: '#fbbf24',
+  critical: '#ff8796',
+  unknown: '#5a6080',
+} as const
+
 const categoryCompact = {
   temperature: {
     icon: Thermometer,
     color: 'text-tertiary',
     bg: 'bg-tertiary/10',
     glowClass: 'text-glow-tertiary',
-    tint: 'rgba(255, 135, 150, 0.06)',
+    tint: 'rgba(255, 135, 150, 0.18)',
   },
   chemistry: {
     icon: FlaskConical,
     color: 'text-secondary',
     bg: 'bg-secondary/10',
     glowClass: 'text-glow-secondary',
-    tint: 'rgba(109, 254, 156, 0.06)',
+    tint: 'rgba(109, 254, 156, 0.18)',
   },
   power: {
     icon: Zap,
     color: 'text-primary',
     bg: 'bg-primary/10',
     glowClass: 'text-glow-primary',
-    tint: 'rgba(58, 223, 250, 0.06)',
+    tint: 'rgba(58, 223, 250, 0.18)',
   },
   digital: {
     icon: ToggleLeft,
@@ -84,8 +93,8 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
       )}
       style={{
         background: isAlarmActive
-          ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(255,135,150,0.08))'
-          : `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
+          ? 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
+          : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
       <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', iconBg)}>
@@ -108,14 +117,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
           {probe.display_name}
         </p>
       </div>
-      <span
-        className={cn(
-          'h-1.5 w-1.5 rounded-full shrink-0',
-          statusDot[probe.status],
-          probe.status === 'normal' && 'animate-bio-pulse',
-          isAlarmActive && 'animate-pulse',
-        )}
-      />
+      <BioDot color={statusDotHex[probe.status]} size={7} />
     </button>
   )
 }
@@ -148,26 +150,27 @@ interface OutletCompactCardProps {
 
 export function OutletCompactCard({ outlet }: OutletCompactCardProps) {
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
+  const personality = inferPersonality(outlet.display_name || outlet.name, null)
 
   return (
     <div
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid"
       style={{
-        background: isOn
-          ? 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(58,223,250,0.06))'
-          : 'var(--color-surface-container)',
+        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}${isOn ? '22' : '0f'})`,
       }}
     >
       <div
-        className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-          isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
-        )}
+        className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+        style={{
+          borderRadius: personality.blob,
+          background: isOn ? personality.bg : `${personality.color}0a`,
+          boxShadow: isOn ? `0 0 10px ${personality.color}26` : 'none',
+        }}
       >
         {isOn ? (
-          <Zap size={16} className="text-primary" />
+          <Zap size={16} style={{ color: personality.color }} />
         ) : (
-          <Power size={16} className="text-on-surface-faint" />
+          <Power size={16} style={{ color: personality.color, opacity: 0.5 }} />
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -297,11 +300,7 @@ interface DeviceCompactCardProps {
 
 export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardProps) {
   const navigate = useNavigate()
-
-  const config = primaryProbe
-    ? categoryCompact[getCategory(primaryProbe.type)]
-    : categoryCompact.power
-  const Icon = config.icon
+  const personality = inferPersonality(device.name, device.device_type)
 
   return (
     <button
@@ -312,35 +311,38 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
       }
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left"
       style={{
-        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${config.tint})`,
+        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}18)`,
       }}
     >
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', config.bg)}>
-        <Icon size={16} className={config.color} />
+      <div
+        className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
+        style={{
+          borderRadius: personality.blob,
+          background: `${personality.color}0a`,
+        }}
+      >
+        <Zap size={16} style={{ color: personality.color }} />
       </div>
       <div className="min-w-0 flex-1">
         {primaryProbe ? (
           <div className="flex items-baseline gap-1 mb-0.5">
-            <span className={`text-base font-bold leading-none ${config.color} ${config.glowClass}`}>
+            <span
+              className="text-base font-bold leading-none"
+              style={{ color: personality.color, textShadow: `0 0 6px ${personality.color}4d` }}
+            >
               {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
             </span>
             <span className="text-xs text-on-surface-dim font-normal leading-none">{primaryProbe.unit}</span>
           </div>
         ) : (
-          <p className="text-base font-bold text-on-surface-faint leading-none mb-0.5">—</p>
+          <p className="text-base font-bold leading-none mb-0.5" style={{ color: personality.color, opacity: 0.5 }}>—</p>
         )}
         <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
           {device.name}
         </p>
       </div>
       {primaryProbe && (
-        <span
-          className={cn(
-            'h-1.5 w-1.5 rounded-full shrink-0',
-            statusDot[primaryProbe.status],
-            primaryProbe.status === 'normal' && 'animate-bio-pulse',
-          )}
-        />
+        <BioDot color={statusDotHex[primaryProbe.status]} size={7} />
       )}
     </button>
   )

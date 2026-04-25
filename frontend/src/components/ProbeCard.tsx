@@ -33,7 +33,7 @@ const categoryConfig: Record<
     sparklineColor: '#ff8796',
     glowClass: 'text-glow-tertiary',
     hoverGlow: 'hover:shadow-glow-tertiary',
-    tint: 'rgba(255, 135, 150, 0.05)',
+    tint: 'rgba(255, 135, 150, 0.18)',
   },
   chemistry: {
     icon: FlaskConical,
@@ -41,7 +41,7 @@ const categoryConfig: Record<
     sparklineColor: '#6dfe9c',
     glowClass: 'text-glow-secondary',
     hoverGlow: 'hover:shadow-glow-secondary',
-    tint: 'rgba(109, 254, 156, 0.05)',
+    tint: 'rgba(109, 254, 156, 0.18)',
   },
   power: {
     icon: Zap,
@@ -49,7 +49,7 @@ const categoryConfig: Record<
     sparklineColor: '#3adffa',
     glowClass: 'text-glow-primary',
     hoverGlow: 'hover:shadow-glow-primary',
-    tint: 'rgba(58, 223, 250, 0.05)',
+    tint: 'rgba(58, 223, 250, 0.18)',
   },
   digital: {
     icon: ToggleLeft,
@@ -134,8 +134,8 @@ export function ProbeCard({ probe }: ProbeCardProps) {
       )}
       style={{
         background: isAlarmActive
-          ? 'linear-gradient(135deg, var(--color-surface-container) 45%, rgba(255,135,150,0.08))'
-          : `linear-gradient(135deg, var(--color-surface-container) 45%, ${config.tint})`,
+          ? 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
+          : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
       <div className="flex items-center justify-between mb-3">

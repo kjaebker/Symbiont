@@ -21,7 +21,8 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
   return (
     <button
       onClick={() => navigate('/measurements')}
-      className="bg-surface-container rounded-2xl p-5 text-left transition-fluid hover:bg-surface-container-high hover:shadow-glow-primary cursor-pointer w-full"
+      className="rounded-2xl p-5 text-left transition-fluid hover:shadow-glow-secondary cursor-pointer w-full"
+      style={{ background: 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(109,254,156,0.22))' }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -39,7 +40,7 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
         <div className="h-10 w-24 bg-surface-container-high rounded animate-pulse" />
       ) : latest ? (
         <div className="flex items-baseline gap-1.5">
-          <span className="text-4xl font-bold text-on-surface tracking-tight text-glow-secondary">
+          <span className="text-4xl font-bold text-secondary tracking-tight text-glow-secondary">
             {displayValue}
           </span>
           {latest.canonical_unit && (
