@@ -12,7 +12,6 @@ import {
   Fan,
   Zap,
   Box,
-  Power,
 } from 'lucide-react'
 import { getProbeHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
@@ -139,8 +138,8 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
         }}
       />
 
-      {/* Header: icon + name + type badge */}
-      <div className="flex items-start mb-4 relative">
+      {/* Header: icon + name + type badge + state */}
+      <div className="flex items-start justify-between mb-4 relative">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
@@ -152,8 +151,8 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
               boxShadow: status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
                 : status === 'warning' ? '0 0 14px rgba(251,191,36,0.45)'
                 : isOn ? `0 0 14px ${personality.color}33` : 'none',
-              animation: status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
-                : status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+              animation: status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
+                : status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
                 : undefined,
             }}
           >
@@ -179,6 +178,16 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
             </div>
           </div>
         </div>
+        {outlet && (
+          <span
+            className={cn(
+              'text-xs font-semibold uppercase tracking-wider shrink-0 ml-2 mt-0.5',
+              stateColors[outlet.state] ?? 'text-on-surface-dim',
+            )}
+          >
+            {stateLabels[outlet.state] ?? outlet.state}
+          </span>
+        )}
       </div>
 
       {/* Probe readings: primary large left, secondary compact right */}
@@ -263,22 +272,6 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       {/* Outlet controls */}
       {outlet && (
         <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            {isOn ? (
-              <Zap size={12} className="text-primary" />
-            ) : (
-              <Power size={12} className="text-on-surface-faint" />
-            )}
-            <span
-              className={cn(
-                'text-xs font-semibold uppercase tracking-wider',
-                stateColors[outlet.state] ?? 'text-on-surface-dim',
-              )}
-            >
-              {stateLabels[outlet.state] ?? outlet.state}
-            </span>
-          </div>
-
           {/* Controls — revealed when unlocked */}
           <div
             className="grid overflow-hidden"
