@@ -18,7 +18,9 @@ import { getProbeHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
+import { getPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
+import { BioDot } from './BioDot'
 import { getCategory } from './ProbeCard'
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
@@ -35,19 +37,19 @@ const deviceTypeIcons: Record<string, typeof Flame> = {
   other: Box,
 }
 
-const statusColor = {
-  normal: 'bg-secondary',
-  warning: 'bg-amber-400',
-  critical: 'bg-tertiary',
-  unknown: 'bg-on-surface-faint',
-} as const
+const statusDotHex: Record<ProbeStatus, string> = {
+  normal: '#6dfe9c',
+  warning: '#fbbf24',
+  critical: '#ff8796',
+  unknown: '#5a6080',
+}
 
 const stateLabels: Record<string, string> = {
-  ON: 'On',
-  OFF: 'Off',
-  AON: 'Auto',
-  AOF: 'Auto Off',
-  TBL: 'Schedule',
+  ON: 'ON',
+  OFF: 'OFF',
+  AON: 'AUTO',
+  AOF: 'AUTO OFF',
+  TBL: 'SCHEDULE',
 }
 
 const stateColors: Record<string, string> = {
@@ -97,6 +99,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   const mutation = useSetOutlet()
 
   const Icon = deviceTypeIcons[device.device_type ?? ''] ?? Zap
+  const personality = getPersonality(device.device_type ?? '')
   const status = worstProbeStatus(probes)
   const primaryProbe = pickPrimaryProbe(probes)
   const secondaryProbes = probes.filter((p) => p !== primaryProbe)
@@ -134,45 +137,56 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   return (
     <div
-      className="rounded-2xl p-5 transition-fluid flex flex-col"
+      className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
       style={{
         background: outlet && isOn
-          ? 'linear-gradient(135deg, var(--color-surface-container) 40%, rgba(58,223,250,0.07))'
+          ? `linear-gradient(135deg, var(--color-surface-container) 40%, ${personality.bg})`
           : 'var(--color-surface-container)',
       }}
     >
+      {/* Personality blob */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 120,
+          height: 120,
+          borderRadius: personality.blob,
+          background: personality.bg,
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+        }}
+      />
+
       {/* Header: icon + name + type badge + status */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-4 relative">
         <div className="flex items-center gap-3">
           <div
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
               outlet && isOn ? 'bg-primary/10' : 'bg-surface-container-highest',
             )}
+            style={outlet && isOn ? { backgroundColor: `${personality.color}18` } : undefined}
           >
             <Icon
               size={18}
-              className={outlet && isOn ? 'text-primary' : 'text-on-surface-faint'}
+              style={{ color: outlet && isOn ? personality.color : 'var(--color-on-surface-faint)' }}
             />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-on-surface truncate">
               {device.name}
             </div>
-            {device.device_type && (
-              <span className="text-xs text-primary/80 font-medium uppercase tracking-wider">
-                {device.device_type}
-              </span>
-            )}
+            <div
+              className="text-[10px] uppercase tracking-[0.12em] font-semibold"
+              style={{ color: personality.color, opacity: 0.75 }}
+            >
+              {personality.label}
+            </div>
           </div>
         </div>
-        <span
-          className={cn(
-            'h-2.5 w-2.5 rounded-full shrink-0 mt-1',
-            statusColor[status],
-            status === 'normal' && 'animate-bio-pulse',
-          )}
-        />
+        <BioDot color={statusDotHex[status]} size={10} />
       </div>
 
       {/* Probe readings: primary large left, secondary compact right */}

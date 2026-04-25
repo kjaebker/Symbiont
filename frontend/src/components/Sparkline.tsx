@@ -24,7 +24,7 @@ export function Sparkline({ data, color = '#3adffa' }: SparklineProps) {
   const max = Math.max(...data)
   const range = max - min || 1
   const w = 200
-  const h = 40
+  const h = 34
   const pad = 2
 
   const points = data.map((v, i) => {
@@ -37,7 +37,7 @@ export function Sparkline({ data, color = '#3adffa' }: SparklineProps) {
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full" preserveAspectRatio="none">
       <defs>
         <linearGradient id={`spark-fill-${color}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -45,7 +45,7 @@ export function Sparkline({ data, color = '#3adffa' }: SparklineProps) {
         points={points.join(' ')}
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ filter: `drop-shadow(0 0 4px ${color}50)` }}

@@ -5,12 +5,13 @@ import { getProbeHistory } from '@/api/client'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
+import { BioDot } from './BioDot'
 
-const statusColor = {
-  normal: 'bg-secondary',
-  warning: 'bg-amber-400',
-  critical: 'bg-tertiary',
-  unknown: 'bg-on-surface-faint',
+const statusDotHex = {
+  normal: '#6dfe9c',
+  warning: '#fbbf24',
+  critical: '#ff8796',
+  unknown: '#5a6080',
 } as const
 
 type ProbeCategory = 'temperature' | 'chemistry' | 'power' | 'digital'
@@ -116,7 +117,6 @@ export function ProbeCard({ probe }: ProbeCardProps) {
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
-  const statusDotColor = statusColor[probe.status]
   const isAlarmActive = probe.input_category === 'alarm' && probe.status === 'critical'
   const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
 
@@ -150,14 +150,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
             {probe.display_name}
           </span>
         </div>
-        <span
-          className={cn(
-            'h-2.5 w-2.5 rounded-full',
-            statusDotColor,
-            probe.status === 'normal' && 'animate-bio-pulse',
-            isAlarmActive && 'animate-pulse',
-          )}
-        />
+        <BioDot color={statusDotHex[probe.status]} size={10} />
       </div>
 
       {isBinary ? (
