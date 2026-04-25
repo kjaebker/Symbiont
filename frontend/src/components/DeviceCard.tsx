@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
 import { BioDot } from './BioDot'
-import { getCategory } from './ProbeCard'
+
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
   heater: Flame,
@@ -115,15 +115,6 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
-  const probeCategory = primaryProbe ? getCategory(primaryProbe.type) : 'power'
-  const probeCategoryColors = {
-    temperature: { value: 'text-tertiary', glow: 'text-glow-tertiary', sparkline: '#ff8796' },
-    chemistry:   { value: 'text-secondary', glow: 'text-glow-secondary', sparkline: '#6dfe9c' },
-    power:       { value: 'text-primary', glow: 'text-glow-primary', sparkline: '#3adffa' },
-    digital:     { value: 'text-on-surface-dim', glow: '', sparkline: '#8a90a8' },
-  }
-  const probeColors = probeCategoryColors[probeCategory]
-
   const isOn = outlet
     ? outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
     : false
@@ -139,9 +130,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
     <div
       className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
       style={{
-        background: outlet && isOn
-          ? `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}33)`
-          : 'var(--color-surface-container)',
+        background: `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
       }}
     >
       {/* Personality blob */}
@@ -166,13 +155,13 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
             className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
             style={{
               borderRadius: personality.blob,
-              background: outlet && isOn ? personality.bg : 'rgba(255,255,255,0.04)',
-              boxShadow: outlet && isOn ? `0 0 14px ${personality.color}33` : 'none',
+              background: isOn ? personality.bg : `${personality.color}0a`,
+              boxShadow: isOn ? `0 0 14px ${personality.color}33` : 'none',
             }}
           >
             <Icon
               size={18}
-              style={{ color: outlet && isOn ? personality.color : 'var(--color-on-surface-faint)' }}
+              style={{ color: personality.color, opacity: isOn ? 1 : 0.5 }}
             />
           </div>
           <div className="min-w-0">
@@ -208,7 +197,10 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                   className="text-left group"
                 >
                   <div className="flex items-baseline gap-1.5">
-                    <span className={`text-4xl font-bold tracking-tight transition-fluid ${probeColors.value} ${probeColors.glow}`}>
+                    <span
+                      className="text-4xl font-bold tracking-tight transition-fluid"
+                      style={{ color: personality.color, textShadow: `0 0 8px ${personality.color}4d` }}
+                    >
                       {primaryProbe.value.toFixed(primaryProbe.type === 'pH' ? 2 : 1)}
                     </span>
                     <span className="text-lg text-on-surface-dim font-light">
@@ -257,7 +249,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           {/* Sparkline for primary probe — omit for binary probes */}
           {primaryProbe && !primaryProbe.is_binary && (
             <div className="h-10">
-              <Sparkline data={sparklineData} color={probeColors.sparkline} />
+              <Sparkline data={sparklineData} color={personality.color} />
             </div>
           )}
         </div>

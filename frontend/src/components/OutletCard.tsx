@@ -72,9 +72,7 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
     <div
       className="rounded-2xl p-5 transition-fluid relative overflow-hidden"
       style={{
-        background: isOn
-          ? `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}33)`
-          : 'var(--color-surface-container)',
+        background: `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
       }}
     >
       {/* Personality blob */}
@@ -99,7 +97,7 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
             className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
             style={{
               borderRadius: personality.blob,
-              background: isOn ? personality.bg : 'rgba(255,255,255,0.04)',
+              background: isOn ? personality.bg : `${personality.color}0a`,
               boxShadow: isOn ? `0 0 14px ${personality.color}33` : 'none',
             }}
           >
