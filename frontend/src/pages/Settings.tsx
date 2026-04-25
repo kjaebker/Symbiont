@@ -669,8 +669,60 @@ function ProbesTab() {
     <div className="space-y-6 pt-5">
       {analogProbes.length > 0 && (
         <div>
-          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold px-5 mb-2">Analog Probes</p>
-          <div className="overflow-x-auto">
+          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold sm:px-5 mb-3">Analog Probes</p>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {analogProbes.map((c) => {
+              const isDigital = probeTypeMap.get(c.probe_name) === 'digital'
+              return (
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl p-4 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-on-surface">{c.probe_name}</span>
+                    {isDigital && (
+                      <button
+                        onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
+                        className="inline-flex items-center gap-1 text-xs text-on-surface-faint hover:text-primary transition-fluid whitespace-nowrap"
+                        title="Move to Binary Inputs"
+                      >
+                        <ArrowRight size={11} />
+                        <span>Binary</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+                      <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Unit</p>
+                      <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2.5">
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Normal Range</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} /></div>
+                        <span className="text-on-surface-faint text-xs shrink-0">to</span>
+                        <div className="flex-1"><EditableCell value={c.max_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_normal', v)} /></div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Warn Range</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} /></div>
+                        <span className="text-on-surface-faint text-xs shrink-0">to</span>
+                        <div className="flex-1"><EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} /></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
           <table className="w-full min-w-[750px]">
             <thead>
               <tr className="bg-surface-container-high">
@@ -728,11 +780,59 @@ function ProbesTab() {
 
       {binaryInputs.length > 0 && (
         <div>
-          <div className="flex items-baseline justify-between px-5 mb-2">
+          <div className="flex items-baseline justify-between sm:px-5 mb-3">
             <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold">Binary Inputs</p>
-            <p className="text-xs text-on-surface-faint">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
+            <p className="text-xs text-on-surface-faint hidden sm:block">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {binaryInputs.filter((c) => c.probe_name !== '').map((c) => {
+              const { Icon, color, bg } = getCategoryIcon(c.input_category)
+              return (
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', bg)}>
+                        <Icon size={14} className={color} />
+                      </div>
+                      <span className="text-sm font-semibold text-on-surface">{c.probe_name}</span>
+                    </div>
+                    <button
+                      onClick={() => handleUpdate(c.probe_name, 'hidden', !c.hidden)}
+                      className={cn(
+                        'text-xs px-2.5 py-1 rounded-full transition-fluid shrink-0 uppercase tracking-wider font-medium',
+                        c.hidden
+                          ? 'bg-surface-container-highest text-on-surface-faint'
+                          : 'bg-secondary/15 text-secondary',
+                      )}
+                    >
+                      {c.hidden ? 'Hidden' : 'Visible'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Category</p>
+                      <CategorySelect value={c.input_category} onSave={(v) => handleUpdate(c.probe_name, 'input_category', v)} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+                      <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">On Label</p>
+                      <EditableCell value={c.on_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'on_label', v)} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Off Label</p>
+                      <EditableCell value={c.off_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'off_label', v)} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="bg-surface-container-high">
@@ -841,30 +941,48 @@ function OutletsTab() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="bg-surface-container-high/50">
-            {['Outlet', 'Display Name', 'ID'].map((h) => (
-              <th key={h} className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
-                {h}
-              </th>
+    <>
+      {/* Mobile: individual cards */}
+      <div className="sm:hidden space-y-3">
+        {items.map((item) => (
+          <div key={item.outlet_id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-on-surface">{item.outletName}</span>
+              <span className="text-xs text-on-surface-faint font-mono">{item.outlet_id}</span>
+            </div>
+            <div>
+              <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+              <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-surface-container-high/50">
+              {['Outlet', 'Display Name', 'ID'].map((h) => (
+                <th key={h} className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+                <tr key={item.outlet_id} className="transition-fluid hover:bg-surface-container-high/50">
+                  <td className="py-2 px-4 text-sm font-medium text-on-surface">{item.outletName}</td>
+                  <td className="py-2 px-4">
+                    <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
+                  </td>
+                  <td className="py-2 px-4 text-xs text-on-surface-faint font-mono">{item.outlet_id}</td>
+                </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-              <tr key={item.outlet_id} className="transition-fluid hover:bg-surface-container-high/50">
-                <td className="py-2 px-4 text-sm font-medium text-on-surface">{item.outletName}</td>
-                <td className="py-2 px-4">
-                  <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
-                </td>
-                <td className="py-2 px-4 text-xs text-on-surface-faint font-mono">{item.outlet_id}</td>
-              </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
 
@@ -1629,78 +1747,133 @@ function TokensTab() {
           message="No API tokens. Create one to authenticate CLI or MCP clients."
         />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-high/50">
-                {['ID', 'Label', 'Scope', 'Created', 'Last Used', ''].map((h) => (
-                  <th
-                    key={h}
-                    className={cn(
-                      'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
-                      h === '' ? 'text-right' : 'text-left',
-                    )}
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {tokens.map((t) => (
+              <div key={t.id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-sm font-semibold text-on-surface">{t.label}</span>
+                    <div className="text-xs text-on-surface-faint font-mono mt-0.5">#{t.id}</div>
+                  </div>
+                  <select
+                    value={t.scope}
+                    onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
+                    disabled={updateScopeMutation.isPending}
+                    className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50 shrink-0"
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tokens.map((t) => (
-                <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
-                  <td className="py-3 px-4 text-sm text-on-surface-dim font-mono">{t.id}</td>
-                  <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={t.scope}
-                      onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
-                      disabled={updateScopeMutation.isPending}
-                      className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50"
-                    >
-                      <option value="admin">admin</option>
-                      <option value="control">control</option>
-                      <option value="read">read</option>
-                    </select>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-on-surface-dim">
-                    {relativeTime(t.created_at)}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-on-surface-dim">
-                    {t.last_used ? relativeTime(t.last_used) : 'Never'}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center justify-end">
-                      {revokeConfirm === t.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleRevoke(t.id)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                          >
-                            Revoke
-                          </button>
-                          <button
-                            onClick={() => setRevokeConfirm(null)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setRevokeConfirm(t.id)}
-                          className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                    <option value="admin">admin</option>
+                    <option value="control">control</option>
+                    <option value="read">read</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-xs text-on-surface-faint">
+                    <span>Created {relativeTime(t.created_at)}</span>
+                    <span>Used {t.last_used ? relativeTime(t.last_used) : 'never'}</span>
+                  </div>
+                  {revokeConfirm === t.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleRevoke(t.id)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                      >
+                        Revoke
+                      </button>
+                      <button
+                        onClick={() => setRevokeConfirm(null)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                  </td>
+                  ) : (
+                    <button
+                      onClick={() => setRevokeConfirm(t.id)}
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-surface-container-high/50">
+                  {['ID', 'Label', 'Scope', 'Created', 'Last Used', ''].map((h) => (
+                    <th
+                      key={h}
+                      className={cn(
+                        'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
+                        h === '' ? 'text-right' : 'text-left',
+                      )}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {tokens.map((t) => (
+                  <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
+                    <td className="py-3 px-4 text-sm text-on-surface-dim font-mono">{t.id}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={t.scope}
+                        onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
+                        disabled={updateScopeMutation.isPending}
+                        className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50"
+                      >
+                        <option value="admin">admin</option>
+                        <option value="control">control</option>
+                        <option value="read">read</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim">
+                      {relativeTime(t.created_at)}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim">
+                      {t.last_used ? relativeTime(t.last_used) : 'Never'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end">
+                        {revokeConfirm === t.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleRevoke(t.id)}
+                              className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                            >
+                              Revoke
+                            </button>
+                            <button
+                              onClick={() => setRevokeConfirm(null)}
+                              className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setRevokeConfirm(t.id)}
+                            className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )
@@ -1756,27 +1929,15 @@ function BackupTab() {
           message="No backups yet. Run a backup to create a snapshot of your databases."
         />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-high/50">
-                {['Date', 'Status', 'Size', 'Path'].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {backups.map((b) => (
-                <tr key={b.id} className="transition-fluid hover:bg-surface-container-high/50">
-                  <td className="py-3 px-4 text-sm text-on-surface-dim">
-                    {relativeTime(b.ts)}
-                  </td>
-                  <td className="py-3 px-4">
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {backups.map((b) => (
+              <div key={b.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-on-surface-dim">{relativeTime(b.ts)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono text-on-surface">{formatBytes(b.size_bytes)}</span>
                     <span
                       className={cn(
                         'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
@@ -1787,18 +1948,57 @@ function BackupTab() {
                     >
                       {b.status}
                     </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-on-surface font-mono">
-                    {formatBytes(b.size_bytes)}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">
-                    {b.path}
-                  </td>
+                  </div>
+                </div>
+                <p className="text-xs text-on-surface-faint font-mono break-all">{b.path}</p>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-surface-container-high/50">
+                  {['Date', 'Status', 'Size', 'Path'].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {backups.map((b) => (
+                  <tr key={b.id} className="transition-fluid hover:bg-surface-container-high/50">
+                    <td className="py-3 px-4 text-sm text-on-surface-dim">
+                      {relativeTime(b.ts)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={cn(
+                          'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
+                          b.status === 'success'
+                            ? 'bg-secondary/15 text-secondary'
+                            : 'bg-tertiary/15 text-tertiary',
+                        )}
+                      >
+                        {b.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface font-mono">
+                      {formatBytes(b.size_bytes)}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">
+                      {b.path}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )
@@ -1940,74 +2140,125 @@ function NotificationsTab() {
           message="No notification targets configured. Add an ntfy.sh topic URL to get alerted on your phone."
         />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-high/50">
-                {['Label', 'URL', 'Status', ''].map((h) => (
-                  <th
-                    key={h}
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {targets.map((t) => (
+              <div key={t.id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-on-surface">{t.label}</span>
+                  <button
+                    onClick={() => handleToggle(t)}
+                    disabled={upsertMutation.isPending}
                     className={cn(
-                      'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
-                      h === '' ? 'text-right' : 'text-left',
+                      'px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer disabled:opacity-50 shrink-0',
+                      t.enabled
+                        ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
+                        : 'bg-surface-container-highest text-on-surface-faint hover:bg-surface-container-highest/80',
                     )}
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {targets.map((t) => (
-                <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
-                  <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
-                  <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">{t.config}</td>
-                  <td className="py-3 px-4">
+                    {t.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+                <p className="text-xs text-on-surface-dim font-mono break-all leading-relaxed">{t.config}</p>
+                <div className="flex items-center justify-end">
+                  {deleteConfirm === t.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
                     <button
-                      onClick={() => handleToggle(t)}
-                      disabled={upsertMutation.isPending}
+                      onClick={() => setDeleteConfirm(t.id)}
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-surface-container-high/50">
+                  {['Label', 'URL', 'Status', ''].map((h) => (
+                    <th
+                      key={h}
                       className={cn(
-                        'px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer disabled:opacity-50',
-                        t.enabled
-                          ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
-                          : 'bg-surface-container-highest text-on-surface-faint hover:bg-surface-container-highest/80',
+                        'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
+                        h === '' ? 'text-right' : 'text-left',
                       )}
                     >
-                      {t.enabled ? 'Enabled' : 'Disabled'}
-                    </button>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center justify-end">
-                      {deleteConfirm === t.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirm(t.id)}
-                          className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {targets.map((t) => (
+                  <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
+                    <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">{t.config}</td>
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={() => handleToggle(t)}
+                        disabled={upsertMutation.isPending}
+                        className={cn(
+                          'px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer disabled:opacity-50',
+                          t.enabled
+                            ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
+                            : 'bg-surface-container-highest text-on-surface-faint hover:bg-surface-container-highest/80',
+                        )}
+                      >
+                        {t.enabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end">
+                        {deleteConfirm === t.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm(t.id)}
+                            className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )
@@ -2678,9 +2929,18 @@ function EmptyState({ icon, message }: { icon: React.ReactNode; message: string 
 // Settings Page
 // =============================================================================
 
+const mobileCardTabs: Tab[] = ['probes', 'outlets', 'tokens', 'notifications']
+const noContainerTabs: Tab[] = ['tank', 'system']
+
 export default function Settings() {
   usePageTitle('Settings')
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+
+  const tabContainerClass = noContainerTabs.includes(activeTab)
+    ? undefined
+    : mobileCardTabs.includes(activeTab)
+    ? 'sm:bg-surface-container sm:rounded-2xl sm:overflow-hidden'
+    : 'bg-surface-container rounded-2xl overflow-hidden'
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -2731,7 +2991,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="bg-surface-container rounded-2xl overflow-hidden">
+      <div className={tabContainerClass}>
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'devices' && <DevicesTab />}
         {activeTab === 'tank' && <TankTab />}

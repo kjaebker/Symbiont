@@ -388,7 +388,44 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
           </button>
         </div>
       ) : (
-        <div className="bg-surface-container rounded-2xl overflow-hidden">
+        <>
+          {/* Mobile: individual cards */}
+          <div className="sm:hidden space-y-3">
+            {measurements.map((m) => (
+              <div key={m.id} className="bg-surface-container rounded-2xl px-4 py-3 flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-base font-bold font-mono text-on-surface tabular-nums">
+                      {m.value % 1 === 0 ? m.value.toFixed(0) : m.value.toFixed(2)}
+                      {m.canonical_unit && (
+                        <span className="text-xs text-on-surface-faint font-normal ml-1">
+                          {m.canonical_unit}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-sm font-medium text-on-surface">{m.parameter}</span>
+                  </div>
+                  <div className="text-xs text-on-surface-dim mt-0.5">{formatMeasuredAt(m.measured_at)}</div>
+                  {m.notes && <div className="text-xs text-on-surface-faint mt-0.5">{m.notes}</div>}
+                </div>
+                <button
+                  onClick={() => handleDelete(m.id)}
+                  disabled={deleteMutation.isPending && deletingId === m.id}
+                  className={cn(
+                    'p-1.5 rounded-lg transition-fluid text-xs shrink-0',
+                    deletingId === m.id
+                      ? 'bg-tertiary/20 text-tertiary'
+                      : 'text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10',
+                  )}
+                  title={deletingId === m.id ? 'Click again to confirm' : 'Delete'}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-outline-variant/20">
@@ -455,7 +492,8 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   )
