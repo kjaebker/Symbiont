@@ -36,7 +36,7 @@ export function FeedCard({ controlsLocked = false }: FeedCardProps) {
 
   return (
     <div
-      className="rounded-2xl p-5 transition-fluid"
+      className="rounded-2xl p-5 transition-fluid overflow-hidden"
       style={{ background: `linear-gradient(145deg, var(--color-surface-container) 20%, rgba(58,223,250,${isActive ? '0.18' : '0.10'}))` }}
     >
       {/* Header: icon + name + status */}
