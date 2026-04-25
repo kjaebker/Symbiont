@@ -3,7 +3,6 @@ import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
-import { BioDot } from './BioDot'
 
 const stateLabels: Record<string, string> = {
   ON: 'ON',
@@ -39,12 +38,6 @@ const deviceIcons: Record<string, typeof Flame> = {
   fan: Fan,
 }
 
-const statusDotHex: Record<string, string> = {
-  on: '#6dfe9c',
-  auto: '#3adffa',
-  off: '#5a6080',
-}
-
 interface OutletCardProps {
   outlet: Outlet
   controlsLocked?: boolean
@@ -57,11 +50,6 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
   // outlet.type is Neptune port type ("outlet", "serial", etc.), not device category — use name
   const personality = inferPersonality(outlet.display_name || outlet.name, null)
   const DeviceIcon = deviceIcons[outlet.type] ?? (isOn ? Zap : Power)
-
-  const dotColor =
-    outlet.state === 'ON' ? statusDotHex.on
-    : isAuto ? statusDotHex.auto
-    : statusDotHex.off
 
   function handleControl(state: 'ON' | 'OFF' | 'AUTO') {
     if (controlsLocked) return
@@ -115,17 +103,14 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          <span
-            className={cn(
-              'text-xs font-semibold uppercase tracking-wider',
-              stateColors[outlet.state] ?? 'text-on-surface-dim',
-            )}
-          >
-            {stateLabels[outlet.state] ?? outlet.state}
-          </span>
-          <BioDot color={dotColor} size={10} />
-        </div>
+        <span
+          className={cn(
+            'text-xs font-semibold uppercase tracking-wider shrink-0 ml-2',
+            stateColors[outlet.state] ?? 'text-on-surface-dim',
+          )}
+        >
+          {stateLabels[outlet.state] ?? outlet.state}
+        </span>
       </div>
 
       {/* Controls — revealed when unlocked via grid-template-rows animation */}

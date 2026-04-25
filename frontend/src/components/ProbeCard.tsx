@@ -5,14 +5,6 @@ import { getProbeHistory } from '@/api/client'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
-import { BioDot } from './BioDot'
-
-const statusDotHex = {
-  normal: '#6dfe9c',
-  warning: '#fbbf24',
-  critical: '#ff8796',
-  unknown: '#5a6080',
-} as const
 
 type ProbeCategory = 'temperature' | 'chemistry' | 'power' | 'digital'
 
@@ -153,25 +145,32 @@ export function ProbeCard({ probe }: ProbeCardProps) {
           : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 flex items-center justify-center shrink-0"
-            style={{
-              borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
-              background: isAlarmActive ? 'rgba(255,135,150,0.14)' : isFluidWarn ? 'rgba(251,191,36,0.12)' : config.blobBg,
-            }}
-          >
-            <Icon
-              size={14}
-              className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color)}
-            />
-          </div>
-          <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
-            {probe.display_name}
-          </span>
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className="w-8 h-8 flex items-center justify-center shrink-0"
+          style={{
+            borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
+            background: isAlarmActive ? 'rgba(255,135,150,0.22)'
+              : (isFluidWarn || probe.status === 'warning') ? 'rgba(251,191,36,0.18)'
+              : probe.status === 'critical' ? 'rgba(255,135,150,0.22)'
+              : config.blobBg,
+            boxShadow: isAlarmActive ? '0 0 16px rgba(255,135,150,0.55)'
+              : (isFluidWarn || probe.status === 'warning') ? '0 0 14px rgba(251,191,36,0.45)'
+              : probe.status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
+              : 'none',
+            animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
+              : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+              : undefined,
+          }}
+        >
+          <Icon
+            size={14}
+            className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color)}
+          />
         </div>
-        <BioDot color={statusDotHex[probe.status]} size={10} />
+        <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
+          {probe.display_name}
+        </span>
       </div>
 
       {isBinary ? (

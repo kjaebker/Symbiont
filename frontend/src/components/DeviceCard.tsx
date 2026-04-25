@@ -20,8 +20,6 @@ import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
-import { BioDot } from './BioDot'
-
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
   heater: Flame,
@@ -35,13 +33,6 @@ const deviceTypeIcons: Record<string, typeof Flame> = {
   chiller: Snowflake,
   fan: Fan,
   other: Box,
-}
-
-const statusDotHex: Record<ProbeStatus, string> = {
-  normal: '#6dfe9c',
-  warning: '#fbbf24',
-  critical: '#ff8796',
-  unknown: '#5a6080',
 }
 
 const stateLabels: Record<string, string> = {
@@ -148,20 +139,32 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
         }}
       />
 
-      {/* Header: icon + name + type badge + status */}
-      <div className="flex items-start justify-between mb-4 relative">
+      {/* Header: icon + name + type badge */}
+      <div className="flex items-start mb-4 relative">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
             style={{
               borderRadius: personality.blob,
-              background: isOn ? personality.bg : `${personality.color}0a`,
-              boxShadow: isOn ? `0 0 14px ${personality.color}33` : 'none',
+              background: status === 'critical' ? 'rgba(255,135,150,0.22)'
+                : status === 'warning' ? 'rgba(251,191,36,0.18)'
+                : isOn ? personality.bg : `${personality.color}0a`,
+              boxShadow: status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
+                : status === 'warning' ? '0 0 14px rgba(251,191,36,0.45)'
+                : isOn ? `0 0 14px ${personality.color}33` : 'none',
+              animation: status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
+                : status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+                : undefined,
             }}
           >
             <Icon
               size={18}
-              style={{ color: personality.color, opacity: isOn ? 1 : 0.5 }}
+              style={{
+                color: status === 'critical' ? '#ff8796'
+                  : status === 'warning' ? '#fbbf24'
+                  : personality.color,
+                opacity: (status === 'normal' || status === 'unknown') && !isOn ? 0.5 : 1,
+              }}
             />
           </div>
           <div className="min-w-0">
@@ -176,7 +179,6 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
             </div>
           </div>
         </div>
-        <BioDot color={statusDotHex[status]} size={10} />
       </div>
 
       {/* Probe readings: primary large left, secondary compact right */}

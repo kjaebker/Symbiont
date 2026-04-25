@@ -5,24 +5,9 @@ import { useMeasurements } from '@/hooks/useMeasurements'
 import { useFeedStatus } from '@/hooks/useFeed'
 import type { Probe, Outlet, Device } from '@/api/types'
 import { getCategory } from './ProbeCard'
-import { BioDot } from './BioDot'
 import { inferPersonality } from '@/lib/devicePersonality'
 
 // --- Category config ---
-
-const statusDot = {
-  normal: 'bg-secondary',
-  warning: 'bg-amber-400',
-  critical: 'bg-tertiary',
-  unknown: 'bg-on-surface-faint',
-} as const
-
-const statusDotHex = {
-  normal: '#6dfe9c',
-  warning: '#fbbf24',
-  critical: '#ff8796',
-  unknown: '#5a6080',
-} as const
 
 const categoryCompact = {
   temperature: {
@@ -104,7 +89,16 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
         className="w-10 h-10 flex items-center justify-center shrink-0"
         style={{
           borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
-          background: isAlarmActive ? 'rgba(255,135,150,0.14)' : isFluidWarn ? 'rgba(251,191,36,0.12)' : config.blobBg,
+          background: isAlarmActive ? 'rgba(255,135,150,0.22)'
+            : (isFluidWarn || probe.status === 'warning') ? 'rgba(251,191,36,0.18)'
+            : probe.status === 'critical' ? 'rgba(255,135,150,0.22)'
+            : config.blobBg,
+          boxShadow: isAlarmActive || probe.status === 'critical' ? '0 0 14px rgba(255,135,150,0.50)'
+            : isFluidWarn || probe.status === 'warning' ? '0 0 12px rgba(251,191,36,0.40)'
+            : 'none',
+          animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
+            : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+            : undefined,
         }}
       >
         <Icon size={16} className={iconColor} />
@@ -126,7 +120,6 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
           {probe.display_name}
         </p>
       </div>
-      <BioDot color={statusDotHex[probe.status]} size={7} />
     </button>
   )
 }
@@ -330,10 +323,22 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
         className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
         style={{
           borderRadius: personality.blob,
-          background: `${personality.color}0a`,
+          background: primaryProbe?.status === 'critical' ? 'rgba(255,135,150,0.22)'
+            : primaryProbe?.status === 'warning' ? 'rgba(251,191,36,0.18)'
+            : `${personality.color}0a`,
+          boxShadow: primaryProbe?.status === 'critical' ? '0 0 14px rgba(255,135,150,0.50)'
+            : primaryProbe?.status === 'warning' ? '0 0 12px rgba(251,191,36,0.40)'
+            : 'none',
+          animation: primaryProbe?.status === 'critical' ? 'bioluminescent-pulse 0.9s ease-in-out infinite'
+            : primaryProbe?.status === 'warning' ? 'bioluminescent-pulse 1.4s ease-in-out infinite'
+            : undefined,
         }}
       >
-        <Zap size={16} style={{ color: personality.color }} />
+        <Zap size={16} style={{
+          color: primaryProbe?.status === 'critical' ? '#ff8796'
+            : primaryProbe?.status === 'warning' ? '#fbbf24'
+            : personality.color,
+        }} />
       </div>
       <div className="min-w-0 flex-1">
         {primaryProbe ? (
@@ -353,9 +358,6 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
           {device.name}
         </p>
       </div>
-      {primaryProbe && (
-        <BioDot color={statusDotHex[primaryProbe.status]} size={7} />
-      )}
     </button>
   )
 }
