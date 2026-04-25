@@ -110,6 +110,54 @@
   }
 }
 
+/* Bio-dot expanding ring */
+@keyframes bio-ring {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%       { opacity: 0;   transform: scale(2.2); }
+}
+
+/* Caustic light blob movements */
+@keyframes caustic-a {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(60px,-40px) scale(1.15); }
+  66%      { transform: translate(-30px,50px) scale(0.9); }
+}
+@keyframes caustic-b {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  40%      { transform: translate(-50px,30px) scale(1.1); }
+  75%      { transform: translate(40px,-20px) scale(0.95); }
+}
+@keyframes caustic-c {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50%      { transform: translate(20px,-60px) scale(1.2); }
+}
+
+/* Coral/kelp sway */
+@keyframes sway {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  40%      { transform: rotate(2.5deg) translateX(2px); }
+  70%      { transform: rotate(-1.5deg) translateX(-1px); }
+}
+@keyframes sway2 {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  40%      { transform: rotate(-2deg) translateX(-1px); }
+  70%      { transform: rotate(1deg) translateX(1px); }
+}
+
+/* Jellyfish bob */
+@keyframes jellyfish {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  50%      { transform: translateY(-4px) scaleX(0.85); }
+}
+
+@utility animate-bio-ring  { animation: bio-ring 4s ease-in-out infinite; }
+@utility animate-caustic-a { animation: caustic-a 18s ease-in-out infinite; }
+@utility animate-caustic-b { animation: caustic-b 24s ease-in-out infinite; }
+@utility animate-caustic-c { animation: caustic-c 14s ease-in-out infinite; }
+@utility animate-sway      { animation: sway 6s ease-in-out infinite; transform-origin: bottom center; }
+@utility animate-sway2     { animation: sway2 8s ease-in-out infinite; transform-origin: bottom center; }
+@utility animate-jellyfish { animation: jellyfish 3.5s ease-in-out infinite; }
+
 /* Smooth transitions — "resistance of water" */
 @utility transition-fluid {
   transition: all 300ms ease-in-out;
