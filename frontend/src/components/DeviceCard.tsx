@@ -12,6 +12,8 @@ import {
   Fan,
   Zap,
   Box,
+  Power,
+  RefreshCw,
 } from 'lucide-react'
 import { getProbeHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
@@ -139,7 +141,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       />
 
       {/* Header: icon + name + type badge + state */}
-      <div className="flex items-start justify-between mb-4 relative">
+      <div className="flex items-center justify-between mb-4 relative">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
@@ -179,14 +181,18 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
           </div>
         </div>
         {outlet && (
-          <span
-            className={cn(
-              'text-xs font-semibold uppercase tracking-wider shrink-0 ml-2 mt-0.5',
-              stateColors[outlet.state] ?? 'text-on-surface-dim',
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            {isAuto ? (
+              <RefreshCw size={11} className="text-on-surface opacity-60" />
+            ) : isOn ? (
+              <Zap size={11} className="text-on-surface opacity-60" />
+            ) : (
+              <Power size={11} className="text-on-surface opacity-60" />
             )}
-          >
-            {stateLabels[outlet.state] ?? outlet.state}
-          </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+              {stateLabels[outlet.state] ?? outlet.state}
+            </span>
+          </div>
         )}
       </div>
 
