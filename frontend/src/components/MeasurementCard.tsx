@@ -26,7 +26,15 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <FlaskConical className="h-4 w-4 text-secondary" />
+          <div
+            className="w-8 h-8 flex items-center justify-center shrink-0"
+            style={{
+              borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
+              background: 'rgba(109, 254, 156, 0.10)',
+            }}
+          >
+            <FlaskConical size={14} className="text-secondary" />
+          </div>
           <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
             {parameter}
           </span>

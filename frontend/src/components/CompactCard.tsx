@@ -28,30 +28,34 @@ const categoryCompact = {
   temperature: {
     icon: Thermometer,
     color: 'text-tertiary',
-    bg: 'bg-tertiary/10',
     glowClass: 'text-glow-tertiary',
     tint: 'rgba(255, 135, 150, 0.18)',
+    blobShape: '60% 40% 30% 70% / 60% 30% 70% 40%',
+    blobBg: 'rgba(255, 135, 150, 0.12)',
   },
   chemistry: {
     icon: FlaskConical,
     color: 'text-secondary',
-    bg: 'bg-secondary/10',
     glowClass: 'text-glow-secondary',
     tint: 'rgba(109, 254, 156, 0.18)',
+    blobShape: '40% 60% 70% 30% / 50% 60% 40% 50%',
+    blobBg: 'rgba(109, 254, 156, 0.10)',
   },
   power: {
     icon: Zap,
     color: 'text-primary',
-    bg: 'bg-primary/10',
     glowClass: 'text-glow-primary',
     tint: 'rgba(58, 223, 250, 0.18)',
+    blobShape: '70% 30% 40% 60% / 40% 70% 30% 60%',
+    blobBg: 'rgba(58, 223, 250, 0.10)',
   },
   digital: {
     icon: ToggleLeft,
     color: 'text-on-surface-dim',
-    bg: 'bg-surface-container-high',
     glowClass: '',
     tint: 'transparent',
+    blobShape: '50% 50% 60% 40% / 40% 60% 50% 50%',
+    blobBg: 'rgba(255, 255, 255, 0.04)',
   },
 }
 
@@ -80,7 +84,6 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
   const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
 
   const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color
-  const iconBg = isAlarmActive ? 'bg-tertiary/10' : isFluidWarn ? 'bg-amber-400/10' : config.bg
 
   const binaryLabel = probe.value !== 0 ? (probe.on_label ?? 'On') : (probe.off_label ?? 'Off')
 
@@ -97,7 +100,13 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
           : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', iconBg)}>
+      <div
+        className="w-10 h-10 flex items-center justify-center shrink-0"
+        style={{
+          borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
+          background: isAlarmActive ? 'rgba(255,135,150,0.14)' : isFluidWarn ? 'rgba(251,191,36,0.12)' : config.blobBg,
+        }}
+      >
         <Icon size={16} className={iconColor} />
       </div>
       <div className="min-w-0 flex-1">
@@ -215,7 +224,10 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
         background: 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.06))',
       }}
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-secondary/10">
+      <div
+        className="w-10 h-10 flex items-center justify-center shrink-0"
+        style={{ borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%', background: 'rgba(109,254,156,0.10)' }}
+      >
         <FlaskConical size={16} className="text-secondary" />
       </div>
       <div className="min-w-0 flex-1">

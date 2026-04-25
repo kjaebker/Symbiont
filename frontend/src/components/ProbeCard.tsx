@@ -21,43 +21,58 @@ const categoryConfig: Record<
   {
     icon: typeof Thermometer
     color: string
+    hexColor: string
     sparklineColor: string
     glowClass: string
     hoverGlow: string
     tint: string
+    blobShape: string
+    blobBg: string
   }
 > = {
   temperature: {
     icon: Thermometer,
     color: 'text-tertiary',
+    hexColor: '#ff8796',
     sparklineColor: '#ff8796',
     glowClass: 'text-glow-tertiary',
     hoverGlow: 'hover:shadow-glow-tertiary',
     tint: 'rgba(255, 135, 150, 0.18)',
+    blobShape: '60% 40% 30% 70% / 60% 30% 70% 40%',
+    blobBg: 'rgba(255, 135, 150, 0.12)',
   },
   chemistry: {
     icon: FlaskConical,
     color: 'text-secondary',
+    hexColor: '#6dfe9c',
     sparklineColor: '#6dfe9c',
     glowClass: 'text-glow-secondary',
     hoverGlow: 'hover:shadow-glow-secondary',
     tint: 'rgba(109, 254, 156, 0.18)',
+    blobShape: '40% 60% 70% 30% / 50% 60% 40% 50%',
+    blobBg: 'rgba(109, 254, 156, 0.10)',
   },
   power: {
     icon: Zap,
     color: 'text-primary',
+    hexColor: '#3adffa',
     sparklineColor: '#3adffa',
     glowClass: 'text-glow-primary',
     hoverGlow: 'hover:shadow-glow-primary',
     tint: 'rgba(58, 223, 250, 0.18)',
+    blobShape: '70% 30% 40% 60% / 40% 70% 30% 60%',
+    blobBg: 'rgba(58, 223, 250, 0.10)',
   },
   digital: {
     icon: ToggleLeft,
     color: 'text-on-surface-dim',
+    hexColor: '#8a90a8',
     sparklineColor: '#8a90a8',
     glowClass: '',
     hoverGlow: 'hover:shadow-glow-primary',
     tint: 'transparent',
+    blobShape: '50% 50% 60% 40% / 40% 60% 50% 50%',
+    blobBg: 'rgba(255, 255, 255, 0.04)',
   },
 }
 
@@ -140,12 +155,18 @@ export function ProbeCard({ probe }: ProbeCardProps) {
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Icon
-            className={cn(
-              'h-4 w-4',
-              isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color,
-            )}
-          />
+          <div
+            className="w-8 h-8 flex items-center justify-center shrink-0"
+            style={{
+              borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
+              background: isAlarmActive ? 'rgba(255,135,150,0.14)' : isFluidWarn ? 'rgba(251,191,36,0.12)' : config.blobBg,
+            }}
+          >
+            <Icon
+              size={14}
+              className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color)}
+            />
+          </div>
           <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
             {probe.display_name}
           </span>
