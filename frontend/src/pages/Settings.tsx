@@ -669,15 +669,15 @@ function ProbesTab() {
     <div className="space-y-6 pt-5">
       {analogProbes.length > 0 && (
         <div>
-          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold px-5 mb-2">Analog Probes</p>
+          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold sm:px-5 mb-3">Analog Probes</p>
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {analogProbes.map((c) => {
               const isDigital = probeTypeMap.get(c.probe_name) === 'digital'
               return (
-                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl p-4 space-y-4">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-on-surface">{c.probe_name}</span>
+                    <span className="text-sm font-semibold text-on-surface">{c.probe_name}</span>
                     {isDigital && (
                       <button
                         onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
@@ -685,34 +685,36 @@ function ProbesTab() {
                         title="Move to Binary Inputs"
                       >
                         <ArrowRight size={11} />
-                        <span>binary</span>
+                        <span>Binary</span>
                       </button>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Display Name</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
                       <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Unit</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Unit</p>
                       <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
                     </div>
+                  </div>
+                  <div className="space-y-2.5">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Min Normal</p>
-                      <EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} />
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Normal Range</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} /></div>
+                        <span className="text-on-surface-faint text-xs shrink-0">to</span>
+                        <div className="flex-1"><EditableCell value={c.max_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_normal', v)} /></div>
+                      </div>
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Max Normal</p>
-                      <EditableCell value={c.max_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_normal', v)} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Min Warn</p>
-                      <EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Max Warn</p>
-                      <EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} />
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Warn Range</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} /></div>
+                        <span className="text-on-surface-faint text-xs shrink-0">to</span>
+                        <div className="flex-1"><EditableCell value={c.max_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'max_warning', v)} /></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -778,7 +780,7 @@ function ProbesTab() {
 
       {binaryInputs.length > 0 && (
         <div>
-          <div className="flex items-baseline justify-between px-5 mb-2">
+          <div className="flex items-baseline justify-between sm:px-5 mb-3">
             <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold">Binary Inputs</p>
             <p className="text-xs text-on-surface-faint hidden sm:block">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
           </div>
@@ -787,41 +789,41 @@ function ProbesTab() {
             {binaryInputs.filter((c) => c.probe_name !== '').map((c) => {
               const { Icon, color, bg } = getCategoryIcon(c.input_category)
               return (
-                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
+                <div key={c.probe_name} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', bg)}>
-                        <Icon size={13} className={color} />
+                      <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', bg)}>
+                        <Icon size={14} className={color} />
                       </div>
-                      <span className="text-sm font-medium text-on-surface">{c.probe_name}</span>
+                      <span className="text-sm font-semibold text-on-surface">{c.probe_name}</span>
                     </div>
                     <button
                       onClick={() => handleUpdate(c.probe_name, 'hidden', !c.hidden)}
                       className={cn(
-                        'text-xs px-2 py-1 rounded-full transition-fluid shrink-0',
+                        'text-xs px-2.5 py-1 rounded-full transition-fluid shrink-0 uppercase tracking-wider font-medium',
                         c.hidden
-                          ? 'bg-surface-container-high text-on-surface-faint'
+                          ? 'bg-surface-container-highest text-on-surface-faint'
                           : 'bg-secondary/15 text-secondary',
                       )}
                     >
                       {c.hidden ? 'Hidden' : 'Visible'}
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Category</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Category</p>
                       <CategorySelect value={c.input_category} onSave={(v) => handleUpdate(c.probe_name, 'input_category', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Display Name</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
                       <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">On Label</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">On Label</p>
                       <EditableCell value={c.on_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'on_label', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Off Label</p>
+                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Off Label</p>
                       <EditableCell value={c.off_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'off_label', v)} />
                     </div>
                   </div>
@@ -943,13 +945,13 @@ function OutletsTab() {
       {/* Mobile: individual cards */}
       <div className="sm:hidden space-y-3">
         {items.map((item) => (
-          <div key={item.outlet_id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1.5">
+          <div key={item.outlet_id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-on-surface">{item.outletName}</span>
+              <span className="text-sm font-semibold text-on-surface">{item.outletName}</span>
               <span className="text-xs text-on-surface-faint font-mono">{item.outlet_id}</span>
             </div>
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-0.5">Display Name</p>
+              <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
               <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
             </div>
           </div>
@@ -1749,51 +1751,51 @@ function TokensTab() {
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {tokens.map((t) => (
-              <div key={t.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
+              <div key={t.id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span className="text-sm font-medium text-on-surface">{t.label}</span>
+                    <span className="text-sm font-semibold text-on-surface">{t.label}</span>
                     <div className="text-xs text-on-surface-faint font-mono mt-0.5">#{t.id}</div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <select
-                      value={t.scope}
-                      onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
-                      disabled={updateScopeMutation.isPending}
-                      className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50"
-                    >
-                      <option value="admin">admin</option>
-                      <option value="control">control</option>
-                      <option value="read">read</option>
-                    </select>
-                    {revokeConfirm === t.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleRevoke(t.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                        >
-                          Revoke
-                        </button>
-                        <button
-                          onClick={() => setRevokeConfirm(null)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setRevokeConfirm(t.id)}
-                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
+                  <select
+                    value={t.scope}
+                    onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
+                    disabled={updateScopeMutation.isPending}
+                    className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50 shrink-0"
+                  >
+                    <option value="admin">admin</option>
+                    <option value="control">control</option>
+                    <option value="read">read</option>
+                  </select>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-on-surface-dim">
-                  <span>Created {relativeTime(t.created_at)}</span>
-                  <span>Used {t.last_used ? relativeTime(t.last_used) : 'never'}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-xs text-on-surface-faint">
+                    <span>Created {relativeTime(t.created_at)}</span>
+                    <span>Used {t.last_used ? relativeTime(t.last_used) : 'never'}</span>
+                  </div>
+                  {revokeConfirm === t.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleRevoke(t.id)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                      >
+                        Revoke
+                      </button>
+                      <button
+                        onClick={() => setRevokeConfirm(null)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setRevokeConfirm(t.id)}
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -2142,48 +2144,48 @@ function NotificationsTab() {
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {targets.map((t) => (
-              <div key={t.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1.5">
+              <div key={t.id} className="bg-surface-container-high rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-on-surface">{t.label}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleToggle(t)}
-                      disabled={upsertMutation.isPending}
-                      className={cn(
-                        'px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer disabled:opacity-50',
-                        t.enabled
-                          ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
-                          : 'bg-surface-container-highest text-on-surface-faint hover:bg-surface-container-highest/80',
-                      )}
-                    >
-                      {t.enabled ? 'Enabled' : 'Disabled'}
-                    </button>
-                    {deleteConfirm === t.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleDelete(t.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(t.id)}
-                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                  <span className="text-sm font-semibold text-on-surface">{t.label}</span>
+                  <button
+                    onClick={() => handleToggle(t)}
+                    disabled={upsertMutation.isPending}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer disabled:opacity-50 shrink-0',
+                      t.enabled
+                        ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
+                        : 'bg-surface-container-highest text-on-surface-faint hover:bg-surface-container-highest/80',
                     )}
-                  </div>
+                  >
+                    {t.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
                 </div>
-                <p className="text-xs text-on-surface-dim font-mono break-all">{t.config}</p>
+                <p className="text-xs text-on-surface-dim font-mono break-all leading-relaxed">{t.config}</p>
+                <div className="flex items-center justify-end">
+                  {deleteConfirm === t.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirm(t.id)}
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -2927,9 +2929,18 @@ function EmptyState({ icon, message }: { icon: React.ReactNode; message: string 
 // Settings Page
 // =============================================================================
 
+const mobileCardTabs: Tab[] = ['probes', 'outlets', 'tokens', 'notifications']
+const noContainerTabs: Tab[] = ['tank', 'system']
+
 export default function Settings() {
   usePageTitle('Settings')
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+
+  const tabContainerClass = noContainerTabs.includes(activeTab)
+    ? undefined
+    : mobileCardTabs.includes(activeTab)
+    ? 'sm:bg-surface-container sm:rounded-2xl sm:overflow-hidden'
+    : 'bg-surface-container rounded-2xl overflow-hidden'
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -2980,7 +2991,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="bg-surface-container rounded-2xl overflow-hidden">
+      <div className={tabContainerClass}>
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'devices' && <DevicesTab />}
         {activeTab === 'tank' && <TankTab />}
