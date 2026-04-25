@@ -1,3 +1,4 @@
+import React from 'react'
 import type { PageKey } from '@/lib/pageTheme'
 
 interface SidebarSilhouetteProps {
@@ -256,7 +257,7 @@ function HistorySilhouette() {
   )
 }
 
-const silhouetteMap: Record<PageKey, () => JSX.Element> = {
+const silhouetteMap: Record<PageKey, () => React.ReactElement> = {
   dashboard: DashboardSilhouette,
   livestock: LivestockSilhouette,
   chemistry: ChemistrySilhouette,

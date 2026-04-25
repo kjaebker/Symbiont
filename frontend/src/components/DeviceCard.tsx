@@ -11,7 +11,6 @@ import {
   Snowflake,
   Fan,
   Zap,
-  Box,
   Power,
   RefreshCw,
 } from 'lucide-react'
@@ -33,7 +32,7 @@ const deviceTypeIcons: Record<string, typeof Flame> = {
   ato: Droplet,
   chiller: Snowflake,
   fan: Fan,
-  other: Box,
+  other: Zap,
 }
 
 const stateLabels: Record<string, string> = {
@@ -42,14 +41,6 @@ const stateLabels: Record<string, string> = {
   AON: 'AUTO',
   AOF: 'AUTO OFF',
   TBL: 'SCHEDULE',
-}
-
-const stateColors: Record<string, string> = {
-  ON: 'text-secondary',
-  AON: 'text-primary',
-  OFF: 'text-on-surface-dim',
-  AOF: 'text-on-surface-dim',
-  TBL: 'text-primary',
 }
 
 function worstProbeStatus(probes: Probe[]): ProbeStatus {
