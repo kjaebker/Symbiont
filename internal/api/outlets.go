@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/db"
@@ -64,6 +65,71 @@ func (s *Server) HandleOutletList(w http.ResponseWriter, r *http.Request) {
 	})
 
 	writeJSON(w, http.StatusOK, map[string]any{"outlets": resp})
+}
+
+func (s *Server) HandleOutletHistory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	did := pathValue(r, "id")
+	if did == "" {
+		writeError(w, http.StatusBadRequest, "outlet id is required", "missing_param")
+		return
+	}
+
+	now := time.Now()
+	from := now.Add(-24 * time.Hour)
+	to := now
+
+	if v := r.URL.Query().Get("from"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid 'from' timestamp", "invalid_param")
+			return
+		}
+		from = t
+	}
+	if v := r.URL.Query().Get("to"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid 'to' timestamp", "invalid_param")
+			return
+		}
+		to = t
+	}
+
+	interval := r.URL.Query().Get("interval")
+	if interval == "" {
+		interval = autoInterval(to.Sub(from))
+	}
+	if !validInterval(interval) {
+		writeError(w, http.StatusBadRequest, "invalid interval value", "invalid_param")
+		return
+	}
+
+	data, err := s.duck.OutletIntensityHistory(ctx, did, from, to, interval)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to fetch outlet history", "db_error")
+		return
+	}
+
+	type dataPoint struct {
+		TS    string  `json:"ts"`
+		Value float64 `json:"value"`
+	}
+	points := make([]dataPoint, 0, len(data))
+	for _, dp := range data {
+		points = append(points, dataPoint{
+			TS:    dp.Timestamp.Format(time.RFC3339),
+			Value: dp.Value,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"outlet_id": did,
+		"from":      from.Format(time.RFC3339),
+		"to":        to.Format(time.RFC3339),
+		"interval":  interval,
+		"data":      points,
+	})
 }
 
 func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {

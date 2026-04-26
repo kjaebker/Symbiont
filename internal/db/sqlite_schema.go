@@ -42,6 +42,14 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			display_name    TEXT,
 			icon            TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS device_outlets (
+			device_id   INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+			outlet_id   TEXT    NOT NULL,
+			label       TEXT,
+			color       TEXT,
+			sort_order  INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (device_id, outlet_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS devices (
 			id            INTEGER  PRIMARY KEY AUTOINCREMENT,
 			name          TEXT     NOT NULL,
@@ -271,6 +279,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_due ON maintenance_tasks(next_due_at) WHERE enabled=1`,
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_logs_task ON maintenance_logs(task_id, completed_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_outlet_program_history_did ON outlet_program_history(did, changed_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_device_outlets_device_id ON device_outlets(device_id)`,
 	}
 
 	for _, stmt := range tables {

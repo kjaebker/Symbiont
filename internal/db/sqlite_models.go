@@ -38,20 +38,32 @@ type ProbeConfig struct {
 	Hidden        bool     `json:"hidden"`
 }
 
+// DeviceOutlet represents a row in the device_outlets table.
+// These are the visualization outlets linked to a device (e.g. Kessil Color + Power
+// channels), separate from Device.OutletID which is used for ON/OFF/AUTO control.
+type DeviceOutlet struct {
+	DeviceID  int64   `json:"device_id"`
+	OutletID  string  `json:"outlet_id"`
+	Label     *string `json:"label"`
+	Color     *string `json:"color"`
+	SortOrder int     `json:"sort_order"`
+}
+
 // Device represents a row in the devices table.
 type Device struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	DeviceType  *string   `json:"device_type"`
-	Description *string   `json:"description"`
-	Brand       *string   `json:"brand"`
-	Model       *string   `json:"model"`
-	Notes       *string   `json:"notes"`
-	ImagePath   *string   `json:"image_path"`
-	OutletID    *string   `json:"outlet_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	ProbeNames  []string  `json:"probe_names"`
+	ID          int64          `json:"id"`
+	Name        string         `json:"name"`
+	DeviceType  *string        `json:"device_type"`
+	Description *string        `json:"description"`
+	Brand       *string        `json:"brand"`
+	Model       *string        `json:"model"`
+	Notes       *string        `json:"notes"`
+	ImagePath   *string        `json:"image_path"`
+	OutletID    *string        `json:"outlet_id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	ProbeNames  []string       `json:"probe_names"`
+	OutletIDs   []DeviceOutlet `json:"outlet_ids"`
 }
 
 // OutletConfig represents a row in the outlet_config table.

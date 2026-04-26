@@ -5,9 +5,10 @@ import {
   updateDevice,
   deleteDevice,
   setDeviceProbes,
+  setDeviceOutlets,
   getDeviceSuggestions,
 } from '@/api/client'
-import type { Device } from '@/api/types'
+import type { Device, DeviceOutlet } from '@/api/types'
 
 export function useDevices() {
   return useQuery({
@@ -61,6 +62,16 @@ export function useSetDeviceProbes() {
       queryClient.invalidateQueries({ queryKey: ['devices'] })
       queryClient.invalidateQueries({ queryKey: ['probeConfigs'] })
       queryClient.invalidateQueries({ queryKey: ['probes'] })
+    },
+  })
+}
+
+export function useSetDeviceOutlets() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, outlets }: { id: number; outlets: DeviceOutlet[] }) => setDeviceOutlets(id, outlets),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
     },
   })
 }

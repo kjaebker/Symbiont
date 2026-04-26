@@ -67,6 +67,35 @@ func (d *DuckDB) ProbeHistory(ctx context.Context, name string, from, to time.Ti
 	return points, nil
 }
 
+// OutletIntensityHistory returns bucketed average intensity for an outlet over a time range.
+func (d *DuckDB) OutletIntensityHistory(ctx context.Context, did string, from, to time.Time, interval string) ([]DataPoint, error) {
+	query := fmt.Sprintf(`
+		SELECT time_bucket(INTERVAL '%s', ts) AS bucket, AVG(intensity) AS avg_intensity
+		FROM outlet_states
+		WHERE outlet_did = ? AND ts >= ? AND ts <= ?
+		GROUP BY bucket
+		ORDER BY bucket`, interval)
+
+	rows, err := d.db.QueryContext(ctx, query, did, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("querying outlet intensity history for %s: %w", did, err)
+	}
+	defer rows.Close()
+
+	var points []DataPoint
+	for rows.Next() {
+		var p DataPoint
+		if err := rows.Scan(&p.Timestamp, &p.Value); err != nil {
+			return nil, fmt.Errorf("scanning outlet intensity point: %w", err)
+		}
+		points = append(points, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating outlet intensity history: %w", err)
+	}
+	return points, nil
+}
+
 // CurrentOutletStates returns the latest state for each outlet.
 func (d *DuckDB) CurrentOutletStates(ctx context.Context) ([]OutletState, error) {
 	const query = `

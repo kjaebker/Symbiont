@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import {
   Flame,
   Waves,
@@ -14,12 +14,15 @@ import {
   Power,
   RefreshCw,
 } from 'lucide-react'
-import { getProbeHistory } from '@/api/client'
+import { getProbeHistory, getOutletHistory } from '@/api/client'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
+import { LightCycleChart } from './LightCycleChart'
+
+const DEFAULT_CYCLE_COLORS = ['#3adffa', '#6dfe9c', '#ff8796']
 
 const deviceTypeIcons: Record<string, typeof Flame> = {
   heater: Flame,
@@ -97,6 +100,27 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   })
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
+
+  // Light cycle chart: show from today's local midnight so you see the full arc
+  // from lights-on through now. Key off today's local date string — stable all day.
+  const todayDate = new Date().toLocaleDateString('sv')
+  const cycleOutlets = device.outlet_ids ?? []
+  const cycleResults = useQueries({
+    queries: cycleOutlets.map((o) => ({
+      queryKey: ['outletIntensityHistory', o.outlet_id, todayDate],
+      queryFn: () => {
+        const from = new Date()
+        from.setHours(0, 0, 0, 0)
+        return getOutletHistory(o.outlet_id, { from: from.toISOString(), interval: '15m' })
+      },
+      staleTime: 5 * 60_000,
+    })),
+  })
+  const cycleSeries = cycleOutlets.map((o, i) => ({
+    data: cycleResults[i]?.data?.data.map((p) => p.value) ?? [],
+    color: o.color ?? DEFAULT_CYCLE_COLORS[i % DEFAULT_CYCLE_COLORS.length],
+    label: o.label ?? o.outlet_id,
+  }))
 
   const isOn = outlet
     ? outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
@@ -176,7 +200,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
       {/* Probe readings: primary large left, secondary compact right */}
       {probes.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-end justify-between mb-3">
             {/* Primary probe — large hero value */}
             {primaryProbe && (
               primaryProbe.is_binary ? (
@@ -205,9 +229,9 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
               )
             )}
 
-            {/* Secondary probes — compact stack */}
+            {/* Secondary probes — compact stack, bottom-aligned with primary */}
             {secondaryProbes.length > 0 && (
-              <div className="space-y-1.5 text-right">
+              <div className="flex flex-col justify-end gap-0 text-right mb-[2px]">
                 {secondaryProbes.map((probe) => (
                   <button
                     key={probe.name}
@@ -216,7 +240,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                       navigate(`/history?tab=telemetry&probe=${encodeURIComponent(probe.name)}`)
                     }
                     className={cn(
-                      'flex items-center justify-end gap-2 w-full',
+                      'flex items-center justify-end gap-2 w-full leading-none py-0',
                       !probe.is_binary && 'group',
                     )}
                   >
@@ -240,12 +264,14 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
             )}
           </div>
 
-          {/* Sparkline for primary probe — omit for binary probes */}
-          {primaryProbe && !primaryProbe.is_binary && (
+          {/* Day cycle chart when visualization outlets are configured; otherwise probe sparkline */}
+          {cycleOutlets.length > 0 ? (
+            <LightCycleChart series={cycleSeries} />
+          ) : primaryProbe && !primaryProbe.is_binary ? (
             <div className="h-10">
               <Sparkline data={sparklineData} color={personality.color} />
             </div>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -29,6 +29,26 @@ export interface ProbeHistory {
   data: ProbeHistoryPoint[]
 }
 
+export interface OutletHistoryPoint {
+  ts: string
+  value: number
+}
+
+export interface OutletHistory {
+  outlet_id: string
+  from: string
+  to: string
+  interval: string
+  data: OutletHistoryPoint[]
+}
+
+export interface DeviceOutlet {
+  outlet_id: string
+  label: string | null
+  color: string | null
+  sort_order: number
+}
+
 export type OutletState = 'ON' | 'OFF' | 'AON' | 'AOF' | 'TBL' | 'PF1' | 'PF2' | 'PF3' | 'PF4'
 
 export interface Outlet {
@@ -157,6 +177,7 @@ export interface Device {
   created_at: string
   updated_at: string
   probe_names: string[]
+  outlet_ids: DeviceOutlet[]
 }
 
 export interface FeedStatus {

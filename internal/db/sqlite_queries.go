@@ -562,18 +562,24 @@ func (s *SQLiteDB) ListDevices(ctx context.Context) ([]Device, error) {
 		return nil, err
 	}
 
-	// Load probe names for each device.
+	// Load probe names and visualization outlets for each device.
 	for i := range devices {
 		probes, err := s.listDeviceProbeNames(ctx, devices[i].ID)
 		if err != nil {
 			return nil, err
 		}
 		devices[i].ProbeNames = probes
+
+		outlets, err := s.ListDeviceOutlets(ctx, devices[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		devices[i].OutletIDs = outlets
 	}
 	return devices, nil
 }
 
-// GetDevice returns a single device by ID with its linked probe names.
+// GetDevice returns a single device by ID with its linked probe names and visualization outlets.
 func (s *SQLiteDB) GetDevice(ctx context.Context, id int64) (*Device, error) {
 	var d Device
 	err := s.db.QueryRowContext(ctx,
@@ -588,6 +594,12 @@ func (s *SQLiteDB) GetDevice(ctx context.Context, id int64) (*Device, error) {
 		return nil, err
 	}
 	d.ProbeNames = probes
+
+	outlets, err := s.ListDeviceOutlets(ctx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	d.OutletIDs = outlets
 	return &d, nil
 }
 
@@ -670,6 +682,59 @@ func (s *SQLiteDB) SetDeviceProbes(ctx context.Context, deviceID int64, probeNam
 			name, deviceID,
 		); err != nil {
 			return fmt.Errorf("linking probe %s to device %d: %w", name, deviceID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// ListDeviceOutlets returns the visualization outlets linked to a device.
+func (s *SQLiteDB) ListDeviceOutlets(ctx context.Context, deviceID int64) ([]DeviceOutlet, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT device_id, outlet_id, label, color, sort_order
+		FROM device_outlets WHERE device_id = ? ORDER BY sort_order, outlet_id`,
+		deviceID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing device outlets for device %d: %w", deviceID, err)
+	}
+	defer rows.Close()
+
+	var outlets []DeviceOutlet
+	for rows.Next() {
+		var o DeviceOutlet
+		if err := rows.Scan(&o.DeviceID, &o.OutletID, &o.Label, &o.Color, &o.SortOrder); err != nil {
+			return nil, fmt.Errorf("scanning device outlet: %w", err)
+		}
+		outlets = append(outlets, o)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating device outlets: %w", err)
+	}
+	if outlets == nil {
+		outlets = []DeviceOutlet{}
+	}
+	return outlets, nil
+}
+
+// SetDeviceOutlets replaces the full set of visualization outlets for a device.
+func (s *SQLiteDB) SetDeviceOutlets(ctx context.Context, deviceID int64, outlets []DeviceOutlet) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM device_outlets WHERE device_id = ?", deviceID); err != nil {
+		return fmt.Errorf("clearing device outlets for device %d: %w", deviceID, err)
+	}
+
+	for _, o := range outlets {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO device_outlets (device_id, outlet_id, label, color, sort_order) VALUES (?, ?, ?, ?, ?)`,
+			deviceID, o.OutletID, o.Label, o.Color, o.SortOrder,
+		); err != nil {
+			return fmt.Errorf("inserting device outlet %s: %w", o.OutletID, err)
 		}
 	}
 
