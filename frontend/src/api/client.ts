@@ -1,6 +1,7 @@
 import type {
   Probe,
   ProbeHistory,
+  OutletHistory,
   Outlet,
   SystemStatus,
   FeedStatus,
@@ -14,6 +15,7 @@ import type {
   NotificationTestResult,
   SystemLogLine,
   Device,
+  DeviceOutlet,
   DeviceSuggestion,
   DashboardItem,
   MeasurementParameter,
@@ -161,6 +163,18 @@ export function setOutletState(id: string, state: 'ON' | 'OFF' | 'AUTO') {
     `/api/outlets/${encodeURIComponent(id)}`,
     { method: 'PUT', body: JSON.stringify({ state }) },
   )
+}
+
+export function getOutletHistory(
+  id: string,
+  params?: { from?: string; to?: string; interval?: string },
+) {
+  const search = new URLSearchParams()
+  if (params?.from) search.set('from', params.from)
+  if (params?.to) search.set('to', params.to)
+  if (params?.interval) search.set('interval', params.interval)
+  const qs = search.toString()
+  return apiFetch<OutletHistory>(`/api/outlets/${encodeURIComponent(id)}/history${qs ? `?${qs}` : ''}`)
 }
 
 
@@ -343,6 +357,13 @@ export function setDeviceProbes(id: number, probeNames: string[]) {
   return apiFetch<Device>(`/api/devices/${id}/probes`, {
     method: 'PUT',
     body: JSON.stringify({ probe_names: probeNames }),
+  })
+}
+
+export function setDeviceOutlets(id: number, outlets: DeviceOutlet[]) {
+  return apiFetch<Device>(`/api/devices/${id}/outlets`, {
+    method: 'PUT',
+    body: JSON.stringify({ outlet_ids: outlets }),
   })
 }
 

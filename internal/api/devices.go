@@ -76,6 +76,12 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		ImagePath   *string  `json:"image_path"`
 		OutletID    *string  `json:"outlet_id"`
 		ProbeNames  []string `json:"probe_names"`
+		OutletIDs   []struct {
+			OutletID  string  `json:"outlet_id"`
+			Label     *string `json:"label"`
+			Color     *string `json:"color"`
+			SortOrder int     `json:"sort_order"`
+		} `json:"outlet_ids"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
@@ -116,6 +122,17 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 	if len(body.ProbeNames) > 0 {
 		if err := s.sqlite.SetDeviceProbes(ctx, id, body.ProbeNames); err != nil {
 			s.logger.Error("failed to link probes to device", "err", err, "device_id", id)
+		}
+	}
+
+	// Link visualization outlets if provided.
+	if len(body.OutletIDs) > 0 {
+		outlets := make([]db.DeviceOutlet, len(body.OutletIDs))
+		for i, o := range body.OutletIDs {
+			outlets[i] = db.DeviceOutlet{DeviceID: id, OutletID: o.OutletID, Label: o.Label, Color: o.Color, SortOrder: o.SortOrder}
+		}
+		if err := s.sqlite.SetDeviceOutlets(ctx, id, outlets); err != nil {
+			s.logger.Error("failed to link outlets to device", "err", err, "device_id", id)
 		}
 	}
 
@@ -162,6 +179,12 @@ func (s *Server) HandleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		ImagePath   *string  `json:"image_path"`
 		OutletID    *string  `json:"outlet_id"`
 		ProbeNames  []string `json:"probe_names"`
+		OutletIDs   []struct {
+			OutletID  string  `json:"outlet_id"`
+			Label     *string `json:"label"`
+			Color     *string `json:"color"`
+			SortOrder int     `json:"sort_order"`
+		} `json:"outlet_ids"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
@@ -195,6 +218,15 @@ func (s *Server) HandleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, http.StatusInternalServerError, "failed to update device", "db_error")
 		return
+	}
+
+	// Update visualization outlets (always replace, even if empty — explicit clear).
+	outlets := make([]db.DeviceOutlet, len(body.OutletIDs))
+	for i, o := range body.OutletIDs {
+		outlets[i] = db.DeviceOutlet{DeviceID: id, OutletID: o.OutletID, Label: o.Label, Color: o.Color, SortOrder: o.SortOrder}
+	}
+	if err := s.sqlite.SetDeviceOutlets(ctx, id, outlets); err != nil {
+		s.logger.Error("failed to update device outlets", "err", err, "device_id", id)
 	}
 
 	device, err := s.sqlite.GetDevice(ctx, id)
@@ -267,6 +299,55 @@ func (s *Server) HandleDeviceSetProbes(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.sqlite.SetDeviceProbes(ctx, id, body.ProbeNames); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to set device probes", "db_error")
+		return
+	}
+
+	updated, err := s.sqlite.GetDevice(ctx, id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to fetch device", "db_error")
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) HandleDeviceSetOutlets(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	id, err := strconv.ParseInt(pathValue(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid device id", "invalid_param")
+		return
+	}
+
+	_, err = s.sqlite.GetDevice(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "device not found", "not_found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to fetch device", "db_error")
+		return
+	}
+
+	var body struct {
+		OutletIDs []struct {
+			OutletID  string  `json:"outlet_id"`
+			Label     *string `json:"label"`
+			Color     *string `json:"color"`
+			SortOrder int     `json:"sort_order"`
+		} `json:"outlet_ids"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
+		return
+	}
+
+	outlets := make([]db.DeviceOutlet, len(body.OutletIDs))
+	for i, o := range body.OutletIDs {
+		outlets[i] = db.DeviceOutlet{DeviceID: id, OutletID: o.OutletID, Label: o.Label, Color: o.Color, SortOrder: o.SortOrder}
+	}
+	if err := s.sqlite.SetDeviceOutlets(ctx, id, outlets); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to set device outlets", "db_error")
 		return
 	}
 

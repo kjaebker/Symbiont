@@ -49,11 +49,12 @@ import {
   useUpdateDevice,
   useDeleteDevice,
   useSetDeviceProbes,
+  useSetDeviceOutlets,
   useDeviceSuggestions,
 } from '@/hooks/useDevices'
 import { useTankProfile, useUpsertTankProfile } from '@/hooks/useTankProfile'
 import { useAgentSettings, useUpdateAgentSettings, useAgentContext, useAgentSkills } from '@/hooks/useAgent'
-import type { ProbeConfig, OutletConfig, NotificationTarget, SystemLogLine, Device, DeviceSuggestion, InputCategory } from '@/api/types'
+import type { ProbeConfig, OutletConfig, NotificationTarget, SystemLogLine, Device, DeviceSuggestion, InputCategory, DeviceOutlet } from '@/api/types'
 import type { TankSection, TankType, TankProfileInput } from '@/api/client'
 
 const unitOptions = [
@@ -1014,7 +1015,7 @@ function DeviceForm({
   onCancel,
 }: {
   initial?: Device
-  outlets: { id: string; name: string; display_name: string }[]
+  outlets: { id: string; name: string; display_name: string; type: string }[]
   probes: { name: string; display_name: string }[]
   existingDevices: Device[]
   onSave: (data: {
@@ -1027,6 +1028,7 @@ function DeviceForm({
     image_path: string | null
     outlet_id: string | null
     probe_names: string[]
+    outlet_ids: DeviceOutlet[]
   }) => void
   onCancel: () => void
 }) {
@@ -1038,6 +1040,9 @@ function DeviceForm({
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [outletId, setOutletId] = useState(initial?.outlet_id ?? '')
   const [selectedProbes, setSelectedProbes] = useState<Set<string>>(new Set(initial?.probe_names ?? []))
+  const [cycleOutlets, setCycleOutlets] = useState<DeviceOutlet[]>(
+    initial?.outlet_ids ?? [],
+  )
 
   // Outlets already linked to other devices (exclude current device's outlet).
   const linkedOutletIds = new Set(
@@ -1066,7 +1071,32 @@ function DeviceForm({
       image_path: initial?.image_path ?? null,
       outlet_id: outletId || null,
       probe_names: Array.from(selectedProbes),
+      outlet_ids: cycleOutlets,
     })
+  }
+
+  function addCycleOutlet(outletId: string) {
+    if (cycleOutlets.some((o) => o.outlet_id === outletId)) return
+    setCycleOutlets((prev) => [
+      ...prev,
+      { outlet_id: outletId, label: null, color: null, sort_order: prev.length },
+    ])
+  }
+
+  function removeCycleOutlet(outletId: string) {
+    setCycleOutlets((prev) => prev.filter((o) => o.outlet_id !== outletId))
+  }
+
+  function updateCycleOutletLabel(outletId: string, label: string) {
+    setCycleOutlets((prev) =>
+      prev.map((o) => (o.outlet_id === outletId ? { ...o, label: label || null } : o)),
+    )
+  }
+
+  function updateCycleOutletColor(outletId: string, color: string | null) {
+    setCycleOutlets((prev) =>
+      prev.map((o) => (o.outlet_id === outletId ? { ...o, color } : o)),
+    )
   }
 
   function toggleProbe(probeName: string) {
@@ -1118,16 +1148,81 @@ function DeviceForm({
         <label className={labelClass}>Linked Outlet</label>
         <select value={outletId} onChange={(e) => setOutletId(e.target.value)} className={cn(inputClass, 'cursor-pointer appearance-none')}>
           <option value="" className="bg-surface-container text-on-surface">None</option>
-          {outlets.map((o) => (
-            <option
-              key={o.id}
-              value={o.id}
-              disabled={linkedOutletIds.has(o.id)}
-              className="bg-surface-container text-on-surface"
-            >
-              {o.display_name} ({o.id}){linkedOutletIds.has(o.id) ? ' — linked' : ''}
-            </option>
-          ))}
+          {outlets
+            .filter((o) => o.type === 'outlet' || o.type === 'virtual')
+            .map((o) => (
+              <option
+                key={o.id}
+                value={o.id}
+                disabled={linkedOutletIds.has(o.id)}
+                className="bg-surface-container text-on-surface"
+              >
+                {o.display_name} ({o.id}){linkedOutletIds.has(o.id) ? ' — linked' : ''}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      <div>
+        <label className={labelClass}>Visualization Channels</label>
+        <p className="text-xs text-on-surface-dim mb-2">
+          Variable outlets (0-10V) to overlay as a day cycle chart on the device card. Ideal for lights with separate color/power channels.
+        </p>
+        <div className="space-y-2 mb-2">
+          {cycleOutlets.map((co) => {
+            const outlet = outlets.find((o) => o.id === co.outlet_id)
+            const PRESET_COLORS = ['#3adffa', '#6dfe9c', '#ff8796', '#fbbf24']
+            return (
+              <div key={co.outlet_id} className="flex items-center gap-2 bg-surface-container-high/50 rounded-xl px-3 py-2">
+                <span className="text-sm text-on-surface truncate flex-1">
+                  {outlet?.display_name ?? co.outlet_id}
+                </span>
+                <input
+                  type="text"
+                  placeholder="Label"
+                  value={co.label ?? ''}
+                  onChange={(e) => updateCycleOutletLabel(co.outlet_id, e.target.value)}
+                  className="w-24 bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
+                />
+                <div className="flex gap-1">
+                  {PRESET_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => updateCycleOutletColor(co.outlet_id, co.color === c ? null : c)}
+                      className="w-4 h-4 rounded-full transition-fluid"
+                      style={{
+                        background: c,
+                        outline: co.color === c ? `2px solid ${c}` : '2px solid transparent',
+                        outlineOffset: '1px',
+                      }}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeCycleOutlet(co.outlet_id)}
+                  className="text-on-surface-faint hover:text-tertiary transition-fluid"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <select
+          value=""
+          onChange={(e) => { if (e.target.value) addCycleOutlet(e.target.value) }}
+          className={cn(inputClass, 'cursor-pointer appearance-none text-sm')}
+        >
+          <option value="" className="bg-surface-container text-on-surface">+ Add channel…</option>
+          {outlets
+            .filter((o) => !cycleOutlets.some((co) => co.outlet_id === o.id))
+            .map((o) => (
+              <option key={o.id} value={o.id} className="bg-surface-container text-on-surface">
+                {o.display_name} ({o.id})
+              </option>
+            ))}
         </select>
       </div>
 
@@ -1194,6 +1289,7 @@ function DevicesTab() {
   const updateMutation = useUpdateDevice()
   const deleteMutation = useDeleteDevice()
   const setProbeMutation = useSetDeviceProbes()
+  const setOutletsMutation = useSetDeviceOutlets()
 
   const [showForm, setShowForm] = useState(false)
   const [editingDevice, setEditingDevice] = useState<Device | null>(null)
@@ -1201,7 +1297,7 @@ function DevicesTab() {
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const devices = devicesData?.devices ?? []
-  const outlets = (outletsData?.outlets ?? []).filter((o) => o.type === 'outlet' || o.type === 'virtual')
+  const outlets = outletsData?.outlets ?? []
   const probes = probesData?.probes ?? []
   const suggestions = suggestionsData?.suggestions ?? []
 
@@ -1218,10 +1314,12 @@ function DevicesTab() {
         // If probes changed, update them separately.
         const oldProbes = new Set(editingDevice.probe_names)
         const newProbes = new Set(data.probe_names)
-        const changed = oldProbes.size !== newProbes.size || [...oldProbes].some((p) => !newProbes.has(p))
-        if (changed) {
+        const probesChanged = oldProbes.size !== newProbes.size || [...oldProbes].some((p) => !newProbes.has(p))
+        if (probesChanged) {
           setProbeMutation.mutate({ id: editingDevice.id, probeNames: data.probe_names })
         }
+        // Always sync visualization outlets (server handles the diff).
+        setOutletsMutation.mutate({ id: editingDevice.id, outlets: data.outlet_ids })
         setEditingDevice(null)
       },
     })

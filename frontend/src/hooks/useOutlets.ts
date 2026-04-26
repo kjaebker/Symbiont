@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getOutlets, setOutletState } from '@/api/client'
+import { getOutlets, setOutletState, getOutletHistory } from '@/api/client'
 import type { Outlet } from '@/api/types'
 
 // How long to keep optimistic state after a mutation before trusting
@@ -35,6 +35,18 @@ export function useOutlets() {
       ...data,
       outlets: applyOverrides(data.outlets),
     }),
+  })
+}
+
+export function useOutletIntensityHistory(
+  id: string | null,
+  params?: { from?: string; to?: string; interval?: string },
+) {
+  return useQuery({
+    queryKey: ['outletIntensityHistory', id, params],
+    queryFn: () => getOutletHistory(id!, params),
+    enabled: !!id,
+    staleTime: 60_000,
   })
 }
 

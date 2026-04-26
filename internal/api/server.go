@@ -102,6 +102,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 	// Outlets.
 	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
+	mux.HandleFunc("GET /api/outlets/{id}/history", s.HandleOutletHistory)
 	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
 
 	// Programs (Apex output programs from /rest/config, stored in SQLite).
@@ -123,6 +124,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/devices/{id}", s.HandleDeviceUpdate)
 	mux.HandleFunc("DELETE /api/devices/{id}", s.HandleDeviceDelete)
 	mux.HandleFunc("PUT /api/devices/{id}/probes", s.HandleDeviceSetProbes)
+	mux.HandleFunc("PUT /api/devices/{id}/outlets", s.HandleDeviceSetOutlets)
 	mux.HandleFunc("POST /api/devices/{id}/image", s.HandleDeviceImageUpload)
 	mux.HandleFunc("DELETE /api/devices/{id}/image", s.HandleDeviceImageDelete)
 
