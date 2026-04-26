@@ -7,8 +7,8 @@ export function Caustic() {
 
   return (
     <div
-      className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
-      style={{ mixBlendMode: 'screen' }}
+      className="fixed inset-0 z-0 pointer-events-none"
+      style={{ mixBlendMode: 'screen', clipPath: 'inset(0)' }}
     >
       {/* Blob A — top left */}
       <div
