@@ -141,23 +141,10 @@ export function ProbeCard({ probe }: ProbeCardProps) {
       )}
       style={{
         background: isAlarmActive
-          ? 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
-          : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
+          ? 'radial-gradient(ellipse 55% 50% at 100% 0%, rgba(255,135,150,0.22) 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
+          : `radial-gradient(ellipse 55% 50% at 100% 0%, ${config.hexColor}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: -20,
-          right: -20,
-          width: 120,
-          height: 120,
-          borderRadius: config.blobShape,
-          background: isAlarmActive ? 'rgba(255,135,150,0.18)' : config.blobBg,
-          filter: 'blur(20px)',
-          pointerEvents: 'none',
-        }}
-      />
       <div className="flex items-center gap-2 mb-3">
         <div
           className="w-8 h-8 flex items-center justify-center shrink-0"

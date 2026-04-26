@@ -23,14 +23,14 @@ export function Caustic() {
           filter: 'blur(24px)',
         }}
       />
-      {/* Blob B — top right */}
+      {/* Blob B — top right, kept inside viewport so Safari can't bleed it */}
       <div
         className="absolute animate-caustic-b"
         style={{
           ...blobStyle,
           top: -40,
-          right: -60,
-          width: 300,
+          right: 0,
+          width: 240,
           height: 400,
           background: `radial-gradient(ellipse at center, ${sub}44, transparent 70%)`,
           filter: 'blur(28px)',

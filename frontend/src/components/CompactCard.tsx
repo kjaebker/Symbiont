@@ -85,23 +85,10 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
       )}
       style={{
         background: isAlarmActive
-          ? 'linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
-          : `linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
+          ? 'radial-gradient(ellipse 50% 50% at 100% 0%, rgba(255,135,150,0.22) 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, rgba(255,135,150,0.22))'
+          : `radial-gradient(ellipse 50% 50% at 100% 0%, ${config.hexColor}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: -16,
-          right: -16,
-          width: 80,
-          height: 80,
-          borderRadius: config.blobShape,
-          background: isAlarmActive ? 'rgba(255,135,150,0.18)' : config.blobBg,
-          filter: 'blur(16px)',
-          pointerEvents: 'none',
-        }}
-      />
       <div
         className="w-10 h-10 flex items-center justify-center shrink-0"
         style={{
@@ -175,22 +162,9 @@ export function OutletCompactCard({ outlet }: OutletCompactCardProps) {
     <div
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 w-full transition-fluid relative overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}${isOn ? '22' : '0f'})`,
+        background: `radial-gradient(ellipse 50% 50% at 100% 0%, ${personality.color}${isOn ? '22' : '15'} 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}${isOn ? '22' : '0f'})`,
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: -16,
-          right: -16,
-          width: 80,
-          height: 80,
-          borderRadius: personality.blob,
-          background: personality.bg,
-          filter: 'blur(16px)',
-          pointerEvents: 'none',
-        }}
-      />
       <div
         className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
         style={{
@@ -244,22 +218,9 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
       onClick={() => navigate('/measurements')}
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.18))',
+        background: 'radial-gradient(ellipse 50% 50% at 100% 0%, rgba(109,254,156,0.18) 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.18))',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: -16,
-          right: -16,
-          width: 80,
-          height: 80,
-          borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
-          background: 'rgba(109,254,156,0.10)',
-          filter: 'blur(16px)',
-          pointerEvents: 'none',
-        }}
-      />
       <div
         className="w-10 h-10 flex items-center justify-center shrink-0"
         style={{

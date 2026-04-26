@@ -113,23 +113,9 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
     <div
       className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
       style={{
-        background: `linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
+        background: `radial-gradient(ellipse 55% 50% at 100% 0%, ${personality.color}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
       }}
     >
-      {/* Personality blob */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -20,
-          right: -20,
-          width: 120,
-          height: 120,
-          borderRadius: personality.blob,
-          background: personality.bg,
-          filter: 'blur(20px)',
-          pointerEvents: 'none',
-        }}
-      />
 
       {/* Header: icon + name + type badge + state */}
       <div className="flex items-center justify-between mb-4 relative">
