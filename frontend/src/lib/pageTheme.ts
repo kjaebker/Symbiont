@@ -10,11 +10,13 @@ export interface PageTheme {
 }
 
 export const routeThemes: Record<string, { accent: string; sub: string; page: PageKey }> = {
-  '/':           { accent: '#3adffa', sub: '#6dfe9c', page: 'dashboard' },
-  '/livestock':  { accent: '#ff8796', sub: '#3adffa', page: 'livestock' },
-  '/chemistry':  { accent: '#6dfe9c', sub: '#3adffa', page: 'chemistry' },
-  '/alerts':     { accent: '#ff8796', sub: '#fbbf24', page: 'alerts' },
-  '/history':    { accent: '#3adffa', sub: '#5a6080', page: 'history' },
+  '/':            { accent: '#3adffa', sub: '#6dfe9c', page: 'dashboard'  },
+  '/livestock':   { accent: '#6dfe9c', sub: '#3adffa', page: 'livestock'  },
+  '/chemistry':   { accent: '#a78bfa', sub: '#6dfe9c', page: 'chemistry'  },
+  '/maintenance': { accent: '#fbbf24', sub: '#3adffa', page: 'default'    },
+  '/history':     { accent: '#60a5fa', sub: '#8a90a8', page: 'history'    },
+  '/alerts':      { accent: '#ff8796', sub: '#fbbf24', page: 'alerts'     },
+  '/settings':    { accent: '#8a90a8', sub: '#5a6080', page: 'default'    },
 }
 
 export const defaultRouteTheme = { accent: '#3adffa', sub: '#6dfe9c', page: 'default' as PageKey }
