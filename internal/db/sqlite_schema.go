@@ -395,6 +395,8 @@ func migrateDosingProductTypes(db *sql.DB) error {
 	}
 
 	stmts := []string{
+		`PRAGMA foreign_keys = OFF`,
+		`DROP TABLE IF EXISTS dosing_products_new`,
 		`CREATE TABLE dosing_products_new (
 			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
 			brand       TEXT     NOT NULL,
@@ -409,6 +411,7 @@ func migrateDosingProductTypes(db *sql.DB) error {
 		`INSERT INTO dosing_products_new SELECT * FROM dosing_products`,
 		`DROP TABLE dosing_products`,
 		`ALTER TABLE dosing_products_new RENAME TO dosing_products`,
+		`PRAGMA foreign_keys = ON`,
 	}
 	for _, stmt := range stmts {
 		if _, err := db.Exec(stmt); err != nil {
