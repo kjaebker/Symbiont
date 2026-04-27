@@ -2328,13 +2328,16 @@ func (s *SQLiteDB) ListDueItems(ctx context.Context, horizon time.Time) ([]DueIt
 		return nil, err
 	}
 
-	// Due maintenance tasks
+	// Due maintenance tasks — exclude daily tasks already completed today.
 	rows2, err := s.db.QueryContext(ctx,
 		`SELECT id, name, frequency, next_due_at
 		 FROM maintenance_tasks
 		 WHERE enabled = 1
 		   AND (next_due_at IS NULL OR next_due_at <= ?)
 		   AND frequency != 'as_needed'
+		   AND NOT (frequency = 'daily'
+		            AND last_completed_at IS NOT NULL
+		            AND date(last_completed_at, 'localtime') = date('now', 'localtime'))
 		 ORDER BY next_due_at ASC`, horizon)
 	if err != nil {
 		return nil, fmt.Errorf("listing due maintenance tasks: %w", err)
@@ -2506,7 +2509,8 @@ func computeNextDue(from *time.Time, frequency string, intervalDays *float64, da
 	var next time.Time
 	switch frequency {
 	case "daily":
-		next = base.Add(24 * time.Hour)
+		y, m, d := base.Date()
+		next = time.Date(y, m, d+1, 0, 0, 0, 0, base.Location())
 	case "twice_daily":
 		next = base.Add(12 * time.Hour)
 	case "every_n_days":
