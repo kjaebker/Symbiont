@@ -52,7 +52,9 @@ func RegisterTools(s *server.MCPServer, client *cli.APIClient) {
 	s.AddTool(getSkillTool(), getSkillHandler(client))
 	s.AddTool(listProbeConfigsTool(), listProbeConfigsHandler(client))
 	s.AddTool(updateProbeConfigTool(), updateProbeConfigHandler(client))
+	s.AddTool(getDosingProductsTool(), getDosingProductsHandler(client))
 	s.AddTool(getDosingScheduleTool(), getDosingScheduleHandler(client))
+	s.AddTool(createDosingScheduleTool(), createDosingScheduleHandler(client))
 	s.AddTool(logDoseTool(), logDoseHandler(client))
 	s.AddTool(getDosingHistoryTool(), getDosingHistoryHandler(client))
 	s.AddTool(getDueTasksTool(), getDueTasksHandler(client))
@@ -1669,6 +1671,95 @@ func getSkillHandler(client *cli.APIClient) server.ToolHandlerFunc {
 }
 
 // --- get_dosing_schedule ---
+
+// --- get_dosing_products ---
+
+func getDosingProductsTool() mcp.Tool {
+	return mcp.NewTool("get_dosing_products",
+		mcp.WithDescription("List all dosing products (supplements, filter media, etc.) registered in Symbiont, with their IDs, brand, name, type, and unit. Call this before create_dosing_schedule to get the product_id when the product doesn't already have a schedule."),
+	)
+}
+
+func getDosingProductsHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var resp any
+		if err := apiCall(clientFromCtx(ctx, client), "/api/dosing/products", &resp); err != nil {
+			return toolError(fmt.Sprintf("Cannot reach Symbiont API: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
+
+// --- create_dosing_schedule ---
+
+func createDosingScheduleTool() mcp.Tool {
+	return mcp.NewTool("create_dosing_schedule",
+		mcp.WithDescription("Create a new dosing schedule for a product. Use when the user wants to start dosing a supplement or schedule a recurring product addition. Call get_dosing_products first if you don't already know the product_id."),
+		mcp.WithNumber("product_id",
+			mcp.Required(),
+			mcp.Description("ID of the product to schedule (from get_dosing_products or get_dosing_schedule)."),
+		),
+		mcp.WithNumber("amount",
+			mcp.Required(),
+			mcp.Description("Amount to dose per occurrence, in the product's unit (e.g. 5 for 5 mL)."),
+		),
+		mcp.WithString("frequency",
+			mcp.Required(),
+			mcp.Enum("daily", "twice_daily", "every_n_days", "weekly", "as_needed"),
+			mcp.Description("How often to dose. Use every_n_days with interval_days for custom intervals."),
+		),
+		mcp.WithNumber("interval_days",
+			mcp.Description("Days between doses. Required when frequency is every_n_days (e.g. 3 for every 3 days)."),
+		),
+		mcp.WithNumber("day_of_week",
+			mcp.Description("Day of week for weekly doses: 0=Sunday, 1=Monday … 6=Saturday."),
+		),
+		mcp.WithString("notes",
+			mcp.Description("Optional notes about this schedule, e.g. 'increase if alk drops below 8'."),
+		),
+	)
+}
+
+func createDosingScheduleHandler(client *cli.APIClient) server.ToolHandlerFunc {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		productID := request.GetFloat("product_id", 0)
+		if productID == 0 {
+			return toolError("product_id is required"), nil
+		}
+		amount := request.GetFloat("amount", 0)
+		if amount <= 0 {
+			return toolError("amount must be greater than 0"), nil
+		}
+		frequency, err := request.RequireString("frequency")
+		if err != nil {
+			return toolError("frequency is required"), nil
+		}
+
+		body := map[string]any{
+			"product_id": int64(productID),
+			"amount":     amount,
+			"frequency":  frequency,
+		}
+		if v := request.GetFloat("interval_days", -1); v > 0 {
+			body["interval_days"] = v
+		}
+		if v := request.GetFloat("day_of_week", -1); v >= 0 {
+			body["day_of_week"] = int(v)
+		}
+		if v := request.GetString("notes", ""); v != "" {
+			body["notes"] = v
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		var resp any
+		if err := clientFromCtx(ctx, client).Post(timeoutCtx, "/api/dosing/schedules", body, &resp); err != nil {
+			return toolError(fmt.Sprintf("Failed to create dosing schedule: %v", err)), nil
+		}
+		return jsonResult(resp)
+	}
+}
 
 func getDosingScheduleTool() mcp.Tool {
 	return mcp.NewTool("get_dosing_schedule",
