@@ -15,6 +15,7 @@ export function useDevices() {
     queryKey: ['devices'],
     queryFn: getDevices,
     staleTime: 10_000,
+    notifyOnChangeProps: ['data', 'error'],
   })
 }
 

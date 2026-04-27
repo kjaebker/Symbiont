@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -150,9 +151,11 @@ func writeSSE(w http.ResponseWriter, flusher http.Flusher, evt Event) error {
 
 // StartSSEPoller runs a background goroutine that polls DuckDB every 10 seconds
 // and publishes probe_update and outlet_update events to all SSE clients.
+// Events are only broadcast when the data has changed since the last publish.
 func (s *Server) StartSSEPoller(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 	go func() {
+		var lastProbes, lastOutlets []byte
 		defer ticker.Stop()
 		for {
 			select {
@@ -162,32 +165,30 @@ func (s *Server) StartSSEPoller(ctx context.Context) {
 				if s.broadcaster.ClientCount() == 0 {
 					continue
 				}
-				s.publishUpdates(ctx)
+				lastProbes, lastOutlets = s.publishUpdates(ctx, lastProbes, lastOutlets)
 			}
 		}
 	}()
 }
 
-func (s *Server) publishUpdates(ctx context.Context) {
+func (s *Server) publishUpdates(ctx context.Context, lastProbes, lastOutlets []byte) ([]byte, []byte) {
 	probes, err := s.duck.CurrentProbeReadings(ctx)
 	if err != nil {
 		s.logger.Error("sse: failed to fetch probe readings", "err", err)
-	} else {
-		s.broadcaster.Publish(Event{
-			Type: "probe_update",
-			Data: probes,
-		})
+	} else if data, err := json.Marshal(probes); err == nil && !bytes.Equal(data, lastProbes) {
+		lastProbes = data
+		s.broadcaster.Publish(Event{Type: "probe_update", Data: probes})
 	}
 
 	outlets, err := s.duck.CurrentOutletStates(ctx)
 	if err != nil {
 		s.logger.Error("sse: failed to fetch outlet states", "err", err)
-	} else {
-		s.broadcaster.Publish(Event{
-			Type: "outlet_update",
-			Data: outlets,
-		})
+	} else if data, err := json.Marshal(outlets); err == nil && !bytes.Equal(data, lastOutlets) {
+		lastOutlets = data
+		s.broadcaster.Publish(Event{Type: "outlet_update", Data: outlets})
 	}
+
+	return lastProbes, lastOutlets
 }
 
 // busEventToSSE converts a typed system event to an SSE event for connected

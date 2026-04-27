@@ -31,6 +31,7 @@ export function useOutlets() {
     queryFn: getOutlets,
     staleTime: 10_000,
     refetchInterval: 15_000,
+    notifyOnChangeProps: ['data', 'error'],
     select: (data) => ({
       ...data,
       outlets: applyOverrides(data.outlets),

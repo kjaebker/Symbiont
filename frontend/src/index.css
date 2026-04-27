@@ -160,7 +160,7 @@
 
 /* Smooth transitions — "resistance of water" */
 @utility transition-fluid {
-  transition: all 300ms ease-in-out;
+  transition: background-color 300ms ease-in-out, color 300ms ease-in-out, box-shadow 300ms ease-in-out, opacity 300ms ease-in-out, transform 300ms ease-in-out, border-color 300ms ease-in-out;
 }
 
 /* Scrollbar styling */

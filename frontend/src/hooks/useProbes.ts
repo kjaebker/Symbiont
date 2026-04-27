@@ -7,6 +7,7 @@ export function useProbes() {
     queryFn: getProbes,
     staleTime: 10_000,
     refetchInterval: false,
+    notifyOnChangeProps: ['data', 'error'],
   })
 }
 
