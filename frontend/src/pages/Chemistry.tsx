@@ -27,6 +27,7 @@ const PRODUCT_TYPE_LABELS: Record<DosingProductType, string> = {
   amino: 'Amino / Carbon',
   bacteria: 'Bacteria',
   carbon_source: 'Carbon Source',
+  filter_media: 'Filter Media',
   other: 'Other',
 }
 
@@ -113,6 +114,8 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
             <option value="g">g</option>
             <option value="drops">drops</option>
             <option value="tsp">tsp</option>
+            <option value="tbsp">tbsp</option>
+            <option value="fl oz">fl oz</option>
           </select>
         </div>
       </div>

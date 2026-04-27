@@ -190,7 +190,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			name        TEXT     NOT NULL,
 			type        TEXT     NOT NULL CHECK(type IN (
 			             'two_part_a','two_part_b','calcium','alkalinity','magnesium',
-			             'trace','amino','bacteria','carbon_source','other')),
+			             'trace','amino','bacteria','carbon_source','filter_media','other')),
 			unit        TEXT     NOT NULL DEFAULT 'mL',
 			notes       TEXT,
 			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -323,6 +323,9 @@ func CreateSQLiteSchema(db *sql.DB) error {
 	if err := migrateDashboardItemTypesV2(db); err != nil {
 		return err
 	}
+	if err := migrateDosingProductTypes(db); err != nil {
+		return err
+	}
 
 	// Add display_mode after structural migrations so the table-recreation
 	// migrations don't have to account for this column.
@@ -374,6 +377,42 @@ func migrateDashboardItemTypesV2(db *sql.DB) error {
 	for _, stmt := range stmts {
 		if _, err := db.Exec(stmt); err != nil {
 			return fmt.Errorf("migrating dashboard_items item_type constraint v2: %w", err)
+		}
+	}
+	return nil
+}
+
+// migrateDosingProductTypes expands the dosing_products CHECK constraint to
+// include 'filter_media'. SQLite does not support ALTER TABLE to change constraints.
+func migrateDosingProductTypes(db *sql.DB) error {
+	var createSQL string
+	err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dosing_products'`).Scan(&createSQL)
+	if err != nil {
+		return fmt.Errorf("querying dosing_products schema: %w", err)
+	}
+	if strings.Contains(createSQL, "'filter_media'") {
+		return nil // already migrated
+	}
+
+	stmts := []string{
+		`CREATE TABLE dosing_products_new (
+			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+			brand       TEXT     NOT NULL,
+			name        TEXT     NOT NULL,
+			type        TEXT     NOT NULL CHECK(type IN (
+			             'two_part_a','two_part_b','calcium','alkalinity','magnesium',
+			             'trace','amino','bacteria','carbon_source','filter_media','other')),
+			unit        TEXT     NOT NULL DEFAULT 'mL',
+			notes       TEXT,
+			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`INSERT INTO dosing_products_new SELECT * FROM dosing_products`,
+		`DROP TABLE dosing_products`,
+		`ALTER TABLE dosing_products_new RENAME TO dosing_products`,
+	}
+	for _, stmt := range stmts {
+		if _, err := db.Exec(stmt); err != nil {
+			return fmt.Errorf("migrating dosing_products type constraint: %w", err)
 		}
 	}
 	return nil

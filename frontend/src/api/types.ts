@@ -286,7 +286,7 @@ export interface AgentSkill {
 
 export type DosingProductType =
   | 'two_part_a' | 'two_part_b' | 'calcium' | 'alkalinity' | 'magnesium'
-  | 'trace' | 'amino' | 'bacteria' | 'carbon_source' | 'other'
+  | 'trace' | 'amino' | 'bacteria' | 'carbon_source' | 'filter_media' | 'other'
 
 export interface DosingProduct {
   id: number
