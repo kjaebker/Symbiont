@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { createPortal } from 'react-dom'
 
 interface BubbleConfig {
   id: number
@@ -32,7 +31,7 @@ function generateBubbles(count: number): BubbleConfig[] {
 export function Bubbles() {
   const bubbles = useMemo(() => generateBubbles(18), [])
 
-  return createPortal(
+  return (
     <div
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0 }}
@@ -53,7 +52,6 @@ export function Bubbles() {
           } as React.CSSProperties}
         />
       ))}
-    </div>,
-    document.body,
+    </div>
   )
 }
