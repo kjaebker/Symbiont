@@ -313,13 +313,15 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
     <div
       className="md:hidden flex items-center shrink-0"
       style={{
-        height: 58,
+        height: 68,
         background: '#0c1326',
         paddingLeft: 16,
         paddingRight: 18,
         gap: 10,
         borderTop: '1px solid rgba(65,71,91,0.15)',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        position: 'relative',
+        zIndex: 1,
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -442,8 +444,6 @@ export default function Layout() {
   return (
     <PageThemeContext.Provider value={ctx}>
       <div className="flex h-screen overflow-hidden">
-        <Caustic />
-        {bubblesEnabled && <Bubbles />}
 
         {/* Desktop sidebar — unchanged */}
         <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0 relative overflow-hidden">
@@ -498,6 +498,10 @@ export default function Layout() {
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
             style={contentPanelStyle}
           >
+            {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
+            <Caustic />
+            {bubblesEnabled && <Bubbles />}
+
             <main className="flex-1 overflow-y-auto relative md:pb-0">
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
