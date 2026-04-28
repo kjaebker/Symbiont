@@ -108,37 +108,15 @@ function MobileDrawer({ open, onClose, activeItem }: MobileDrawerProps) {
         }}
       />
 
-      {/* Header */}
+      {/* Header — matches desktop sidebar */}
       <div style={{ padding: '58px 22px 18px', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #3adffa, #00cbe6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 18px rgba(58,223,250,0.45)',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#003544', letterSpacing: '-0.02em' }}>S</span>
+        <div className="flex items-center gap-3 px-0 py-0">
+          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
+            <img src="/icon-192.png" alt="" className="w-full h-full object-cover scale-150" />
           </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#dfe4fe', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              Symbiont
-            </div>
-            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5a6080', marginTop: 2 }}>
-              Abyssal Laboratory
-            </div>
-          </div>
+          <span className="text-lg font-bold text-on-surface tracking-tight">Symbiont</span>
         </div>
       </div>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: 'rgba(65,71,91,0.2)', margin: '0 20px 10px' }} />
 
       {/* Nav items — key on open to replay stagger animation each reveal */}
       <div
