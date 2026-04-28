@@ -310,9 +310,9 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
         aria-expanded={open}
         aria-label="Toggle navigation"
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
+          width: 44,
+          height: 44,
+          borderRadius: 12,
           border: 'none',
           cursor: 'pointer',
           background: open ? 'rgba(58,223,250,0.12)' : 'transparent',
@@ -352,7 +352,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
       </div>
 
       {/* Quick-jump dots — one per page, tap to navigate, swipe bar to step through */}
-      <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         {mobileNavItems.map(item => {
           const isActive = item.to === activeItem.to
           return (
@@ -361,17 +361,24 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
               onClick={() => navigate(item.to)}
               aria-label={item.label}
               style={{
+                padding: '10px 4px',
+                border: 'none',
+                cursor: 'pointer',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div style={{
                 width: isActive ? 20 : 6,
                 height: 6,
                 borderRadius: 9999,
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
                 background: isActive ? item.color : '#1c253e',
                 boxShadow: isActive ? `0 0 8px ${item.glow}` : 'none',
                 transition: 'all 280ms cubic-bezier(0.34,1.4,0.64,1)',
-              }}
-            />
+              }} />
+            </button>
           )
         })}
       </div>
