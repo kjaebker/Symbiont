@@ -155,15 +155,24 @@ function TasksTab() {
   const [noteInputId, setNoteInputId] = useState<number | null>(null)
   const [noteText, setNoteText] = useState('')
 
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const endOfToday = new Date(startOfToday.getTime() + 86400_000)
+
+  function alreadyDoneThisCycle(t: MaintenanceTask): boolean {
+    return !!t.last_completed_at && new Date(t.last_completed_at) >= new Date(t.next_due_at!)
+  }
+
   const overdueTasks = tasks.filter(t => {
     if (!t.enabled || t.frequency === 'as_needed' || !t.next_due_at) return false
-    return new Date(t.next_due_at) <= new Date()
+    if (alreadyDoneThisCycle(t)) return false
+    return new Date(t.next_due_at) < startOfToday
   })
   const upcomingTasks = tasks.filter(t => {
-    if (!t.enabled || t.frequency === 'as_needed') return false
-    if (!t.next_due_at) return true
-    const diff = new Date(t.next_due_at).getTime() - Date.now()
-    return diff > 0 && diff <= 86400_000 * 2
+    if (!t.enabled || t.frequency === 'as_needed' || !t.next_due_at) return false
+    if (alreadyDoneThisCycle(t)) return false
+    const d = new Date(t.next_due_at)
+    return d >= startOfToday && d < endOfToday
   })
 
   async function handleComplete(taskId: number) {
