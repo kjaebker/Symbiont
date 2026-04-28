@@ -293,7 +293,7 @@ function TasksTab() {
                     )}
                   </div>
                   {/* Action pills */}
-                  <div className="flex gap-1.5 pt-0.5 flex-wrap">
+                  <div className="flex gap-1.5 pt-0.5 flex-wrap justify-end">
                     <button
                       onClick={() => handleComplete(t.id)}
                       disabled={completingId === t.id}
