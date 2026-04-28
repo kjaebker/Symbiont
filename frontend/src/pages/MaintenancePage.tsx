@@ -275,49 +275,46 @@ function TasksTab() {
             {tasks.map(t => {
               const { label, overdue } = formatNextDue(t.next_due_at)
               return (
-                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high/50 hover:bg-surface-container-high transition-fluid">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-on-surface">{t.name}</div>
-                    {t.description && (
-                      <div className="text-xs text-on-surface-dim">{t.description}</div>
-                    )}
-                    <div className="text-xs text-on-surface-dim mt-0.5">
-                      {FREQUENCY_LABELS[t.frequency]}
-                      {t.interval_days && t.frequency === 'every_n_days' && ` (${t.interval_days}d)`}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className={cn('text-xs font-medium', overdue ? 'text-tertiary' : 'text-on-surface-dim')}>
+                <div key={t.id} className="p-3 rounded-xl bg-surface-container-high/50 hover:bg-surface-container-high transition-fluid space-y-1.5">
+                  {/* Title row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-medium text-on-surface leading-snug">{t.name}</span>
+                    <span className={cn('text-xs font-medium shrink-0 mt-0.5', overdue ? 'text-tertiary' : 'text-on-surface-dim')}>
                       {label}
-                    </div>
+                    </span>
+                  </div>
+                  {/* Description + frequency */}
+                  <div className="text-xs text-on-surface-dim">
+                    {t.description ? `${t.description} · ` : ''}
+                    {FREQUENCY_LABELS[t.frequency]}
+                    {t.interval_days && t.frequency === 'every_n_days' && ` (${t.interval_days}d)`}
                     {t.last_completed_at && (
-                      <div className="text-xs text-on-surface-faint">
-                        Last: {relativeTime(t.last_completed_at)}
-                      </div>
+                      <span className="text-on-surface-faint"> · Last {relativeTime(t.last_completed_at)}</span>
                     )}
                   </div>
-                  <div className="flex gap-1 shrink-0">
+                  {/* Action pills */}
+                  <div className="flex gap-1.5 pt-0.5 flex-wrap">
                     <button
                       onClick={() => handleComplete(t.id)}
                       disabled={completingId === t.id}
-                      className="p-1.5 rounded-lg text-primary hover:bg-primary/10 disabled:opacity-50 transition-fluid"
-                      title="Mark done"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
                     >
-                      <CheckCircle2 size={15} />
+                      <CheckCircle2 size={13} />
+                      {completingId === t.id ? 'Logging…' : 'Done'}
                     </button>
                     <button
                       onClick={() => setEditingTask(t)}
-                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-primary hover:bg-primary/10 transition-fluid"
-                      title="Edit"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
                     >
-                      <Pencil size={15} />
+                      <Pencil size={13} />
+                      Edit
                     </button>
                     <button
                       onClick={() => deleteTask.mutate(t.id)}
-                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
-                      title="Delete"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={13} />
+                      Delete
                     </button>
                   </div>
                 </div>
