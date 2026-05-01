@@ -487,7 +487,7 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+            <main className="flex-1 overflow-y-auto relative md:pb-0">
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
