@@ -428,7 +428,7 @@ export default function Layout() {
 
   return (
     <PageThemeContext.Provider value={ctx}>
-      <div className="flex h-screen overflow-hidden">
+      <div className="fixed inset-0 flex overflow-hidden">
 
         {/* Desktop sidebar — unchanged */}
         <nav className="hidden md:flex flex-col w-56 bg-surface-container-low p-4 gap-1 shrink-0 relative overflow-hidden">
