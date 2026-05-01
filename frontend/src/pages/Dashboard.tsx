@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
-import { Lock, Unlock } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Lock, Unlock, ClipboardList } from 'lucide-react'
 import { PageThemeContext } from '@/lib/pageTheme'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
@@ -9,6 +10,7 @@ import { useFeedStatus } from '@/hooks/useFeed'
 import { useLivestock } from '@/hooks/useLivestock'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDashboardLayout } from '@/hooks/useDashboardLayout'
+import { useDueItems } from '@/hooks/useDosing'
 import { ProbeCard } from '@/components/ProbeCard'
 import { OutletCard } from '@/components/OutletCard'
 import { DeviceCard, pickPrimaryProbe } from '@/components/DeviceCard'
@@ -74,6 +76,7 @@ function TankStatusHeader({
   feedActive,
   sickCount,
   quarantineCount,
+  dueTaskCount,
 }: {
   worstStatus: string
   activeOutlets: number
@@ -85,6 +88,7 @@ function TankStatusHeader({
   feedActive: boolean
   sickCount: number
   quarantineCount: number
+  dueTaskCount: number
 }) {
   const cfg = statusConfig[worstStatus as keyof typeof statusConfig] ?? statusConfig.normal
 
@@ -126,6 +130,15 @@ function TankStatusHeader({
                 <span className="ml-2 text-tertiary font-semibold">
                   · {quarantineCount} in quarantine
                 </span>
+              )}
+              {dueTaskCount > 0 && (
+                <Link
+                  to="/maintenance"
+                  className="ml-2 inline-flex items-center gap-1 text-amber-400 font-semibold hover:text-amber-300 transition-fluid"
+                >
+                  · <ClipboardList size={11} className="inline -mt-px" />
+                  {' '}{dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
+                </Link>
               )}
             </p>
             {lastPoll && (
@@ -319,6 +332,7 @@ export default function Dashboard() {
   const { data: systemData } = useSystemStatus()
   const { data: feedData } = useFeedStatus()
   const { data: livestockData } = useLivestock()
+  const { data: dueData } = useDueItems()
 
   const probes = probeData?.probes ?? []
   const allOutlets = (outletData?.outlets ?? []).filter(
@@ -354,6 +368,7 @@ export default function Dashboard() {
 
   const criticalCount = probes.filter((p) => p.status === 'critical').length
   const feedActive = (feedData?.active ?? 0) === 1
+  const dueTaskCount = (dueData?.items ?? []).filter((i) => i.kind === 'task').length
 
   const livestock = livestockData?.livestock ?? []
   const sickCount = livestock
@@ -378,7 +393,25 @@ export default function Dashboard() {
         feedActive={feedActive}
         sickCount={sickCount}
         quarantineCount={quarantineCount}
+        dueTaskCount={dueTaskCount}
       />
+
+      {/* Sticky lock pill — mobile only, stays at top as you scroll */}
+      <div className="md:hidden sticky top-0 z-20 -mt-4 mb-4 flex justify-end pointer-events-none">
+        <button
+          onClick={() => setControlsLocked((v) => !v)}
+          className={cn(
+            'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest backdrop-blur-md transition-fluid',
+            controlsLocked
+              ? 'bg-surface-container/80 text-on-surface-faint hover:text-on-surface-dim'
+              : 'bg-primary/20 text-primary',
+          )}
+          aria-label={controlsLocked ? 'Unlock controls' : 'Lock controls'}
+        >
+          {controlsLocked ? <Lock size={11} /> : <Unlock size={11} />}
+          {controlsLocked ? 'Locked' : 'Unlocked'}
+        </button>
+      </div>
 
       <DailyPromptCard />
 

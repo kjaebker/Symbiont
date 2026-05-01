@@ -30,6 +30,7 @@ import {
   useRevokeToken,
   useBackups,
   useTriggerBackup,
+  useBackupConfig,
 } from '@/hooks/useSettings'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
@@ -466,20 +467,20 @@ function DashboardTab() {
 
   return (
     <div>
-      <div className="px-4 py-3 bg-surface-container-high/30 flex items-center justify-between">
+      <div className="px-4 py-3 bg-surface-container-high/30 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-on-surface-faint">
           Drag to reorder. Remove items with the trash icon.
         </p>
         <div className="flex gap-2">
           <button
             onClick={handleAddSeparator}
-            className="px-3 py-1.5 text-xs font-medium rounded-full bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 transition-fluid cursor-pointer"
+            className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-full bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 transition-fluid cursor-pointer"
           >
             + Separator
           </button>
           <button
             onClick={() => setShowPicker(!showPicker)}
-            className="px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-fluid cursor-pointer"
+            className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-fluid cursor-pointer"
           >
             <Plus size={14} className="inline -mt-0.5 mr-1" />
             Add Item
@@ -1182,7 +1183,7 @@ function DeviceForm({
                   placeholder="Label"
                   value={co.label ?? ''}
                   onChange={(e) => updateCycleOutletLabel(co.outlet_id, e.target.value)}
-                  className="w-24 bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
+                  className="w-24 bg-surface-container-highest text-on-surface text-base rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
                 />
                 <div className="flex gap-1">
                   {PRESET_COLORS.map((c) => (
@@ -1213,7 +1214,7 @@ function DeviceForm({
         <select
           value=""
           onChange={(e) => { if (e.target.value) addCycleOutlet(e.target.value) }}
-          className={cn(inputClass, 'cursor-pointer appearance-none text-sm')}
+          className={cn(inputClass, 'cursor-pointer appearance-none')}
         >
           <option value="" className="bg-surface-container text-on-surface">+ Add channel…</option>
           {outlets
@@ -1984,11 +1985,22 @@ function TokensTab() {
 function BackupTab() {
   const { data, isLoading } = useBackups()
   const triggerMutation = useTriggerBackup()
+  const { data: configData } = useBackupConfig()
 
   const backups = data?.backups ?? []
 
   return (
     <div className="space-y-4">
+      {configData?.backup_dir && (
+        <div className="mx-4 mt-2 px-4 py-3 bg-surface-container rounded-2xl space-y-1">
+          <span className="text-xs text-on-surface-faint uppercase tracking-widest">Backup Location</span>
+          <p className="text-xs font-mono text-on-surface-dim break-all">{configData.backup_dir}</p>
+          <p className="text-[11px] text-on-surface-faint">
+            Both databases are backed up here. Change via <code className="font-mono bg-surface-container-high px-1 rounded">SYMBIONT_BACKUP_DIR</code> in your config.
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between px-4 pt-2">
         <span className="text-xs text-on-surface-faint uppercase tracking-widest">
           Database Backups

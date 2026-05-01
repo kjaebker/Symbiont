@@ -101,16 +101,13 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
-  // Light cycle chart: show from today's local midnight so you see the full arc
-  // from lights-on through now. Key off today's local date string — stable all day.
-  const todayDate = new Date().toLocaleDateString('sv')
+  // Light cycle chart: show the last 6 hours of intensity data.
   const cycleOutlets = device.outlet_ids ?? []
   const cycleResults = useQueries({
     queries: cycleOutlets.map((o) => ({
-      queryKey: ['outletIntensityHistory', o.outlet_id, todayDate],
+      queryKey: ['outletIntensityHistory', o.outlet_id, '6h'],
       queryFn: () => {
-        const from = new Date()
-        from.setHours(0, 0, 0, 0)
+        const from = new Date(Date.now() - 6 * 60 * 60 * 1000)
         return getOutletHistory(o.outlet_id, { from: from.toISOString(), interval: '15m' })
       },
       staleTime: 5 * 60_000,
