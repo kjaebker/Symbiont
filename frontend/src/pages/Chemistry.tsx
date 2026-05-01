@@ -74,7 +74,7 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Brand</label>
           <input
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={brand}
             onChange={e => setBrand(e.target.value)}
             placeholder="e.g. BRS"
@@ -83,7 +83,7 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Product name</label>
           <input
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g. 2-Part Alkalinity"
@@ -94,7 +94,7 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Type</label>
           <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={type}
             onChange={e => setType(e.target.value as DosingProductType)}
           >
@@ -106,7 +106,7 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Unit</label>
           <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={unit}
             onChange={e => setUnit(e.target.value)}
           >
@@ -122,7 +122,7 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Notes (optional)</label>
         <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
           value={notes}
           onChange={e => setNotes(e.target.value)}
           placeholder="Optional notes"
@@ -179,7 +179,7 @@ function ScheduleForm({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Product</label>
         <select
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
           value={productId}
           onChange={e => setProductId(Number(e.target.value))}
         >
@@ -197,7 +197,7 @@ function ScheduleForm({
             type="number"
             min="0"
             step="0.5"
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={amount}
             onChange={e => setAmount(e.target.value)}
             placeholder="5"
@@ -206,7 +206,7 @@ function ScheduleForm({
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Frequency</label>
           <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={frequency}
             onChange={e => setFrequency(e.target.value as DosingFrequency)}
           >
@@ -222,7 +222,7 @@ function ScheduleForm({
           <input
             type="number"
             min="1"
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={intervalDays}
             onChange={e => setIntervalDays(e.target.value)}
             placeholder="3"
@@ -233,7 +233,7 @@ function ScheduleForm({
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
           <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={dayOfWeek}
             onChange={e => setDayOfWeek(Number(e.target.value))}
           >
@@ -246,7 +246,7 @@ function ScheduleForm({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Notes (optional)</label>
         <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
           value={notes}
           onChange={e => setNotes(e.target.value)}
           placeholder="Optional notes"

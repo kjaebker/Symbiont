@@ -10,6 +10,7 @@ import {
   revokeToken,
   getBackups,
   triggerBackup,
+  getBackupConfig,
 } from '@/api/client'
 import type { ProbeConfig, OutletConfig } from '@/api/types'
 
@@ -118,3 +119,12 @@ export function useTriggerBackup() {
     },
   })
 }
+
+export function useBackupConfig() {
+  return useQuery({
+    queryKey: ['backup-config'],
+    queryFn: getBackupConfig,
+    staleTime: 60_000,
+  })
+}
+

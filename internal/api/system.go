@@ -282,3 +282,7 @@ func fileSize(path string) int64 {
 	}
 	return info.Size()
 }
+
+func (s *Server) HandleGetBackupConfig(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"backup_dir": s.cfg.BackupDir})
+}

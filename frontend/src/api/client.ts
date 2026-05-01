@@ -947,3 +947,8 @@ export function getMaintenanceLogs(taskId: number, limit?: number) {
 export function getDueItems() {
   return apiFetch<{ items: DueItem[] }>('/api/tasks/due')
 }
+
+// Backup config
+export function getBackupConfig() {
+  return apiFetch<{ backup_dir: string }>('/api/system/backup/config')
+}
