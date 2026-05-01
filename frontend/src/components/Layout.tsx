@@ -481,7 +481,7 @@ export default function Layout() {
           {/* Content panel — absolute on mobile (slides right), static on desktop */}
           <div
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
-            style={contentPanelStyle}
+            style={{ ...contentPanelStyle, paddingTop: 'env(safe-area-inset-top)' }}
           >
             {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
             <Caustic />

@@ -131,16 +131,16 @@ function TankStatusHeader({
                   · {quarantineCount} in quarantine
                 </span>
               )}
-              {dueTaskCount > 0 && (
-                <Link
-                  to="/maintenance"
-                  className="ml-2 inline-flex items-center gap-1 text-amber-400 font-semibold hover:text-amber-300 transition-fluid"
-                >
-                  · <ClipboardList size={11} className="inline -mt-px" />
-                  {' '}{dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
-                </Link>
-              )}
             </p>
+            {dueTaskCount > 0 && (
+              <Link
+                to="/maintenance"
+                className="mt-2 self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
+              >
+                <ClipboardList size={11} />
+                {dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
+              </Link>
+            )}
             {lastPoll && (
               <p className="text-xs text-on-surface-faint mt-1">
                 {pollOk === false ? '⚠ Poller down · ' : ''}{relativeTime(lastPoll)}
