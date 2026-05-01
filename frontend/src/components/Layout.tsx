@@ -481,13 +481,13 @@ export default function Layout() {
           {/* Content panel — absolute on mobile (slides right), static on desktop */}
           <div
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
-            style={{ ...contentPanelStyle, paddingTop: 'env(safe-area-inset-top)' }}
+            style={contentPanelStyle}
           >
             {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative md:pb-0">
+            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div

@@ -396,22 +396,21 @@ export default function Dashboard() {
         dueTaskCount={dueTaskCount}
       />
 
-      {/* Sticky lock pill — mobile only, stays at top as you scroll */}
-      <div className="md:hidden sticky top-0 z-20 -mt-4 mb-4 flex justify-end pointer-events-none">
-        <button
-          onClick={() => setControlsLocked((v) => !v)}
-          className={cn(
-            'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest backdrop-blur-md transition-fluid',
-            controlsLocked
-              ? 'bg-surface-container/80 text-on-surface-faint hover:text-on-surface-dim'
-              : 'bg-primary/20 text-primary',
-          )}
-          aria-label={controlsLocked ? 'Unlock controls' : 'Lock controls'}
-        >
-          {controlsLocked ? <Lock size={11} /> : <Unlock size={11} />}
-          {controlsLocked ? 'Locked' : 'Unlocked'}
-        </button>
-      </div>
+      {/* Floating lock button — mobile only, fixed above bottom nav */}
+      <button
+        onClick={() => setControlsLocked((v) => !v)}
+        className={cn(
+          'md:hidden fixed right-4 z-30 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold uppercase tracking-widest shadow-lg backdrop-blur-md transition-fluid',
+          controlsLocked
+            ? 'bg-surface-container/90 text-on-surface-faint'
+            : 'bg-primary/20 text-primary shadow-glow-primary',
+        )}
+        style={{ bottom: 'calc(68px + env(safe-area-inset-bottom) + 12px)' }}
+        aria-label={controlsLocked ? 'Unlock controls' : 'Lock controls'}
+      >
+        {controlsLocked ? <Lock size={11} /> : <Unlock size={11} />}
+        {controlsLocked ? 'Locked' : 'Unlocked'}
+      </button>
 
       <DailyPromptCard />
 
