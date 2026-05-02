@@ -293,7 +293,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
       <div
         className="flex items-center"
         style={{
-          height: 66,
+          height: 56,
           background: '#0c1326',
           borderTop: '1px solid rgba(65,71,91,0.15)',
           position: 'relative',
@@ -483,13 +483,27 @@ export default function Layout() {
           {/* Content panel — absolute on mobile (slides right), static on desktop */}
           <div
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
-            style={{ ...contentPanelStyle, paddingTop: 'env(safe-area-inset-top, 0px)' }}
+            style={contentPanelStyle}
           >
             {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative md:pb-0">
+            {/* DI gradient — paddingTop sizes the element to the safe area height so the
+                opaque surface color fills the DI zone; paddingBottom extends the fade
+                into the content area so scrolled content disappears smoothly. */}
+            <div
+              aria-hidden="true"
+              className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
+              style={{
+                paddingTop: 'env(safe-area-inset-top, 0px)',
+                paddingBottom: 32,
+                background: 'linear-gradient(to bottom, #070d1f 62%, transparent)',
+                zIndex: 15,
+              }}
+            />
+
+            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
