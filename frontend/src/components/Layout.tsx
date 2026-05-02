@@ -483,26 +483,13 @@ export default function Layout() {
           {/* Content panel — absolute on mobile (slides right), static on desktop */}
           <div
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
-            style={contentPanelStyle}
+            style={{ ...contentPanelStyle, paddingTop: 'env(safe-area-inset-top, 0px)' }}
           >
             {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            {/* Dynamic Island gradient fade — paddingTop drives the safe-area height,
-                paddingBottom extends the fade into the content area so it's visible */}
-            <div
-              aria-hidden="true"
-              className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
-              style={{
-                paddingTop: 'env(safe-area-inset-top, 0px)',
-                paddingBottom: 28,
-                background: 'linear-gradient(to bottom, rgba(7,13,31,0.98) 35%, transparent)',
-                zIndex: 15,
-              }}
-            />
-
-            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+            <main className="flex-1 overflow-y-auto relative md:pb-0">
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
