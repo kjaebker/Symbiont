@@ -293,7 +293,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
       <div
         className="flex items-center"
         style={{
-          height: 56,
+          height: 48,
           background: '#0c1326',
           borderTop: '1px solid rgba(65,71,91,0.15)',
           position: 'relative',
@@ -309,9 +309,9 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
         aria-expanded={open}
         aria-label="Toggle navigation"
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 12,
+          width: 36,
+          height: 36,
+          borderRadius: 10,
           border: 'none',
           cursor: 'pointer',
           background: open ? 'rgba(58,223,250,0.12)' : 'transparent',
@@ -360,7 +360,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
               onClick={() => navigate(item.to)}
               aria-label={item.label}
               style={{
-                padding: '10px 4px',
+                padding: '6px 4px',
                 border: 'none',
                 cursor: 'pointer',
                 background: 'transparent',
