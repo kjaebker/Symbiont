@@ -489,21 +489,7 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            {/* DI gradient — paddingTop sizes the element to the safe area height so the
-                opaque surface color fills the DI zone; paddingBottom extends the fade
-                into the content area so scrolled content disappears smoothly. */}
-            <div
-              aria-hidden="true"
-              className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
-              style={{
-                paddingTop: 'env(safe-area-inset-top, 0px)',
-                paddingBottom: 32,
-                background: 'linear-gradient(to bottom, #070d1f 62%, transparent)',
-                zIndex: 15,
-              }}
-            />
-
-            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+            <main className="flex-1 overflow-y-auto relative md:pb-0">
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
