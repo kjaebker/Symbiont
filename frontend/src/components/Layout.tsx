@@ -383,7 +383,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
       </div>
       </div>
       {/* Safe-area filler — 34px below bar matches home indicator zone */}
-      <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: '#0c1326' }} />
+      <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: '#0c1326' }} />
     </div>
   )
 }
