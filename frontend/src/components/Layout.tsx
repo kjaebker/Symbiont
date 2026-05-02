@@ -288,21 +288,21 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
   const Icon = activeItem.icon
 
   return (
-    <div
-      className="md:hidden shrink-0 flex items-center"
-      style={{
-        height: 62,
-        background: '#0c1326',
-        borderTop: '1px solid rgba(65,71,91,0.15)',
-        position: 'relative',
-        zIndex: 1,
-        paddingLeft: 16,
-        paddingRight: 18,
-        gap: 10,
-      }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="md:hidden shrink-0" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      {/* Visible bar — 66px, sits above the home indicator zone */}
+      <div
+        className="flex items-center"
+        style={{
+          height: 66,
+          background: '#0c1326',
+          borderTop: '1px solid rgba(65,71,91,0.15)',
+          position: 'relative',
+          zIndex: 1,
+          paddingLeft: 16,
+          paddingRight: 18,
+          gap: 10,
+        }}
+      >
       {/* Hamburger button */}
       <button
         onClick={onToggle}
@@ -381,6 +381,9 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
           )
         })}
       </div>
+      </div>
+      {/* Safe-area filler — 34px below bar matches home indicator zone */}
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: '#0c1326' }} />
     </div>
   )
 }
@@ -486,14 +489,15 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            {/* Dynamic Island gradient fade — uses paddingTop (not height) to drive size since
-                env() in inline height may not resolve on all iOS Safari versions */}
+            {/* Dynamic Island gradient fade — paddingTop drives the safe-area height,
+                paddingBottom extends the fade into the content area so it's visible */}
             <div
               aria-hidden="true"
               className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
               style={{
                 paddingTop: 'env(safe-area-inset-top, 0px)',
-                backgroundImage: 'linear-gradient(to bottom, var(--color-surface) 55%, transparent)',
+                paddingBottom: 28,
+                background: 'linear-gradient(to bottom, rgba(7,13,31,0.98) 35%, transparent)',
                 zIndex: 15,
               }}
             />
