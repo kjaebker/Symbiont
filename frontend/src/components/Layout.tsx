@@ -291,9 +291,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
     <div
       className="md:hidden shrink-0 flex items-center"
       style={{
-        boxSizing: 'content-box',
         height: 52,
-        paddingBottom: 'env(safe-area-inset-bottom)',
         background: '#0c1326',
         borderTop: '1px solid rgba(65,71,91,0.15)',
         position: 'relative',
@@ -488,7 +486,18 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+            {/* Dynamic Island gradient fade — smoothly masks content that scrolls behind the notch */}
+            <div
+              aria-hidden="true"
+              className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
+              style={{
+                height: 'env(safe-area-inset-top, 0px)',
+                background: 'linear-gradient(to bottom, var(--color-surface) 55%, transparent)',
+                zIndex: 15,
+              }}
+            />
+
+            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
