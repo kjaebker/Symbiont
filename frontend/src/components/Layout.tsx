@@ -288,7 +288,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
   const Icon = activeItem.icon
 
   return (
-    <div className="md:hidden shrink-0" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="md:hidden shrink-0" style={{ position: 'relative', zIndex: 20 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Visible bar — 66px, sits above the home indicator zone */}
       <div
         className="flex items-center"
