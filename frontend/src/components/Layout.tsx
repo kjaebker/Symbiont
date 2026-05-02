@@ -288,16 +288,22 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
   const Icon = activeItem.icon
 
   return (
-    <div className="md:hidden shrink-0" style={{ position: 'relative', zIndex: 20 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      {/* Visible bar — 66px, sits above the home indicator zone */}
+    <div
+      className="md:hidden shrink-0"
+      style={{
+        position: 'relative',
+        zIndex: 20,
+        background: '#0c1326',
+        borderTop: '1px solid rgba(65,71,91,0.15)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div
         className="flex items-center"
         style={{
           height: 48,
-          background: '#0c1326',
-          borderTop: '1px solid rgba(65,71,91,0.15)',
-          position: 'relative',
-          zIndex: 1,
           paddingLeft: 16,
           paddingRight: 18,
           gap: 10,
@@ -382,8 +388,6 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
         })}
       </div>
       </div>
-      {/* Safe-area filler — 34px below bar matches home indicator zone */}
-      <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: '#0c1326' }} />
     </div>
   )
 }
