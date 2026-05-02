@@ -109,7 +109,7 @@ function MobileDrawer({ open, onClose, activeItem }: MobileDrawerProps) {
       />
 
       {/* Header — matches desktop sidebar */}
-      <div style={{ padding: '58px 22px 18px', position: 'relative' }}>
+      <div style={{ padding: 'calc(env(safe-area-inset-top) + 58px) 22px 18px', position: 'relative' }}>
         <div className="flex items-center gap-3 px-0 py-0">
           <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
             <img src="/icon-192.png" alt="" className="w-full h-full object-cover scale-150" />
@@ -289,17 +289,18 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
 
   return (
     <div
-      className="md:hidden flex items-center shrink-0"
+      className="md:hidden shrink-0 flex items-center"
       style={{
-        height: 68,
+        boxSizing: 'content-box',
+        height: 52,
+        paddingBottom: 'env(safe-area-inset-bottom)',
         background: '#0c1326',
+        borderTop: '1px solid rgba(65,71,91,0.15)',
+        position: 'relative',
+        zIndex: 1,
         paddingLeft: 16,
         paddingRight: 18,
         gap: 10,
-        borderTop: '1px solid rgba(65,71,91,0.15)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        position: 'relative',
-        zIndex: 1,
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -487,7 +488,7 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative md:pb-0">
+            <main className="flex-1 overflow-y-auto relative md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div
