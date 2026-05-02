@@ -405,7 +405,7 @@ export default function Dashboard() {
             ? 'bg-surface-container/90 text-on-surface-faint'
             : 'bg-primary/20 text-primary shadow-glow-primary',
         )}
-        style={{ bottom: '60px' }}
+        style={{ bottom: '70px' }}
         aria-label={controlsLocked ? 'Unlock controls' : 'Lock controls'}
       >
         {controlsLocked ? <Lock size={11} /> : <Unlock size={11} />}

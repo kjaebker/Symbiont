@@ -291,7 +291,7 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
     <div
       className="md:hidden shrink-0 flex items-center"
       style={{
-        height: 52,
+        height: 62,
         background: '#0c1326',
         borderTop: '1px solid rgba(65,71,91,0.15)',
         position: 'relative',
@@ -486,13 +486,14 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            {/* Dynamic Island gradient fade — smoothly masks content that scrolls behind the notch */}
+            {/* Dynamic Island gradient fade — uses paddingTop (not height) to drive size since
+                env() in inline height may not resolve on all iOS Safari versions */}
             <div
               aria-hidden="true"
               className="md:hidden absolute inset-x-0 top-0 pointer-events-none"
               style={{
-                height: 'env(safe-area-inset-top, 0px)',
-                background: 'linear-gradient(to bottom, var(--color-surface) 55%, transparent)',
+                paddingTop: 'env(safe-area-inset-top, 0px)',
+                backgroundImage: 'linear-gradient(to bottom, var(--color-surface) 55%, transparent)',
                 zIndex: 15,
               }}
             />
