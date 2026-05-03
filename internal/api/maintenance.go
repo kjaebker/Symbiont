@@ -163,7 +163,7 @@ func (s *Server) HandleMaintenanceTaskComplete(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	s.events.Publish(events.NewMaintenanceCompleted(logID, taskID, task.Name, source))
+	s.events.Publish(events.NewMaintenanceCompleted(logID, taskID, task.Name, source, body.Notes))
 
 	writeJSON(w, http.StatusCreated, map[string]any{"log_id": logID})
 }

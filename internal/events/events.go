@@ -211,23 +211,25 @@ func NewDoseLogged(logID, productID int64, scheduleID *int64, brand, name string
 // EvtMaintenanceCompleted is published after a maintenance task is logged as done.
 type EvtMaintenanceCompleted struct {
 	base
-	LogID    int64  `json:"log_id"`
-	TaskID   int64  `json:"task_id"`
-	TaskName string `json:"task_name"`
-	Source   string `json:"source"`
+	LogID    int64   `json:"log_id"`
+	TaskID   int64   `json:"task_id"`
+	TaskName string  `json:"task_name"`
+	Source   string  `json:"source"`
+	Notes    *string `json:"notes,omitempty"`
 }
 
 func (e EvtMaintenanceCompleted) Kind() string          { return "maintenance_completed" }
 func (e EvtMaintenanceCompleted) CorrelationID() string { return strconv.FormatInt(e.TaskID, 10) }
 
 // NewMaintenanceCompleted constructs an EvtMaintenanceCompleted with At = now.
-func NewMaintenanceCompleted(logID, taskID int64, taskName, source string) EvtMaintenanceCompleted {
+func NewMaintenanceCompleted(logID, taskID int64, taskName, source string, notes *string) EvtMaintenanceCompleted {
 	return EvtMaintenanceCompleted{
 		base:     base{At: now()},
 		LogID:    logID,
 		TaskID:   taskID,
 		TaskName: taskName,
 		Source:   source,
+		Notes:    notes,
 	}
 }
 

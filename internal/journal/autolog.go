@@ -80,13 +80,17 @@ func EntryFromEvent(e events.SystemEvent) (db.JournalEntry, bool) {
 		neutral := "neutral"
 		title := fmt.Sprintf("%s completed", ev.TaskName)
 		sourceRef := fmt.Sprintf("maintenance_log:%d", ev.LogID)
-		return db.JournalEntry{
+		entry := db.JournalEntry{
 			Category:  "maintenance",
 			Sentiment: &neutral,
 			Title:     title,
 			Source:    "system",
 			SourceRef: &sourceRef,
-		}, true
+		}
+		if ev.Notes != nil && *ev.Notes != "" {
+			entry.Body = ev.Notes
+		}
+		return entry, true
 
 	default:
 		return db.JournalEntry{}, false
