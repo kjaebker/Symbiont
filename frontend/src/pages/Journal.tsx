@@ -342,7 +342,7 @@ function EntryCard({
 
 // ─── Full Timeline ────────────────────────────────────────────────────────────
 
-const KIND_LABELS: Record<string, string> = {
+export const KIND_LABELS: Record<string, string> = {
   feed_mode_activated: 'Feed Mode',
   outlet_changed: 'Outlet',
   alert_fired: 'Alert Fired',
@@ -355,7 +355,7 @@ const KIND_LABELS: Record<string, string> = {
   auth_event: 'Auth',
 }
 
-const KIND_COLORS: Record<string, string> = {
+export const KIND_COLORS: Record<string, string> = {
   feed_mode_activated: 'text-secondary bg-secondary/10',
   outlet_changed: 'text-primary bg-primary/10',
   alert_fired: 'text-red-400 bg-red-400/10',
@@ -417,44 +417,58 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   )
 }
 
-export function FullTimeline() {
-  const [kindFilter, setKindFilter] = useState('')
+interface FullTimelineProps {
+  kindFilter?: string
+  onKindFilterChange?: (v: string) => void
+  allKinds?: string[]
+}
+
+export function FullTimeline({ kindFilter: kindFilterProp, onKindFilterChange, allKinds: allKindsProp }: FullTimelineProps = {}) {
+  const controlled = onKindFilterChange !== undefined
+  const [kindFilterInternal, setKindFilterInternal] = useState('')
+
+  const kindFilter = controlled ? (kindFilterProp ?? '') : kindFilterInternal
+  const setKindFilter = controlled ? onKindFilterChange : setKindFilterInternal
+
   const { data, isLoading, isError } = useAuditEvents({
     kind: kindFilter || undefined,
     limit: 100,
   })
 
   const events = data?.events ?? []
-  const allKinds = Array.from(new Set(events.map(e => e.kind))).sort()
+  const allKindsFromData = Array.from(new Set(events.map(e => e.kind))).sort()
+  const allKinds = allKindsProp ?? allKindsFromData
 
   return (
     <div className="space-y-4">
-      {/* Kind filter */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setKindFilter('')}
-          className={cn(
-            'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-            kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          All events
-        </button>
-        {allKinds.map(k => (
+      {/* Kind filter — hidden when parent owns it via filterBar */}
+      {!controlled && (
+        <div className="flex flex-wrap gap-1.5">
           <button
-            key={k}
-            onClick={() => setKindFilter(kindFilter === k ? '' : k)}
+            onClick={() => setKindFilter('')}
             className={cn(
               'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-              kindFilter === k
-                ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
             )}
           >
-            {KIND_LABELS[k] ?? k}
+            All events
           </button>
-        ))}
-      </div>
+          {allKinds.map(k => (
+            <button
+              key={k}
+              onClick={() => setKindFilter(kindFilter === k ? '' : k)}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
+                kindFilter === k
+                  ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
+                  : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              )}
+            >
+              {KIND_LABELS[k] ?? k}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isLoading && (
         <div className="space-y-2">
