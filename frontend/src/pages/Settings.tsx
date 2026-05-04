@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { PageHeader } from '@/components/PageHeader'
 import {
   DndContext,
   closestCenter,
@@ -3053,66 +3054,30 @@ export default function Settings() {
     : 'bg-surface-container rounded-2xl overflow-hidden'
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <p className="text-xs text-primary uppercase tracking-widest mb-2">
-          Admin Console
-        </p>
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-          System Core Settings
-        </h1>
-      </div>
+    <div>
+      <PageHeader
+        subtitle="Admin Console"
+        title="System Core Settings"
+        tabs={tabs.map((t) => ({ key: t.key, label: t.label }))}
+        activeTab={activeTab}
+        onTabChange={(k) => setActiveTab(k as Tab)}
+        maxWidth="max-w-7xl"
+      />
 
-      {/* Desktop: pill tabs */}
-      <div className="hidden lg:flex flex-wrap gap-1.5">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'px-4 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider transition-fluid cursor-pointer',
-              activeTab === tab.key
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-high',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Mobile/tablet: select dropdown */}
-      <div className="lg:hidden relative">
-        <select
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value as Tab)}
-          className="w-full appearance-none bg-surface-container-high text-on-surface text-base font-semibold uppercase tracking-wider rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-        >
-          {tabs.map((tab) => (
-            <option key={tab.key} value={tab.key}>
-              {tab.label}
-            </option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-on-surface-dim">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      <div className="px-6 md:px-8 pt-5 pb-8 max-w-7xl mx-auto">
+        <div className={tabContainerClass}>
+          {activeTab === 'dashboard' && <DashboardTab />}
+          {activeTab === 'devices' && <DevicesTab />}
+          {activeTab === 'tank' && <TankTab />}
+          {activeTab === 'probes' && <ProbesTab />}
+          {activeTab === 'outlets' && <OutletsTab />}
+          {activeTab === 'agent' && <AgentTab />}
+          {activeTab === 'tokens' && <TokensTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
+          {activeTab === 'backup' && <BackupTab />}
+          {activeTab === 'log' && <SystemLogTab />}
+          {activeTab === 'system' && <SystemTab />}
         </div>
-      </div>
-
-      <div className={tabContainerClass}>
-        {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'devices' && <DevicesTab />}
-        {activeTab === 'tank' && <TankTab />}
-        {activeTab === 'probes' && <ProbesTab />}
-        {activeTab === 'outlets' && <OutletsTab />}
-        {activeTab === 'agent' && <AgentTab />}
-        {activeTab === 'tokens' && <TokensTab />}
-        {activeTab === 'notifications' && <NotificationsTab />}
-        {activeTab === 'backup' && <BackupTab />}
-        {activeTab === 'log' && <SystemLogTab />}
-        {activeTab === 'system' && <SystemTab />}
       </div>
     </div>
   )

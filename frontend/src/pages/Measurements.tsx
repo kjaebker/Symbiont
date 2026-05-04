@@ -264,15 +264,36 @@ function AddForm({ parameters, onClose }: AddFormProps) {
   )
 }
 
-export default function Measurements({ hideHeader = false }: { hideHeader?: boolean }) {
+interface MeasurementsProps {
+  hideHeader?: boolean
+  // Controlled props used when embedded (hideHeader=true)
+  selectedParam?: string | null
+  onSelectedParamChange?: (p: string | null) => void
+  showForm?: boolean
+  onShowFormChange?: (v: boolean) => void
+}
+
+export default function Measurements({
+  hideHeader = false,
+  selectedParam: selectedParamProp,
+  onSelectedParamChange,
+  showForm: showFormProp,
+  onShowFormChange,
+}: MeasurementsProps) {
   usePageTitle('Measurements')
 
   const { data: paramsData } = useMeasurementParameters()
   const parameters = paramsData?.parameters ?? []
 
-  const [selectedParam, setSelectedParam] = useState<string | null>(null)
-  const [showForm, setShowForm] = useState(false)
+  const [selectedParamInternal, setSelectedParamInternal] = useState<string | null>(null)
+  const [showFormInternal, setShowFormInternal] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  const controlled = hideHeader && onSelectedParamChange !== undefined
+  const selectedParam = controlled ? (selectedParamProp ?? null) : selectedParamInternal
+  const setSelectedParam = controlled ? onSelectedParamChange! : setSelectedParamInternal
+  const showForm = (hideHeader && onShowFormChange !== undefined) ? (showFormProp ?? false) : showFormInternal
+  const setShowForm = (hideHeader && onShowFormChange !== undefined) ? onShowFormChange! : setShowFormInternal
 
   const deleteMutation = useDeleteMeasurement()
 
@@ -292,80 +313,65 @@ export default function Measurements({ hideHeader = false }: { hideHeader?: bool
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      {!hideHeader ? (
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs text-primary uppercase tracking-widest mb-2">
-              Water Chemistry
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-              Measurements
-            </h1>
+      {/* Standalone header (not used when embedded in Chemistry) */}
+      {!hideHeader && (
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs text-primary uppercase tracking-widest mb-2">
+                Water Chemistry
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
+                Measurements
+              </h1>
+            </div>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
+                showForm
+                  ? 'bg-surface-container-high text-on-surface-dim'
+                  : 'bg-primary/20 text-primary hover:bg-primary/30',
+              )}
+            >
+              <Plus size={16} />
+              Add Measurement
+            </button>
           </div>
-          <button
-            onClick={() => { setShowForm((v) => !v) }}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
-              showForm
-                ? 'bg-surface-container-high text-on-surface-dim'
-                : 'bg-primary/20 text-primary hover:bg-primary/30',
-            )}
-          >
-            <Plus size={16} />
-            Add Measurement
-          </button>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            onClick={() => { setShowForm((v) => !v) }}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
-              showForm
-                ? 'bg-surface-container-high text-on-surface-dim'
-                : 'bg-primary/20 text-primary hover:bg-primary/30',
-            )}
-          >
-            <Plus size={16} />
-            Add Measurement
-          </button>
-        </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedParam(null)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+                selectedParam === null
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
+              )}
+            >
+              All
+            </button>
+            {parameters.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedParam(selectedParam === p.name ? null : p.name)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+                  selectedParam === p.name
+                    ? 'bg-primary/20 text-primary'
+                    : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
+                )}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Add form */}
       {showForm && parameters.length > 0 && (
         <AddForm parameters={parameters} onClose={() => setShowForm(false)} />
       )}
-
-      {/* Parameter filter pills */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setSelectedParam(null)}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-            selectedParam === null
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-          )}
-        >
-          All
-        </button>
-        {parameters.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setSelectedParam(selectedParam === p.name ? null : p.name)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-              selectedParam === p.name
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-            )}
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
 
       {/* Table */}
       {isLoading ? (

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import type { LivestockType, LivestockStatus } from '@/api/types'
 import { LivestockCard } from '@/components/LivestockCard'
 import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/components/LivestockForm'
+import { PageHeader } from '@/components/PageHeader'
 import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
@@ -50,30 +51,105 @@ export default function Livestock() {
     return item.id
   }
 
-  return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-primary uppercase tracking-widest mb-2">Tank Biology</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-            Livestock
-          </h1>
-        </div>
+  const filterBar = (
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => setTypeFilter('')}
+        className={cn(
+          'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+          typeFilter === ''
+            ? 'bg-primary/20 text-primary'
+            : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
+        )}
+      >
+        All Types
+      </button>
+      {TYPE_OPTIONS.map((o) => (
         <button
-          onClick={() => setShowAddForm((v) => !v)}
+          key={o.value}
+          onClick={() => setTypeFilter(typeFilter === o.value ? '' : o.value)}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-fluid',
-            showAddForm
+            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+            typeFilter === o.value
               ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high hover:text-on-surface',
+              : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
           )}
         >
-          <Plus className="h-4 w-4" />
-          Add Livestock
+          {o.label}
         </button>
-      </div>
+      ))}
+      <div className="hidden md:block w-px h-5 self-center bg-outline-variant/30 shrink-0" />
+      <button
+        onClick={() => setStatusFilter('')}
+        className={cn(
+          'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+          statusFilter === ''
+            ? 'bg-secondary/20 text-secondary'
+            : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
+        )}
+      >
+        All Status
+      </button>
+      {STATUS_OPTIONS.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => setStatusFilter(statusFilter === o.value ? '' : o.value)}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
+            statusFilter === o.value
+              ? 'bg-secondary/20 text-secondary'
+              : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
 
+  const statusPills = allItems.length > 0 ? (
+    <>
+      {countType('fish') > 0 && (
+        <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+          {countType('fish')} Fish
+        </span>
+      )}
+      {countType('coral') > 0 && (
+        <span className="px-3 py-1.5 rounded-full bg-tertiary/10 text-tertiary text-xs font-medium">
+          {countType('coral')} Corals
+        </span>
+      )}
+      {countType('invertebrate') > 0 && (
+        <span className="px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-medium">
+          {countType('invertebrate')} Invertebrates
+        </span>
+      )}
+      {countType('other') > 0 && (
+        <span className="px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-dim text-xs font-medium">
+          {countType('other')} Other
+        </span>
+      )}
+      {nonHealthyCount > 0 && (
+        <span className="px-3 py-1.5 rounded-full bg-amber-400/10 text-amber-400 text-xs font-medium">
+          {nonHealthyCount} Need attention
+        </span>
+      )}
+    </>
+  ) : null
+
+  return (
+    <div>
+      <PageHeader
+        subtitle="Tank Biology"
+        title="Livestock"
+        action={{ label: 'Add Livestock', icon: Plus, onClick: () => setShowAddForm((v) => !v), active: showAddForm }}
+        filterBar={filterBar}
+        filterActive={!!(typeFilter || statusFilter)}
+        statusPills={statusPills ?? undefined}
+        maxWidth="max-w-6xl"
+      />
+
+      <div className="px-6 md:px-8 pt-5 pb-8 max-w-6xl mx-auto space-y-6">
       {/* Add form */}
       {showAddForm && (
         <LivestockForm
@@ -84,95 +160,6 @@ export default function Livestock() {
           title="Add Livestock"
         />
       )}
-
-      {/* Summary chips */}
-      {allItems.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {countType('fish') > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-              {countType('fish')} Fish
-            </span>
-          )}
-          {countType('coral') > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-tertiary/10 text-tertiary text-xs font-medium">
-              {countType('coral')} Corals
-            </span>
-          )}
-          {countType('invertebrate') > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-medium">
-              {countType('invertebrate')} Invertebrates
-            </span>
-          )}
-          {countType('other') > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-dim text-xs font-medium">
-              {countType('other')} Other
-            </span>
-          )}
-          {nonHealthyCount > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-amber-400/10 text-amber-400 text-xs font-medium">
-              {nonHealthyCount} Need attention
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Filter bar */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setTypeFilter('')}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-              typeFilter === ''
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-            )}
-          >
-            All Types
-          </button>
-          {TYPE_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              onClick={() => setTypeFilter(typeFilter === o.value ? '' : o.value)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-                typeFilter === o.value
-                  ? 'bg-primary/20 text-primary'
-                  : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setStatusFilter('')}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-              statusFilter === ''
-                ? 'bg-secondary/20 text-secondary'
-                : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-            )}
-          >
-            All Status
-          </button>
-          {STATUS_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              onClick={() => setStatusFilter(statusFilter === o.value ? '' : o.value)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-                statusFilter === o.value
-                  ? 'bg-secondary/20 text-secondary'
-                  : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Content */}
       {isLoading ? (
@@ -207,6 +194,7 @@ export default function Livestock() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }
