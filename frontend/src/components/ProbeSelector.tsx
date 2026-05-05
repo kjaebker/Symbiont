@@ -51,7 +51,7 @@ export function ProbeSelector({
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] max-h-52 overflow-y-auto bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
           {available.length === 0 ? (
             <p className="text-xs text-on-surface-faint px-3 py-2">
               {selected.length >= maxSelections
@@ -158,7 +158,7 @@ export function MeasurementSelector({
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] max-h-52 overflow-y-auto bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
           {available.length === 0 ? (
             <p className="text-xs text-on-surface-faint px-3 py-2">
               {selected.length >= maxSelections
