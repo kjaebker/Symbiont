@@ -57,7 +57,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
           </button>
         </div>
         {/* Content */}
-        <div className="px-5 pb-8 overflow-y-auto">
+        <div className="px-5 pb-8 overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </div>

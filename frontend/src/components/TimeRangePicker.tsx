@@ -45,26 +45,29 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
   const activePreset = getActivePreset(value)
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {presets.map((p) => (
-        <button
-          key={p.label}
-          onClick={() => {
-            const now = new Date()
-            onChange({ from: new Date(now.getTime() - p.duration), to: now })
-          }}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid',
-            activePreset === p.label
-              ? 'bg-primary/20 text-primary text-glow-primary'
-              : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface hover:bg-surface-container-highest',
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
-
-      <div className="flex items-center gap-1.5 ml-2">
+    <div className="flex flex-col gap-2">
+      {/* Preset shortcuts */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => {
+              const now = new Date()
+              onChange({ from: new Date(now.getTime() - p.duration), to: now })
+            }}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider transition-fluid',
+              activePreset === p.label
+                ? 'bg-primary/20 text-primary text-glow-primary'
+                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface hover:bg-surface-container-highest',
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {/* Date inputs — each on their own line so they never overflow narrow containers */}
+      <div className="flex flex-col gap-1.5">
         <input
           type="datetime-local"
           value={toLocalDatetime(value.from)}
@@ -72,7 +75,6 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
           onChange={(e) => {
             const d = new Date(e.target.value)
             if (!isNaN(d.getTime())) {
-              // Clamp: if from >= to, push to forward by 1 hour
               if (d >= value.to) {
                 onChange({ from: d, to: new Date(d.getTime() + 60 * 60 * 1000) })
               } else {
@@ -80,9 +82,8 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
               }
             }
           }}
-          className="bg-surface-container-high text-on-surface text-base rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+          className="bg-surface-container-high text-on-surface text-sm rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30 w-full"
         />
-        <span className="text-on-surface-faint text-xs">to</span>
         <input
           type="datetime-local"
           value={toLocalDatetime(value.to)}
@@ -90,7 +91,6 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
           onChange={(e) => {
             const d = new Date(e.target.value)
             if (!isNaN(d.getTime())) {
-              // Clamp: if to <= from, push from back by 1 hour
               if (d <= value.from) {
                 onChange({ from: new Date(d.getTime() - 60 * 60 * 1000), to: d })
               } else {
@@ -98,7 +98,7 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
               }
             }
           }}
-          className="bg-surface-container-high text-on-surface text-base rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30"
+          className="bg-surface-container-high text-on-surface text-sm rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/30 w-full"
         />
       </div>
     </div>
