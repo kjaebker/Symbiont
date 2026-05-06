@@ -52,7 +52,7 @@ export default function Livestock() {
   }
 
   const filterBar = (
-    <div className="flex flex-wrap gap-2">
+    <>
       <FilterDropdown
         label="Type"
         value={typeFilter}
@@ -65,7 +65,7 @@ export default function Livestock() {
         options={[{ value: '', label: 'All status' }, ...STATUS_OPTIONS]}
         onChange={(v) => setStatusFilter(v as LivestockStatus | '')}
       />
-    </div>
+    </>
   )
 
   const statusPills = allItems.length > 0 ? (
@@ -105,7 +105,9 @@ export default function Livestock() {
         title="Livestock"
         action={{ label: 'Add Livestock', icon: Plus, onClick: () => setShowAddForm((v) => !v), active: showAddForm }}
         filterBar={filterBar}
+        filterCount={2}
         filterActive={!!(typeFilter || statusFilter)}
+        onClearFilters={() => { setTypeFilter(''); setStatusFilter('') }}
         statusPills={statusPills ?? undefined}
         maxWidth="max-w-6xl"
       />

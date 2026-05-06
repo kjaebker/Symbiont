@@ -57,7 +57,7 @@ export default function HistoryPage() {
   }
 
   const journalFilterBar = (
-    <div className="flex flex-wrap gap-2">
+    <>
       <FilterDropdown
         label="Category"
         value={categoryFilter}
@@ -76,7 +76,7 @@ export default function HistoryPage() {
         ]}
         onChange={(v) => setSentimentFilter(v as JournalSentiment | '')}
       />
-    </div>
+    </>
   )
 
   const telemetryFilterBar = (
@@ -121,6 +121,20 @@ export default function HistoryPage() {
     return false
   }
 
+  function getFilterCount() {
+    if (tab === 'journal') return 2
+    if (tab === 'telemetry') return 3
+    if (tab === 'timeline') return 1
+    return undefined
+  }
+
+  function getClearFilters() {
+    if (tab === 'journal') return () => { setCategoryFilter(''); setSentimentFilter('') }
+    if (tab === 'telemetry') return () => { setSelectedProbes([]); setSelectedMeas([]) }
+    if (tab === 'timeline') return () => setKindFilter('')
+    return undefined
+  }
+
   return (
     <div>
       <PageHeader
@@ -138,7 +152,9 @@ export default function HistoryPage() {
           : null
         }
         filterBar={getFilterBar()}
+        filterCount={getFilterCount()}
         filterActive={getFilterActive()}
+        onClearFilters={getClearFilters()}
         maxWidth="max-w-7xl"
       />
 

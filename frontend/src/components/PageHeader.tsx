@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Filter, ChevronDown } from 'lucide-react'
+import { Filter, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BottomSheet } from '@/components/BottomSheet'
 import type { ReactNode, ElementType } from 'react'
@@ -26,6 +26,8 @@ interface PageHeaderProps {
   onTabChange?: (key: string) => void
   filterBar?: ReactNode
   filterActive?: boolean
+  filterCount?: number
+  onClearFilters?: () => void
   statusPills?: ReactNode
   maxWidth?: string
 }
@@ -39,6 +41,8 @@ export function PageHeader({
   onTabChange,
   filterBar,
   filterActive,
+  filterCount,
+  onClearFilters,
   statusPills,
   maxWidth = 'max-w-7xl',
 }: PageHeaderProps) {
@@ -151,22 +155,37 @@ export function PageHeader({
           </div>
         )}
 
-        {/* ── Mobile: Filters button ── */}
+        {/* ── Mobile: Filters button or inline single filter ── */}
         {filterBar && (
           <div className="md:hidden mt-3">
-            <button
-              onClick={() => setFilterSheetOpen(true)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-                filterActive
-                  ? 'bg-primary/15 text-primary'
-                  : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-              )}
-            >
-              <Filter size={13} />
-              Filters
-              {filterActive && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
-            </button>
+            {filterCount === 1 ? (
+              <div className="flex items-center gap-2">
+                {filterBar}
+                {filterActive && onClearFilters && (
+                  <button
+                    onClick={onClearFilters}
+                    className="flex items-center gap-1 text-xs text-on-surface-dim hover:text-primary transition-fluid"
+                  >
+                    <X size={11} />
+                    Clear
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setFilterSheetOpen(true)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
+                  filterActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
+                )}
+              >
+                <Filter size={13} />
+                Filters
+                {filterActive && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+              </button>
+            )}
           </div>
         )}
 
@@ -195,9 +214,18 @@ export function PageHeader({
                   <span className="uppercase tracking-wider font-medium">Filter</span>
                 </div>
                 <div className="w-px h-3.5 bg-outline-variant/30 shrink-0" />
-                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
                   {filterBar}
                 </div>
+                {filterActive && onClearFilters && (
+                  <button
+                    onClick={onClearFilters}
+                    className="ml-auto flex items-center gap-1 text-xs text-on-surface-dim hover:text-primary transition-fluid shrink-0"
+                  >
+                    <X size={11} />
+                    Clear filters
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -225,7 +253,7 @@ export function PageHeader({
       )}
 
       {/* ── Mobile filter bottom sheet ── */}
-      {filterBar && (
+      {filterBar && filterCount !== 1 && (
         <BottomSheet
           open={filterSheetOpen}
           onClose={() => setFilterSheetOpen(false)}
@@ -233,6 +261,15 @@ export function PageHeader({
         >
           <div className="flex flex-col gap-4">
             {filterBar}
+            {filterActive && onClearFilters && (
+              <button
+                onClick={() => { onClearFilters(); setFilterSheetOpen(false) }}
+                className="mt-2 flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-sm font-medium text-on-surface-dim bg-surface-container hover:bg-surface-container-high hover:text-primary transition-fluid"
+              >
+                <X size={13} />
+                Clear filters
+              </button>
+            )}
           </div>
         </BottomSheet>
       )}
