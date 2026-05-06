@@ -55,3 +55,6 @@ result-*
 
 # Uploaded images (runtime data)
 images/
+
+# Random design files
+design_direction/
