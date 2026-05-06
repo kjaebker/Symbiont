@@ -23,7 +23,15 @@ type Migration struct {
 //
 // The v1 baseline itself is created by createSchemaV1, not listed here.
 var migrations = []Migration{
-	// v2, v3, ... go here as schema changes land.
+	{
+		Version: 2,
+		Name:    "alert_events partial index for active rows",
+		Up: func(tx *sql.Tx) error {
+			_, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_alert_events_active
+				ON alert_events(fired_at DESC) WHERE cleared_at IS NULL`)
+			return err
+		},
+	},
 }
 
 // CreateSQLiteSchema is the entrypoint preserved for callers. It ensures the
