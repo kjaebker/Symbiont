@@ -342,7 +342,7 @@ function EntryCard({
 
 // ─── Full Timeline ────────────────────────────────────────────────────────────
 
-const KIND_LABELS: Record<string, string> = {
+export const KIND_LABELS: Record<string, string> = {
   feed_mode_activated: 'Feed Mode',
   outlet_changed: 'Outlet',
   alert_fired: 'Alert Fired',
@@ -355,7 +355,7 @@ const KIND_LABELS: Record<string, string> = {
   auth_event: 'Auth',
 }
 
-const KIND_COLORS: Record<string, string> = {
+export const KIND_COLORS: Record<string, string> = {
   feed_mode_activated: 'text-secondary bg-secondary/10',
   outlet_changed: 'text-primary bg-primary/10',
   alert_fired: 'text-red-400 bg-red-400/10',
@@ -417,44 +417,58 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   )
 }
 
-export function FullTimeline() {
-  const [kindFilter, setKindFilter] = useState('')
+interface FullTimelineProps {
+  kindFilter?: string
+  onKindFilterChange?: (v: string) => void
+  allKinds?: string[]
+}
+
+export function FullTimeline({ kindFilter: kindFilterProp, onKindFilterChange, allKinds: allKindsProp }: FullTimelineProps = {}) {
+  const controlled = onKindFilterChange !== undefined
+  const [kindFilterInternal, setKindFilterInternal] = useState('')
+
+  const kindFilter = controlled ? (kindFilterProp ?? '') : kindFilterInternal
+  const setKindFilter = controlled ? onKindFilterChange : setKindFilterInternal
+
   const { data, isLoading, isError } = useAuditEvents({
     kind: kindFilter || undefined,
     limit: 100,
   })
 
   const events = data?.events ?? []
-  const allKinds = Array.from(new Set(events.map(e => e.kind))).sort()
+  const allKindsFromData = Array.from(new Set(events.map(e => e.kind))).sort()
+  const allKinds = allKindsProp ?? allKindsFromData
 
   return (
     <div className="space-y-4">
-      {/* Kind filter */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setKindFilter('')}
-          className={cn(
-            'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-            kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-          )}
-        >
-          All events
-        </button>
-        {allKinds.map(k => (
+      {/* Kind filter — hidden when parent owns it via filterBar */}
+      {!controlled && (
+        <div className="flex flex-wrap gap-1.5">
           <button
-            key={k}
-            onClick={() => setKindFilter(kindFilter === k ? '' : k)}
+            onClick={() => setKindFilter('')}
             className={cn(
               'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-              kindFilter === k
-                ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
             )}
           >
-            {KIND_LABELS[k] ?? k}
+            All events
           </button>
-        ))}
-      </div>
+          {allKinds.map(k => (
+            <button
+              key={k}
+              onClick={() => setKindFilter(kindFilter === k ? '' : k)}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
+                kindFilter === k
+                  ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
+                  : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
+              )}
+            >
+              {KIND_LABELS[k] ?? k}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isLoading && (
         <div className="space-y-2">
@@ -479,20 +493,48 @@ export function FullTimeline() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Journal({ hideHeader = false }: { hideHeader?: boolean }) {
+interface JournalProps {
+  hideHeader?: boolean
+  // Controlled props used when embedded (hideHeader=true)
+  categoryFilter?: JournalCategory | ''
+  onCategoryFilterChange?: (v: JournalCategory | '') => void
+  sentimentFilter?: JournalSentiment | ''
+  onSentimentFilterChange?: (v: JournalSentiment | '') => void
+  showForm?: boolean
+  onShowFormChange?: (v: boolean) => void
+}
+
+export default function Journal({
+  hideHeader = false,
+  categoryFilter: categoryFilterProp,
+  onCategoryFilterChange,
+  sentimentFilter: sentimentFilterProp,
+  onSentimentFilterChange,
+  showForm: showFormProp,
+  onShowFormChange,
+}: JournalProps) {
   usePageTitle('Journal')
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const controlled = hideHeader && onCategoryFilterChange !== undefined
 
   const [view, setView] = useState<'journal' | 'timeline'>(
     hideHeader ? 'journal' : ((searchParams.get('view') as 'journal' | 'timeline') ?? 'journal'),
   )
-  const [categoryFilter, setCategoryFilter] = useState<JournalCategory | ''>(
+  const [categoryFilterInternal, setCategoryFilterInternal] = useState<JournalCategory | ''>(
     (searchParams.get('category') as JournalCategory) ?? '',
   )
-  const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>(
+  const [sentimentFilterInternal, setSentimentFilterInternal] = useState<JournalSentiment | ''>(
     (searchParams.get('sentiment') as JournalSentiment) ?? '',
   )
-  const [showForm, setShowForm] = useState(false)
+  const [showFormInternal, setShowFormInternal] = useState(false)
+
+  const categoryFilter = controlled ? (categoryFilterProp ?? '') : categoryFilterInternal
+  const setCategoryFilter = controlled ? onCategoryFilterChange! : setCategoryFilterInternal
+  const sentimentFilter = controlled ? (sentimentFilterProp ?? '') : sentimentFilterInternal
+  const setSentimentFilter = controlled ? onSentimentFilterChange! : setSentimentFilterInternal
+  const showForm = (hideHeader && onShowFormChange !== undefined) ? (showFormProp ?? false) : showFormInternal
+  const setShowForm = (hideHeader && onShowFormChange !== undefined) ? onShowFormChange! : setShowFormInternal
 
   const syncUrl = useCallback(
     (v: string, cat: string, sent: string) => {
@@ -537,9 +579,9 @@ export default function Journal({ hideHeader = false }: { hideHeader?: boolean }
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      {!hideHeader ? (
+    <div className="max-w-7xl mx-auto px-6 md:px-8 py-6 space-y-6">
+      {/* Standalone header (not used when embedded in HistoryPage) */}
+      {!hideHeader && (
         <>
           <div className="flex items-center justify-between">
             <div>
@@ -548,7 +590,7 @@ export default function Journal({ hideHeader = false }: { hideHeader?: boolean }
             </div>
             {view === 'journal' && (
               <button
-                onClick={() => setShowForm(v => !v)}
+                onClick={() => setShowForm(!showForm)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
                   showForm
@@ -585,28 +627,28 @@ export default function Journal({ hideHeader = false }: { hideHeader?: boolean }
               Full Timeline
             </button>
           </div>
+
+          {/* Filters (standalone only) */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setCategoryFilter('')} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', categoryFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>All</button>
+              {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
+                <button key={c} onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', categoryFilter === c ? CATEGORY_COLORS[c] : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{CATEGORY_LABELS[c]}</button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setSentimentFilter('')} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', sentimentFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>Any</button>
+              {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
+                <button key={s} onClick={() => setSentimentFilter(sentimentFilter === s ? '' : s)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', sentimentFilter === s ? SENTIMENT_COLORS[s] : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{SENTIMENT_LABELS[s]}</button>
+              ))}
+            </div>
+          </div>
         </>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
-              showForm
-                ? 'bg-surface-container-high text-on-surface'
-                : 'bg-primary/10 text-primary hover:bg-primary/20',
-            )}
-          >
-            {showForm ? <X size={14} /> : <Plus size={14} />}
-            {showForm ? 'Cancel' : 'New Entry'}
-          </button>
-        </div>
       )}
 
       {/* Full timeline view */}
       {view === 'timeline' && <FullTimeline />}
       {view === 'journal' && <>
-
 
       {/* New entry form */}
       {showForm && (
@@ -617,67 +659,6 @@ export default function Journal({ hideHeader = false }: { hideHeader?: boolean }
           isSaving={createMutation.isPending}
         />
       )}
-
-      {/* Filters */}
-      <div className="space-y-2">
-        {/* Category filter */}
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setCategoryFilter('')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-              categoryFilter === ''
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            All
-          </button>
-          {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
-            <button
-              key={c}
-              onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-                categoryFilter === c
-                  ? CATEGORY_COLORS[c]
-                  : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-              )}
-            >
-              {CATEGORY_LABELS[c]}
-            </button>
-          ))}
-        </div>
-
-        {/* Sentiment filter */}
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setSentimentFilter('')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-              sentimentFilter === ''
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            Any
-          </button>
-          {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
-            <button
-              key={s}
-              onClick={() => setSentimentFilter(sentimentFilter === s ? '' : s)}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
-                sentimentFilter === s
-                  ? SENTIMENT_COLORS[s]
-                  : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-              )}
-            >
-              {SENTIMENT_LABELS[s]}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Entry list */}
       {isLoading && (

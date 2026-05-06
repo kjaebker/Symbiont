@@ -4,6 +4,7 @@ import { Wrench, Power, Plus, Trash2, CheckCircle2, Pencil } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, relativeTime } from '@/lib/utils'
 import Control from '@/pages/Control'
+import { PageHeader } from '@/components/PageHeader'
 import {
   useMaintenanceTasks,
   useCreateMaintenanceTask,
@@ -140,7 +141,12 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
 
 // ─── Tasks Tab ────────────────────────────────────────────────────────────────
 
-function TasksTab() {
+interface TasksTabProps {
+  showForm: boolean
+  setShowForm: (v: boolean) => void
+}
+
+function TasksTab({ showForm, setShowForm }: TasksTabProps) {
   const { data } = useMaintenanceTasks()
   const tasks = data?.tasks ?? []
 
@@ -149,7 +155,6 @@ function TasksTab() {
   const deleteTask = useDeleteMaintenanceTask()
   const completeTask = useCompleteMaintenanceTask()
 
-  const [showForm, setShowForm] = useState(false)
   const [editingTask, setEditingTask] = useState<MaintenanceTask | null>(null)
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [noteInputId, setNoteInputId] = useState<number | null>(null)
@@ -239,13 +244,6 @@ function TasksTab() {
       <div className="bg-surface-container rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold">Recurring Tasks</h2>
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-fluid"
-          >
-            <Plus size={14} />
-            Add Task
-          </button>
         </div>
 
         {showForm && !editingTask && (
@@ -343,46 +341,34 @@ export default function MaintenancePage() {
   const tab = searchParams.get('tab') ?? 'tasks'
   usePageTitle('Maintenance')
 
+  const [showTaskForm, setShowTaskForm] = useState(false)
+
   function setTab(t: string) {
     setSearchParams({ tab: t }, { replace: true })
+    setShowTaskForm(false)
   }
 
   return (
     <div>
-      <div className="px-6 md:px-8 pt-8 max-w-6xl mx-auto">
-        <p className="text-xs text-primary uppercase tracking-widest mb-2">Tank Command</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight mb-6">Maintenance</h1>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => setTab('tasks')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-              tab === 'tasks'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            <Wrench size={13} />
-            Tasks
-          </button>
-          <button
-            onClick={() => setTab('control')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-              tab === 'control'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            <Power size={13} />
-            Control
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        subtitle="Tank Command"
+        title="Maintenance"
+        tabs={[
+          { key: 'tasks', label: 'Tasks', icon: Wrench },
+          { key: 'control', label: 'Control', icon: Power },
+        ]}
+        activeTab={tab}
+        onTabChange={setTab}
+        action={tab === 'tasks'
+          ? { label: 'Add Task', icon: Plus, onClick: () => setShowTaskForm((v) => !v), active: showTaskForm }
+          : null
+        }
+        maxWidth="max-w-6xl"
+      />
 
       {tab === 'tasks' ? (
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
-          <TasksTab />
+          <TasksTab showForm={showTaskForm} setShowForm={setShowTaskForm} />
         </div>
       ) : (
         <Control hideHeader />

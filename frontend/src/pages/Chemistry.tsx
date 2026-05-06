@@ -4,6 +4,9 @@ import { FlaskConical, Droplets, Plus, Pencil, Trash2, CheckCircle2, ChevronDown
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, relativeTime } from '@/lib/utils'
 import Measurements from '@/pages/Measurements'
+import { PageHeader } from '@/components/PageHeader'
+import { FilterDropdown } from '@/components/FilterDropdown'
+import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import {
   useDosingProducts,
   useDosingSchedules,
@@ -559,45 +562,56 @@ export default function Chemistry() {
   const tab = searchParams.get('tab') ?? 'water-tests'
   usePageTitle('Chemistry')
 
+  const { data: paramsData } = useMeasurementParameters()
+  const parameters = paramsData?.parameters ?? []
+
+  const [selectedParam, setSelectedParam] = useState<string | null>(null)
+  const [showMeasurementForm, setShowMeasurementForm] = useState(false)
+
   function setTab(t: string) {
     setSearchParams({ tab: t }, { replace: true })
   }
 
+  const measurementFilterBar = (
+    <FilterDropdown
+      label="All parameters"
+      value={selectedParam ?? ''}
+      options={[
+        { value: '', label: 'All parameters' },
+        ...parameters.map((p) => ({ value: p.name, label: p.name })),
+      ]}
+      onChange={(v) => setSelectedParam(v === '' ? null : v)}
+    />
+  )
+
   return (
     <div>
-      <div className="px-6 md:px-8 pt-8 max-w-6xl mx-auto">
-        <p className="text-xs text-primary uppercase tracking-widest mb-2">Chemical Balance</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight mb-6">Water Chemistry</h1>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => setTab('water-tests')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-              tab === 'water-tests'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            <FlaskConical size={13} />
-            Measurements
-          </button>
-          <button
-            onClick={() => setTab('dosing')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-fluid',
-              tab === 'dosing'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
-            )}
-          >
-            <Droplets size={13} />
-            Dosing
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        subtitle="Chemical Balance"
+        title="Water Chemistry"
+        tabs={[
+          { key: 'water-tests', label: 'Measurements', icon: FlaskConical },
+          { key: 'dosing', label: 'Dosing', icon: Droplets },
+        ]}
+        activeTab={tab}
+        onTabChange={setTab}
+        action={tab === 'water-tests'
+          ? { label: 'Add Measurement', icon: Plus, onClick: () => setShowMeasurementForm((v) => !v), active: showMeasurementForm }
+          : null
+        }
+        filterBar={tab === 'water-tests' ? measurementFilterBar : undefined}
+        filterActive={!!selectedParam}
+        maxWidth="max-w-6xl"
+      />
 
       {tab === 'water-tests' ? (
-        <Measurements hideHeader />
+        <Measurements
+          hideHeader
+          selectedParam={selectedParam}
+          onSelectedParamChange={setSelectedParam}
+          showForm={showMeasurementForm}
+          onShowFormChange={setShowMeasurementForm}
+        />
       ) : (
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
           <DosingTab />

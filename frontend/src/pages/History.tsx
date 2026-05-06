@@ -8,9 +8,9 @@ import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, MeasurementSelector, SERIES_COLORS } from '@/components/ProbeSelector'
 import { getToken } from '@/api/client'
-import { cn } from '@/lib/utils'
+import { FilterDropdown } from '@/components/FilterDropdown'
 
-const INTERVALS = [
+export const INTERVALS = [
   { label: 'Auto', value: '' },
   { label: '10s', value: '10s' },
   { label: '1m', value: '1m' },
@@ -33,21 +33,56 @@ function parseRange(searchParams: URLSearchParams): {
   }
 }
 
-export default function History({ hideHeader = false }: { hideHeader?: boolean }) {
+export type HistoryRange = { from: Date; to: Date }
+
+interface HistoryProps {
+  hideHeader?: boolean
+  selectedProbes?: string[]
+  onSelectedProbesChange?: (v: string[]) => void
+  selectedMeas?: string[]
+  onSelectedMeasChange?: (v: string[]) => void
+  range?: HistoryRange
+  onRangeChange?: (v: HistoryRange) => void
+  interval?: string
+  onIntervalChange?: (v: string) => void
+}
+
+export default function History({
+  hideHeader = false,
+  selectedProbes: selectedProbesProp,
+  onSelectedProbesChange,
+  selectedMeas: selectedMeasProp,
+  onSelectedMeasChange,
+  range: rangeProp,
+  onRangeChange,
+  interval: intervalProp,
+  onIntervalChange,
+}: HistoryProps) {
   usePageTitle('History')
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Parse URL state
+  const controlled = hideHeader && onSelectedProbesChange !== undefined
+
+  // Parse URL state for standalone mode
   const probeParam = searchParams.get('probe')
   const initialProbes = probeParam ? probeParam.split(',').filter(Boolean) : []
   const measParam = searchParams.get('meas')
   const initialMeas = measParam ? measParam.split(',').filter(Boolean) : []
   const intervalParam = searchParams.get('interval') ?? ''
 
-  const [selectedProbes, setSelectedProbes] = useState<string[]>(initialProbes)
-  const [selectedMeas, setSelectedMeas] = useState<string[]>(initialMeas)
-  const [range, setRange] = useState(() => parseRange(searchParams))
-  const [interval, setInterval] = useState(intervalParam)
+  const [selectedProbesInternal, setSelectedProbesInternal] = useState<string[]>(initialProbes)
+  const [selectedMeasInternal, setSelectedMeasInternal] = useState<string[]>(initialMeas)
+  const [rangeInternal, setRangeInternal] = useState(() => parseRange(searchParams))
+  const [intervalInternal, setIntervalInternal] = useState(intervalParam)
+
+  const selectedProbes = controlled ? (selectedProbesProp ?? []) : selectedProbesInternal
+  const setSelectedProbes = controlled ? onSelectedProbesChange! : setSelectedProbesInternal
+  const selectedMeas = controlled ? (selectedMeasProp ?? []) : selectedMeasInternal
+  const setSelectedMeas = controlled ? onSelectedMeasChange! : setSelectedMeasInternal
+  const range = controlled ? (rangeProp ?? { from: new Date(Date.now() - 86400000), to: new Date() }) : rangeInternal
+  const setRange = controlled ? onRangeChange! : setRangeInternal
+  const interval = controlled ? (intervalProp ?? '') : intervalInternal
+  const setInterval = controlled ? onIntervalChange! : setIntervalInternal
 
   // Sync state to URL
   const syncUrl = useCallback(
@@ -174,44 +209,33 @@ export default function History({ hideHeader = false }: { hideHeader?: boolean }
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <ProbeSelector
-            selected={selectedProbes}
-            onChange={setSelectedProbes}
-          />
-          <MeasurementSelector
-            selected={selectedMeas}
-            onChange={setSelectedMeas}
-            colorOffset={selectedProbes.length}
-          />
-        </div>
+      {/* Controls — hidden when parent owns them via filterBar */}
+      {!controlled && (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <ProbeSelector
+              selected={selectedProbes}
+              onChange={setSelectedProbes}
+            />
+            <MeasurementSelector
+              selected={selectedMeas}
+              onChange={setSelectedMeas}
+              colorOffset={selectedProbes.length}
+            />
+          </div>
 
-        <div className="flex flex-col gap-3 sm:items-end">
-          <TimeRangePicker value={range} onChange={setRange} />
+          <div className="flex flex-col gap-3 sm:items-end">
+            <TimeRangePicker value={range} onChange={setRange} />
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-on-surface-faint uppercase tracking-wider mr-1">
-              Interval
-            </span>
-            {INTERVALS.map((int) => (
-              <button
-                key={int.value}
-                onClick={() => setInterval(int.value)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-medium transition-fluid',
-                  interval === int.value
-                    ? 'bg-primary/20 text-primary'
-                    : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-                )}
-              >
-                {int.label}
-              </button>
-            ))}
+            <FilterDropdown
+              label="Interval"
+              value={interval}
+              options={INTERVALS.map((int) => ({ value: int.value, label: int.label }))}
+              onChange={setInterval}
+            />
           </div>
         </div>
-      </div>
+      )}
 
       {/* Chart */}
       {selectedProbes.length === 0 && selectedMeas.length === 0 ? (

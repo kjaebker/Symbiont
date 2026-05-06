@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Bell, Activity } from 'lucide-react'
 import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert, useAlertEvents } from '@/hooks/useAlerts'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { AlertRuleForm } from '@/components/AlertRuleForm'
+import { PageHeader } from '@/components/PageHeader'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
 
@@ -66,26 +67,15 @@ export default function Alerts() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-primary uppercase tracking-widest mb-2">
-            Monitoring
-          </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
-            Alert Rules
-          </h1>
-        </div>
-        <button
-          onClick={() => setFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-        >
-          <Plus size={16} />
-          New Rule
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        subtitle="Monitoring"
+        title="Alert Rules"
+        action={{ label: 'New Rule', icon: Plus, onClick: () => setFormOpen(true) }}
+        maxWidth="max-w-7xl"
+      />
 
+      <div className="px-6 md:px-8 pt-5 pb-8 max-w-7xl mx-auto space-y-6">
       {/* Rules Table */}
       {isLoading ? (
         <div className="bg-surface-container rounded-2xl p-12 flex items-center justify-center">
@@ -316,6 +306,7 @@ export default function Alerts() {
           onClose={() => setEditingRule(undefined)}
         />
       )}
+      </div>
     </div>
   )
 }
@@ -466,6 +457,6 @@ function AlertEventLog() {
             </div>
           </>
         )}
-    </div>
+      </div>
   )
 }
