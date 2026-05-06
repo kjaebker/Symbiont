@@ -5,10 +5,11 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
 import History, { INTERVALS } from '@/pages/History'
 import type { HistoryRange } from '@/pages/History'
-import Journal, { FullTimeline, KIND_LABELS, KIND_COLORS } from '@/pages/Journal'
+import Journal, { FullTimeline, KIND_LABELS } from '@/pages/Journal'
 import { PageHeader } from '@/components/PageHeader'
 import { ProbeSelector, MeasurementSelector } from '@/components/ProbeSelector'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
+import { FilterDropdown } from '@/components/FilterDropdown'
 import { useAuditEvents } from '@/hooks/useEvents'
 import type { JournalCategory, JournalSentiment } from '@/api/client'
 
@@ -26,19 +27,6 @@ const SENTIMENT_LABELS: Record<JournalSentiment, string> = {
   critical: 'Critical',
 }
 
-const CATEGORY_COLORS: Record<JournalCategory, string> = {
-  observation: 'text-primary bg-primary/10',
-  maintenance: 'text-on-surface-dim bg-surface-container-high',
-  event: 'text-violet-400 bg-violet-400/10',
-  milestone: 'text-amber-400 bg-amber-400/10',
-}
-
-const SENTIMENT_COLORS: Record<JournalSentiment, string> = {
-  good: 'text-secondary bg-secondary/10',
-  neutral: 'text-on-surface-dim bg-surface-container-high',
-  bad: 'text-tertiary bg-tertiary/10',
-  critical: 'text-red-400 bg-red-400/10',
-}
 
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -70,19 +58,25 @@ export default function HistoryPage() {
   }
 
   const journalFilterBar = (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-1.5">
-        <button onClick={() => setCategoryFilter('')} className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid', categoryFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high')}>All</button>
-        {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
-          <button key={c} onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)} className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid', categoryFilter === c ? CATEGORY_COLORS[c] : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high')}>{CATEGORY_LABELS[c]}</button>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        <button onClick={() => setSentimentFilter('')} className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid', sentimentFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high')}>Any</button>
-        {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
-          <button key={s} onClick={() => setSentimentFilter(sentimentFilter === s ? '' : s)} className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid', sentimentFilter === s ? SENTIMENT_COLORS[s] : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high')}>{SENTIMENT_LABELS[s]}</button>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-2">
+      <FilterDropdown
+        label="Category"
+        value={categoryFilter}
+        options={[
+          { value: '', label: 'All categories' },
+          ...(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map((c) => ({ value: c, label: CATEGORY_LABELS[c] })),
+        ]}
+        onChange={(v) => setCategoryFilter(v as JournalCategory | '')}
+      />
+      <FilterDropdown
+        label="Sentiment"
+        value={sentimentFilter}
+        options={[
+          { value: '', label: 'Any sentiment' },
+          ...(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map((s) => ({ value: s, label: SENTIMENT_LABELS[s] })),
+        ]}
+        onChange={(v) => setSentimentFilter(v as JournalSentiment | '')}
+      />
     </div>
   )
 
@@ -113,32 +107,22 @@ export default function HistoryPage() {
     </div>
   )
 
-  const timelineFilterBar = (
-    <div className="flex flex-wrap gap-1.5">
-      <button
-        onClick={() => setKindFilter('')}
-        className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid', kindFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high')}
-      >
-        All events
-      </button>
-      {allKinds.map(k => (
-        <button
-          key={k}
-          onClick={() => setKindFilter(kindFilter === k ? '' : k)}
-          className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-            kindFilter === k ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary') : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high'
-          )}
-        >
-          {KIND_LABELS[k] ?? k}
-        </button>
-      ))}
-    </div>
-  )
+  const timelineFilterBar = allKinds.length > 0 ? (
+    <FilterDropdown
+      label="All events"
+      value={kindFilter}
+      options={[
+        { value: '', label: 'All events' },
+        ...allKinds.map((k) => ({ value: k, label: KIND_LABELS[k] ?? k })),
+      ]}
+      onChange={setKindFilter}
+    />
+  ) : undefined
 
   function getFilterBar() {
     if (tab === 'journal') return journalFilterBar
     if (tab === 'telemetry') return telemetryFilterBar
-    if (tab === 'timeline') return allKinds.length > 0 ? timelineFilterBar : undefined
+    if (tab === 'timeline') return timelineFilterBar
     return undefined
   }
 
