@@ -151,8 +151,9 @@ func CORS(next http.Handler) http.Handler {
 //
 // On success the token's scope and label are stored in the request context so
 // handlers and downstream middleware can read them via TokenScopeFromContext
-// and TokenLabelFromContext.
-func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
+// and TokenLabelFromContext. The token's last_used is updated asynchronously
+// via the supplied tokenToucher (debounced + batched).
+func Auth(sqlite *db.SQLiteDB, toucher *tokenToucher) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for SSE stream (uses ?token= query param) and health check.
@@ -205,10 +206,7 @@ func Auth(sqlite *db.SQLiteDB) func(http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), tokenScopeKey, ta.Scope)
 			ctx = context.WithValue(ctx, tokenLabelKey, ta.Label)
 
-			// Update last_used asynchronously — don't block the request.
-			go func() {
-				_ = sqlite.TouchToken(context.Background(), ta.ID)
-			}()
+			toucher.Mark(ta.ID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
