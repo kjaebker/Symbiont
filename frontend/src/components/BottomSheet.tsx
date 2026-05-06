@@ -37,7 +37,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
           'md:hidden fixed left-0 right-0 z-50 flex flex-col rounded-t-3xl bg-surface-container transition-transform duration-300 ease-out',
           open ? 'translate-y-0' : 'translate-y-full',
         )}
-        style={{ bottom: 0, maxHeight: '80vh', overflow: 'hidden' }}
+        style={{ bottom: 0, height: '85vh', overflow: 'hidden' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
