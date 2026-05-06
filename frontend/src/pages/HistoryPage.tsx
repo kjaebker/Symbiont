@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Clock, ScrollText, Activity, Plus } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { cn } from '@/lib/utils'
 import History, { INTERVALS } from '@/pages/History'
 import type { HistoryRange } from '@/pages/History'
 import Journal, { FullTimeline, KIND_LABELS } from '@/pages/Journal'
@@ -87,23 +86,12 @@ export default function HistoryPage() {
         <MeasurementSelector selected={selectedMeas} onChange={setSelectedMeas} colorOffset={selectedProbes.length} />
       </div>
       <TimeRangePicker value={range} onChange={setRange} />
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-on-surface-faint uppercase tracking-wider mr-1">Interval</span>
-        {INTERVALS.map(int => (
-          <button
-            key={int.value}
-            onClick={() => setTelemetryInterval(int.value)}
-            className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-medium transition-fluid',
-              telemetryInterval === int.value
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-            )}
-          >
-            {int.label}
-          </button>
-        ))}
-      </div>
+      <FilterDropdown
+        label="Interval"
+        value={telemetryInterval}
+        options={INTERVALS.map((int) => ({ value: int.value, label: int.label }))}
+        onChange={setTelemetryInterval}
+      />
     </div>
   )
 

@@ -6,11 +6,11 @@ import {
   useCreateLivestockItem,
 } from '@/hooks/useLivestock'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { cn } from '@/lib/utils'
 import type { LivestockType, LivestockStatus } from '@/api/types'
 import { LivestockCard } from '@/components/LivestockCard'
 import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/components/LivestockForm'
 import { PageHeader } from '@/components/PageHeader'
+import { FilterDropdown } from '@/components/FilterDropdown'
 import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
@@ -53,57 +53,18 @@ export default function Livestock() {
 
   const filterBar = (
     <div className="flex flex-wrap gap-2">
-      <button
-        onClick={() => setTypeFilter('')}
-        className={cn(
-          'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-          typeFilter === ''
-            ? 'bg-primary/20 text-primary'
-            : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-        )}
-      >
-        All Types
-      </button>
-      {TYPE_OPTIONS.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => setTypeFilter(typeFilter === o.value ? '' : o.value)}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-            typeFilter === o.value
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-      <div className="hidden md:block w-px h-5 self-center bg-outline-variant/30 shrink-0" />
-      <button
-        onClick={() => setStatusFilter('')}
-        className={cn(
-          'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-          statusFilter === ''
-            ? 'bg-secondary/20 text-secondary'
-            : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-        )}
-      >
-        All Status
-      </button>
-      {STATUS_OPTIONS.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => setStatusFilter(statusFilter === o.value ? '' : o.value)}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-            statusFilter === o.value
-              ? 'bg-secondary/20 text-secondary'
-              : 'bg-surface-container text-on-surface-dim hover:bg-surface-container-high',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
+      <FilterDropdown
+        label="Type"
+        value={typeFilter}
+        options={[{ value: '', label: 'All types' }, ...TYPE_OPTIONS]}
+        onChange={(v) => setTypeFilter(v as LivestockType | '')}
+      />
+      <FilterDropdown
+        label="Status"
+        value={statusFilter}
+        options={[{ value: '', label: 'All status' }, ...STATUS_OPTIONS]}
+        onChange={(v) => setStatusFilter(v as LivestockStatus | '')}
+      />
     </div>
   )
 

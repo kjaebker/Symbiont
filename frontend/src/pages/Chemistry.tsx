@@ -5,6 +5,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, relativeTime } from '@/lib/utils'
 import Measurements from '@/pages/Measurements'
 import { PageHeader } from '@/components/PageHeader'
+import { FilterDropdown } from '@/components/FilterDropdown'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import {
   useDosingProducts,
@@ -572,33 +573,15 @@ export default function Chemistry() {
   }
 
   const measurementFilterBar = (
-    <div className="flex flex-wrap gap-2">
-      <button
-        onClick={() => setSelectedParam(null)}
-        className={cn(
-          'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-          selectedParam === null
-            ? 'bg-primary/20 text-primary'
-            : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-        )}
-      >
-        All
-      </button>
-      {parameters.map((p) => (
-        <button
-          key={p.id}
-          onClick={() => setSelectedParam(selectedParam === p.name ? null : p.name)}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid',
-            selectedParam === p.name
-              ? 'bg-primary/20 text-primary'
-              : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-          )}
-        >
-          {p.name}
-        </button>
-      ))}
-    </div>
+    <FilterDropdown
+      label="All parameters"
+      value={selectedParam ?? ''}
+      options={[
+        { value: '', label: 'All parameters' },
+        ...parameters.map((p) => ({ value: p.name, label: p.name })),
+      ]}
+      onChange={(v) => setSelectedParam(v === '' ? null : v)}
+    />
   )
 
   return (

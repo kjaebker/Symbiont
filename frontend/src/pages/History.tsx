@@ -8,7 +8,7 @@ import { ProbeChart } from '@/components/ProbeChart'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, MeasurementSelector, SERIES_COLORS } from '@/components/ProbeSelector'
 import { getToken } from '@/api/client'
-import { cn } from '@/lib/utils'
+import { FilterDropdown } from '@/components/FilterDropdown'
 
 export const INTERVALS = [
   { label: 'Auto', value: '' },
@@ -227,25 +227,12 @@ export default function History({
           <div className="flex flex-col gap-3 sm:items-end">
             <TimeRangePicker value={range} onChange={setRange} />
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-on-surface-faint uppercase tracking-wider mr-1">
-                Interval
-              </span>
-              {INTERVALS.map((int) => (
-                <button
-                  key={int.value}
-                  onClick={() => setInterval(int.value)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-full text-xs font-medium transition-fluid',
-                    interval === int.value
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
-                  )}
-                >
-                  {int.label}
-                </button>
-              ))}
-            </div>
+            <FilterDropdown
+              label="Interval"
+              value={interval}
+              options={INTERVALS.map((int) => ({ value: int.value, label: int.label }))}
+              onChange={setInterval}
+            />
           </div>
         </div>
       )}
