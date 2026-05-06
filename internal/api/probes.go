@@ -7,6 +7,7 @@ import (
 
 	"github.com/kjaebker/symbiont/internal/apex"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 )
 
 type probeResponse struct {
@@ -204,14 +205,9 @@ func autoInterval(d time.Duration) string {
 	}
 }
 
-var validIntervals = map[string]bool{
-	"10s": true, "30s": true, "1m": true, "5m": true,
-	"15m": true, "1h": true, "1d": true,
-}
-
 // validInterval checks if the given interval is in the allowlist.
 func validInterval(interval string) bool {
-	return validIntervals[interval]
+	return enums.HistoryIntervals.Has(interval)
 }
 
 // computeProbeStatus determines probe status from config thresholds.

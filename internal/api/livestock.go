@@ -9,22 +9,9 @@ import (
 	"strings"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 	"github.com/kjaebker/symbiont/internal/events"
 )
-
-var validLivestockTypes = map[string]bool{
-	"fish":         true,
-	"coral":        true,
-	"invertebrate": true,
-	"other":        true,
-}
-
-var validLivestockStatuses = map[string]bool{
-	"healthy":    true,
-	"sick":       true,
-	"quarantine": true,
-	"deceased":   true,
-}
 
 func (s *Server) HandleLivestockList(w http.ResponseWriter, r *http.Request) {
 	f := db.LivestockFilter{
@@ -86,7 +73,7 @@ func (s *Server) HandleLivestockCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required", "missing_field")
 		return
 	}
-	if !validLivestockTypes[body.Type] {
+	if !enums.LivestockTypes.Has(body.Type) {
 		writeError(w, http.StatusBadRequest, "invalid type", "invalid_field")
 		return
 	}
@@ -97,7 +84,7 @@ func (s *Server) HandleLivestockCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	status := "healthy"
 	if body.Status != nil {
-		if !validLivestockStatuses[*body.Status] {
+		if !enums.LivestockStatuses.Has(*body.Status) {
 			writeError(w, http.StatusBadRequest, "invalid status", "invalid_field")
 			return
 		}
@@ -172,11 +159,11 @@ func (s *Server) HandleLivestockUpdate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required", "missing_field")
 		return
 	}
-	if !validLivestockTypes[body.Type] {
+	if !enums.LivestockTypes.Has(body.Type) {
 		writeError(w, http.StatusBadRequest, "invalid type", "invalid_field")
 		return
 	}
-	if !validLivestockStatuses[body.Status] {
+	if !enums.LivestockStatuses.Has(body.Status) {
 		writeError(w, http.StatusBadRequest, "invalid status", "invalid_field")
 		return
 	}
@@ -325,7 +312,7 @@ func (s *Server) HandleLivestockObservationCreate(w http.ResponseWriter, r *http
 		writeError(w, http.StatusBadRequest, "status or note is required", "missing_field")
 		return
 	}
-	if body.Status != nil && *body.Status != "" && !validLivestockStatuses[*body.Status] {
+	if body.Status != nil && *body.Status != "" && !enums.LivestockStatuses.Has(*body.Status) {
 		writeError(w, http.StatusBadRequest, "invalid status", "invalid_field")
 		return
 	}

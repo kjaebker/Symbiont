@@ -13,22 +13,8 @@ import (
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 )
-
-// validDeviceTypes is the set of known device types enforced at the app layer.
-var validDeviceTypes = map[string]bool{
-	"heater":    true,
-	"pump":      true,
-	"wavemaker": true,
-	"light":     true,
-	"skimmer":   true,
-	"reactor":   true,
-	"doser":     true,
-	"ato":       true,
-	"chiller":   true,
-	"fan":       true,
-	"other":     true,
-}
 
 const maxImageSize = 30 << 20 // 30MB — compressed by processImage after upload
 
@@ -92,7 +78,7 @@ func (s *Server) HandleDeviceCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required", "missing_field")
 		return
 	}
-	if body.DeviceType != nil && *body.DeviceType != "" && !validDeviceTypes[*body.DeviceType] {
+	if body.DeviceType != nil && *body.DeviceType != "" && !enums.DeviceTypes.Has(*body.DeviceType) {
 		writeError(w, http.StatusBadRequest, "invalid device_type", "invalid_field")
 		return
 	}
@@ -195,7 +181,7 @@ func (s *Server) HandleDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required", "missing_field")
 		return
 	}
-	if body.DeviceType != nil && *body.DeviceType != "" && !validDeviceTypes[*body.DeviceType] {
+	if body.DeviceType != nil && *body.DeviceType != "" && !enums.DeviceTypes.Has(*body.DeviceType) {
 		writeError(w, http.StatusBadRequest, "invalid device_type", "invalid_field")
 		return
 	}

@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/kjaebker/symbiont/internal/enums"
 )
 
 // imageOwner describes an entity that has a single image attached, with a
@@ -89,8 +91,7 @@ func readImageFile(w http.ResponseWriter, r *http.Request, validateExt bool) (mu
 	ext := ".jpg"
 	if validateExt {
 		ext = strings.ToLower(filepath.Ext(header.Filename))
-		validExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
-		if !validExts[ext] {
+		if !enums.ImageExtensions.Has(ext) {
 			file.Close()
 			writeError(w, http.StatusBadRequest, "image must be JPEG, PNG, or WebP", "invalid_file_type")
 			return multipartFile{}, false

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 )
 
 func (s *Server) HandleDashboardGet(w http.ResponseWriter, r *http.Request) {
@@ -32,10 +33,9 @@ func (s *Server) HandleDashboardReplace(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Validate items.
-	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true, "feed_mode": true, "measurement": true}
 	seen := make(map[string]bool)
 	for _, item := range body.Items {
-		if !validTypes[item.ItemType] {
+		if !enums.DashboardItemTypes.Has(item.ItemType) {
 			writeError(w, http.StatusBadRequest, "invalid item_type: "+item.ItemType, "invalid_field")
 			return
 		}
@@ -80,8 +80,7 @@ func (s *Server) HandleDashboardAddItem(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	validTypes := map[string]bool{"probe": true, "outlet": true, "device": true, "separator": true, "feed_mode": true, "measurement": true}
-	if !validTypes[item.ItemType] {
+	if !enums.DashboardItemTypes.Has(item.ItemType) {
 		writeError(w, http.StatusBadRequest, "invalid item_type", "invalid_field")
 		return
 	}

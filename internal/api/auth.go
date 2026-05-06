@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/kjaebker/symbiont/internal/enums"
 	"github.com/kjaebker/symbiont/internal/events"
 )
 
@@ -14,12 +15,6 @@ func (s *Server) HandleTokenList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tokens": tokens})
-}
-
-var validTokenScopes = map[string]bool{
-	"read":    true,
-	"control": true,
-	"admin":   true,
 }
 
 func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +34,7 @@ func (s *Server) HandleTokenCreate(w http.ResponseWriter, r *http.Request) {
 	if scope == "" {
 		scope = "admin"
 	}
-	if !validTokenScopes[scope] {
+	if !enums.TokenScopes.Has(scope) {
 		writeError(w, http.StatusBadRequest, "invalid scope; must be: read, control, admin", "invalid_param")
 		return
 	}
@@ -74,7 +69,7 @@ func (s *Server) HandleTokenUpdateScope(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 		return
 	}
-	if !validTokenScopes[body.Scope] {
+	if !enums.TokenScopes.Has(body.Scope) {
 		writeError(w, http.StatusBadRequest, "invalid scope; must be: read, control, admin", "invalid_param")
 		return
 	}
