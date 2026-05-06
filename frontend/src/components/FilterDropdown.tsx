@@ -53,7 +53,8 @@ export function FilterDropdown({ label, value, options, onChange }: FilterDropdo
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[160px] max-h-64 overflow-y-auto bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[160px] bg-surface-container-high rounded-2xl shadow-abyss overflow-hidden">
+          <div className="max-h-64 overflow-y-auto p-1.5">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -71,6 +72,7 @@ export function FilterDropdown({ label, value, options, onChange }: FilterDropdo
               {opt.label}
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>

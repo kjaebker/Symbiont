@@ -63,7 +63,8 @@ export function ProbeSelector({
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] max-h-72 overflow-y-auto bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] bg-surface-container-high rounded-2xl shadow-abyss overflow-hidden">
+          <div className="max-h-72 overflow-y-auto p-1.5">
           {selected.length > 0 && (
             <button
               onClick={() => onChange([])}
@@ -109,6 +110,7 @@ export function ProbeSelector({
               )
             })
           )}
+          </div>
         </div>
       )}
     </div>
@@ -176,7 +178,8 @@ export function MeasurementSelector({
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] max-h-72 overflow-y-auto bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[200px] bg-surface-container-high rounded-2xl shadow-abyss overflow-hidden">
+          <div className="max-h-72 overflow-y-auto p-1.5">
           {selected.length > 0 && (
             <button
               onClick={() => onChange([])}
@@ -224,6 +227,7 @@ export function MeasurementSelector({
               )
             })
           )}
+          </div>
         </div>
       )}
     </div>
