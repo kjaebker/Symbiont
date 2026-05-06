@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +11,9 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const swipeStartY = useRef<number | null>(null)
+
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -17,7 +21,31 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  return (
+  function handleDragStart(e: React.TouchEvent) {
+    swipeStartY.current = e.touches[0].clientY
+    if (sheetRef.current) sheetRef.current.style.transition = 'none'
+  }
+
+  function handleDragMove(e: React.TouchEvent) {
+    if (swipeStartY.current === null) return
+    const dy = e.touches[0].clientY - swipeStartY.current
+    if (dy > 0 && sheetRef.current) {
+      sheetRef.current.style.transform = `translateY(${dy}px)`
+    }
+  }
+
+  function handleDragEnd(e: React.TouchEvent) {
+    if (swipeStartY.current === null) return
+    const dy = e.changedTouches[0].clientY - swipeStartY.current
+    swipeStartY.current = null
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = ''
+      sheetRef.current.style.transform = ''
+    }
+    if (dy > 80) onClose()
+  }
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -30,6 +58,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       />
       {/* Sheet */}
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -39,12 +68,22 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         )}
         style={{ bottom: 0, height: '85vh', overflow: 'hidden' }}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
+        {/* Drag handle — swipe target */}
+        <div
+          className="flex justify-center pt-4 pb-3 shrink-0 touch-none select-none"
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        >
           <div className="w-9 h-1 rounded-full bg-outline-variant/40" />
         </div>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0">
+        {/* Header — also a swipe target */}
+        <div
+          className="flex items-center justify-between px-5 py-3 shrink-0 select-none"
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        >
           <span className="text-sm font-semibold text-on-surface uppercase tracking-widest">
             {title}
           </span>
@@ -61,6 +100,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   )
 }
