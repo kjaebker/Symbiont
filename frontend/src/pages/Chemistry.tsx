@@ -600,7 +600,9 @@ export default function Chemistry() {
           : null
         }
         filterBar={tab === 'water-tests' ? measurementFilterBar : undefined}
+        filterCount={1}
         filterActive={!!selectedParam}
+        onClearFilters={() => setSelectedParam(null)}
         maxWidth="max-w-6xl"
       />
 
