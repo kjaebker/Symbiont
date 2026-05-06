@@ -10,8 +10,8 @@ import (
 // InsertAuditEvent inserts a row into the events table.
 func (s *SQLiteDB) InsertAuditEvent(ctx context.Context, e AuditEvent) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO events (ts, kind, payload_json, correlation_id) VALUES (?, ?, ?, ?)`,
-		e.TS, e.Kind, e.PayloadJSON, e.CorrelationID,
+		`INSERT INTO events (ts, kind, payload_json, correlation_id, initiated_by) VALUES (?, ?, ?, ?, ?)`,
+		e.TS, e.Kind, e.PayloadJSON, e.CorrelationID, e.InitiatedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting audit event kind=%s: %w", e.Kind, err)
@@ -30,7 +30,7 @@ func (s *SQLiteDB) ListAuditEvents(ctx context.Context, f AuditFilter) ([]AuditE
 		limit = 500
 	}
 
-	query := `SELECT id, ts, kind, payload_json, correlation_id FROM events WHERE 1=1`
+	query := `SELECT id, ts, kind, payload_json, correlation_id, initiated_by FROM events WHERE 1=1`
 	var args []any
 
 	if f.Kind != "" {
@@ -46,7 +46,7 @@ func (s *SQLiteDB) ListAuditEvents(ctx context.Context, f AuditFilter) ([]AuditE
 		args = append(args, f.CorrelationID)
 	}
 	if f.InitiatedBy != "" {
-		query += ` AND json_extract(payload_json, '$.data.initiated_by') = ?`
+		query += ` AND initiated_by = ?`
 		args = append(args, f.InitiatedBy)
 	}
 	query += ` ORDER BY ts DESC LIMIT ?`
@@ -61,7 +61,7 @@ func (s *SQLiteDB) ListAuditEvents(ctx context.Context, f AuditFilter) ([]AuditE
 	var out []AuditEvent
 	for rows.Next() {
 		var e AuditEvent
-		if err := rows.Scan(&e.ID, &e.TS, &e.Kind, &e.PayloadJSON, &e.CorrelationID); err != nil {
+		if err := rows.Scan(&e.ID, &e.TS, &e.Kind, &e.PayloadJSON, &e.CorrelationID, &e.InitiatedBy); err != nil {
 			return nil, fmt.Errorf("scanning audit event: %w", err)
 		}
 		out = append(out, e)

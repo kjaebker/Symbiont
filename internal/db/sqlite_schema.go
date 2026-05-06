@@ -32,6 +32,27 @@ var migrations = []Migration{
 			return err
 		},
 	},
+	{
+		Version: 3,
+		Name:    "promote events.initiated_by to a real column",
+		Up: func(tx *sql.Tx) error {
+			if _, err := tx.Exec(`ALTER TABLE events ADD COLUMN initiated_by TEXT`); err != nil {
+				return fmt.Errorf("adding events.initiated_by column: %w", err)
+			}
+			// Backfill from JSON for any rows that already had it embedded.
+			if _, err := tx.Exec(`UPDATE events
+				SET initiated_by = json_extract(payload_json, '$.data.initiated_by')
+				WHERE initiated_by IS NULL
+				  AND json_extract(payload_json, '$.data.initiated_by') IS NOT NULL`); err != nil {
+				return fmt.Errorf("backfilling events.initiated_by: %w", err)
+			}
+			if _, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_events_initiated_by
+				ON events(initiated_by, ts DESC) WHERE initiated_by IS NOT NULL`); err != nil {
+				return fmt.Errorf("creating idx_events_initiated_by: %w", err)
+			}
+			return nil
+		},
+	},
 }
 
 // CreateSQLiteSchema is the entrypoint preserved for callers. It ensures the

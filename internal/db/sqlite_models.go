@@ -259,6 +259,7 @@ type AuditEvent struct {
 	Kind          string    `json:"kind"`
 	PayloadJSON   string    `json:"payload_json"`
 	CorrelationID *string   `json:"correlation_id,omitempty"`
+	InitiatedBy   *string   `json:"initiated_by,omitempty"`
 }
 
 // DosingProduct represents a row in the dosing_products table.
