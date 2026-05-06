@@ -579,7 +579,7 @@ export default function Journal({
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-6 md:px-8 py-6 space-y-6">
       {/* Standalone header (not used when embedded in HistoryPage) */}
       {!hideHeader && (
         <>
