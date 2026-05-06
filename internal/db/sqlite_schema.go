@@ -3,52 +3,152 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"strings"
+	"sort"
 )
 
-// CreateSQLiteSchema creates all SQLite tables and indexes idempotently.
+// Migration is a versioned schema change. Migrations run inside a transaction;
+// the runner records each successful application in `schema_versions`.
+//
+// Never edit a Migration after it has been merged. To revise a published
+// schema, add a new Migration with a higher Version.
+type Migration struct {
+	Version int
+	Name    string
+	Up      func(*sql.Tx) error
+}
+
+// migrations is the ordered list of schema versions beyond the v1 baseline.
+// Append new entries here; do not edit existing ones. Versions must be
+// strictly increasing.
+//
+// The v1 baseline itself is created by createSchemaV1, not listed here.
+var migrations = []Migration{
+	// v2, v3, ... go here as schema changes land.
+}
+
+// CreateSQLiteSchema is the entrypoint preserved for callers. It ensures the
+// schema_versions table exists, applies the v1 baseline if this database has
+// never been initialised, then runs any unapplied versioned migrations.
 func CreateSQLiteSchema(db *sql.DB) error {
-	// Enable WAL mode and foreign keys.
 	pragmas := []string{
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA foreign_keys=ON",
 	}
 	for _, p := range pragmas {
 		if _, err := db.Exec(p); err != nil {
-			return err
+			return fmt.Errorf("setting %s: %w", p, err)
 		}
 	}
 
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_versions (
+		version    INTEGER  PRIMARY KEY,
+		name       TEXT     NOT NULL,
+		applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+	)`); err != nil {
+		return fmt.Errorf("creating schema_versions: %w", err)
+	}
+
+	applied, err := loadAppliedVersions(db)
+	if err != nil {
+		return err
+	}
+
+	if !applied[1] {
+		if err := applyV1Baseline(db); err != nil {
+			return fmt.Errorf("applying v1 baseline: %w", err)
+		}
+	}
+
+	pending := make([]Migration, 0, len(migrations))
+	for _, m := range migrations {
+		if !applied[m.Version] {
+			pending = append(pending, m)
+		}
+	}
+	sort.Slice(pending, func(i, j int) bool {
+		return pending[i].Version < pending[j].Version
+	})
+
+	for _, m := range pending {
+		if m.Version <= 1 {
+			return fmt.Errorf("migration version %d (%s) must be > 1; v1 is the baseline", m.Version, m.Name)
+		}
+		if err := runMigration(db, m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func loadAppliedVersions(db *sql.DB) (map[int]bool, error) {
+	rows, err := db.Query(`SELECT version FROM schema_versions`)
+	if err != nil {
+		return nil, fmt.Errorf("reading schema_versions: %w", err)
+	}
+	defer rows.Close()
+	applied := map[int]bool{}
+	for rows.Next() {
+		var v int
+		if err := rows.Scan(&v); err != nil {
+			return nil, fmt.Errorf("scanning schema_versions row: %w", err)
+		}
+		applied[v] = true
+	}
+	return applied, rows.Err()
+}
+
+// applyV1Baseline creates every table and index that the schema declares as of
+// v1. The CREATE TABLE / CREATE INDEX statements use IF NOT EXISTS so an
+// existing database (predating schema_versions) keeps its tables — only the
+// schema_versions row is inserted, recording that v1 has been applied.
+func applyV1Baseline(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := createSchemaV1(tx); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		`INSERT INTO schema_versions(version, name) VALUES (1, ?)`,
+		"initial schema",
+	); err != nil {
+		return fmt.Errorf("recording v1: %w", err)
+	}
+	return tx.Commit()
+}
+
+func runMigration(db *sql.DB, m Migration) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin migration v%d: %w", m.Version, err)
+	}
+	defer tx.Rollback()
+	if err := m.Up(tx); err != nil {
+		return fmt.Errorf("migration v%d (%s): %w", m.Version, m.Name, err)
+	}
+	if _, err := tx.Exec(
+		`INSERT INTO schema_versions(version, name) VALUES (?, ?)`,
+		m.Version, m.Name,
+	); err != nil {
+		return fmt.Errorf("recording v%d: %w", m.Version, err)
+	}
+	return tx.Commit()
+}
+
+// createSchemaV1 is the consolidated baseline schema: every column, every
+// CHECK constraint, and every index that previously accumulated through
+// ad-hoc ALTERs and table-recreation migrations is inlined here.
+func createSchemaV1(tx *sql.Tx) error {
 	tables := []string{
 		`CREATE TABLE IF NOT EXISTS auth_tokens (
 			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
 			token       TEXT     NOT NULL UNIQUE,
 			label       TEXT,
+			scope       TEXT     NOT NULL DEFAULT 'admin',
 			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			last_used   DATETIME
-		)`,
-		`CREATE TABLE IF NOT EXISTS probe_config (
-			probe_name      TEXT PRIMARY KEY,
-			display_name    TEXT,
-			unit_override   TEXT,
-			min_normal      REAL,
-			max_normal      REAL,
-			min_warning     REAL,
-			max_warning     REAL,
-			device_id       INTEGER REFERENCES devices(id) ON DELETE SET NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS outlet_config (
-			outlet_id       TEXT PRIMARY KEY,
-			display_name    TEXT,
-			icon            TEXT
-		)`,
-		`CREATE TABLE IF NOT EXISTS device_outlets (
-			device_id   INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-			outlet_id   TEXT    NOT NULL,
-			label       TEXT,
-			color       TEXT,
-			sort_order  INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (device_id, outlet_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS devices (
 			id            INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -63,6 +163,35 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS probe_config (
+			probe_name      TEXT    PRIMARY KEY,
+			display_name    TEXT,
+			unit_override   TEXT,
+			min_normal      REAL,
+			max_normal      REAL,
+			min_warning     REAL,
+			max_warning     REAL,
+			device_id       INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+			input_category  TEXT    NOT NULL DEFAULT 'probe',
+			on_label        TEXT,
+			off_label       TEXT,
+			ok_value        REAL,
+			is_binary       INTEGER NOT NULL DEFAULT 0,
+			hidden          INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS outlet_config (
+			outlet_id       TEXT PRIMARY KEY,
+			display_name    TEXT,
+			icon            TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS device_outlets (
+			device_id   INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+			outlet_id   TEXT    NOT NULL,
+			label       TEXT,
+			color       TEXT,
+			sort_order  INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (device_id, outlet_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS alert_rules (
 			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
 			probe_name      TEXT     NOT NULL,
@@ -74,13 +203,6 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			enabled         INTEGER  NOT NULL DEFAULT 1,
 			created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
-		`CREATE TABLE IF NOT EXISTS notification_targets (
-			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
-			type        TEXT     NOT NULL,
-			config      TEXT     NOT NULL,
-			label       TEXT,
-			enabled     INTEGER  NOT NULL DEFAULT 1
-		)`,
 		`CREATE TABLE IF NOT EXISTS alert_events (
 			id              INTEGER  PRIMARY KEY AUTOINCREMENT,
 			rule_id         INTEGER  NOT NULL REFERENCES alert_rules(id),
@@ -88,6 +210,13 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			cleared_at      DATETIME,
 			peak_value      REAL,
 			notified        INTEGER  NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS notification_targets (
+			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+			type        TEXT     NOT NULL,
+			config      TEXT     NOT NULL,
+			label       TEXT,
+			enabled     INTEGER  NOT NULL DEFAULT 1
 		)`,
 		`CREATE TABLE IF NOT EXISTS backup_jobs (
 			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -99,10 +228,11 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		)`,
 		`CREATE TABLE IF NOT EXISTS dashboard_items (
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator')),
+			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator','feed_mode','measurement')),
 			reference_id TEXT,
 			label        TEXT,
-			sort_order   INTEGER NOT NULL
+			sort_order   INTEGER NOT NULL,
+			display_mode TEXT    NOT NULL DEFAULT 'normal'
 		)`,
 		`CREATE TABLE IF NOT EXISTS measurement_parameters (
 			id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -140,7 +270,8 @@ func CreateSQLiteSchema(db *sql.DB) error {
 			livestock_id INTEGER  NOT NULL REFERENCES livestock(id) ON DELETE CASCADE,
 			ts           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			status       TEXT     CHECK(status IN ('healthy','sick','quarantine','deceased')),
-			note         TEXT
+			note         TEXT,
+			image_path   TEXT
 		)`,
 		`CREATE TABLE IF NOT EXISTS tank_profile (
 			section         TEXT NOT NULL PRIMARY KEY CHECK(section IN ('display','sump')),
@@ -261,7 +392,7 @@ func CreateSQLiteSchema(db *sql.DB) error {
 
 	indexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_alert_events_rule ON alert_events(rule_id, fired_at DESC)`,
-`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_items_sort ON dashboard_items(sort_order)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_param ON measurements(parameter_id, measured_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_measurements_date ON measurements(measured_at DESC)`,
@@ -280,184 +411,29 @@ func CreateSQLiteSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_maintenance_logs_task ON maintenance_logs(task_id, completed_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_outlet_program_history_did ON outlet_program_history(did, changed_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_device_outlets_device_id ON device_outlets(device_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,
 	}
 
 	for _, stmt := range tables {
-		if _, err := db.Exec(stmt); err != nil {
-			return err
+		if _, err := tx.Exec(stmt); err != nil {
+			return fmt.Errorf("creating table: %w (%s)", err, firstLine(stmt))
 		}
 	}
 	for _, stmt := range indexes {
-		if _, err := db.Exec(stmt); err != nil {
-			return err
-		}
-	}
-
-	// Migrations: add columns to existing tables. Each migration catches
-	// "duplicate column" to be idempotent.
-	migrations := []string{
-		`ALTER TABLE probe_config ADD COLUMN device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL`,
-		`ALTER TABLE livestock_observations ADD COLUMN image_path TEXT`,
-		// Token scope: existing tokens default to 'admin' to preserve current behaviour.
-		`ALTER TABLE auth_tokens ADD COLUMN scope TEXT NOT NULL DEFAULT 'admin'`,
-		// Input reclassification: semantic category, binary labels, ok_value, hidden flag.
-		`ALTER TABLE probe_config ADD COLUMN input_category TEXT NOT NULL DEFAULT 'probe'`,
-		`ALTER TABLE probe_config ADD COLUMN on_label TEXT`,
-		`ALTER TABLE probe_config ADD COLUMN off_label TEXT`,
-		`ALTER TABLE probe_config ADD COLUMN ok_value REAL`,
-		`ALTER TABLE probe_config ADD COLUMN is_binary INTEGER NOT NULL DEFAULT 0`,
-		`ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`,
-	}
-	for _, m := range migrations {
-		if _, err := db.Exec(m); err != nil {
-			if !isDuplicateColumn(err) {
-				return err
-			}
-		}
-	}
-
-	// Structural migrations that require table recreation.
-	if err := migrateDashboardItemTypes(db); err != nil {
-		return err
-	}
-	if err := migrateDashboardItemTypesV2(db); err != nil {
-		return err
-	}
-	if err := migrateDosingProductTypes(db); err != nil {
-		return err
-	}
-
-	// Add display_mode after structural migrations so the table-recreation
-	// migrations don't have to account for this column.
-	if _, err := db.Exec(`ALTER TABLE dashboard_items ADD COLUMN display_mode TEXT NOT NULL DEFAULT 'normal'`); err != nil {
-		if !isDuplicateColumn(err) {
-			return fmt.Errorf("adding display_mode column: %w", err)
-		}
-	}
-
-	// Post-migration indexes (depend on columns added above).
-	postIndexes := []string{
-		`CREATE INDEX IF NOT EXISTS idx_probe_config_device ON probe_config(device_id)`,
-	}
-	for _, stmt := range postIndexes {
-		if _, err := db.Exec(stmt); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// migrateDashboardItemTypesV2 expands the dashboard_items CHECK constraint to
-// include 'measurement'.
-func migrateDashboardItemTypesV2(db *sql.DB) error {
-	var createSQL string
-	err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dashboard_items'`).Scan(&createSQL)
-	if err != nil {
-		return fmt.Errorf("querying dashboard_items schema: %w", err)
-	}
-	if strings.Contains(createSQL, "'measurement'") {
-		return nil // already migrated
-	}
-
-	stmts := []string{
-		`CREATE TABLE dashboard_items_new (
-			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator','feed_mode','measurement')),
-			reference_id TEXT,
-			label        TEXT,
-			sort_order   INTEGER NOT NULL
-		)`,
-		`INSERT INTO dashboard_items_new SELECT * FROM dashboard_items`,
-		`DROP TABLE dashboard_items`,
-		`ALTER TABLE dashboard_items_new RENAME TO dashboard_items`,
-		`CREATE UNIQUE INDEX idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
-		`CREATE INDEX idx_dashboard_items_sort ON dashboard_items(sort_order)`,
-	}
-	for _, stmt := range stmts {
-		if _, err := db.Exec(stmt); err != nil {
-			return fmt.Errorf("migrating dashboard_items item_type constraint v2: %w", err)
+		if _, err := tx.Exec(stmt); err != nil {
+			return fmt.Errorf("creating index: %w (%s)", err, firstLine(stmt))
 		}
 	}
 	return nil
 }
 
-// migrateDosingProductTypes expands the dosing_products CHECK constraint to
-// include 'filter_media'. SQLite does not support ALTER TABLE to change constraints.
-func migrateDosingProductTypes(db *sql.DB) error {
-	var createSQL string
-	err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dosing_products'`).Scan(&createSQL)
-	if err != nil {
-		return fmt.Errorf("querying dosing_products schema: %w", err)
-	}
-	if strings.Contains(createSQL, "'filter_media'") {
-		return nil // already migrated
-	}
-
-	stmts := []string{
-		`PRAGMA foreign_keys = OFF`,
-		`DROP TABLE IF EXISTS dosing_products_new`,
-		`CREATE TABLE dosing_products_new (
-			id          INTEGER  PRIMARY KEY AUTOINCREMENT,
-			brand       TEXT     NOT NULL,
-			name        TEXT     NOT NULL,
-			type        TEXT     NOT NULL CHECK(type IN (
-			             'two_part_a','two_part_b','calcium','alkalinity','magnesium',
-			             'trace','amino','bacteria','carbon_source','filter_media','other')),
-			unit        TEXT     NOT NULL DEFAULT 'mL',
-			notes       TEXT,
-			created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`INSERT INTO dosing_products_new SELECT * FROM dosing_products`,
-		`DROP TABLE dosing_products`,
-		`ALTER TABLE dosing_products_new RENAME TO dosing_products`,
-		`PRAGMA foreign_keys = ON`,
-	}
-	for _, stmt := range stmts {
-		if _, err := db.Exec(stmt); err != nil {
-			return fmt.Errorf("migrating dosing_products type constraint: %w", err)
+// firstLine returns the first non-empty line of a SQL string, used for error
+// messages that point at the offending statement without dumping the whole body.
+func firstLine(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			return s[:i]
 		}
 	}
-	return nil
+	return s
 }
-
-// isDuplicateColumn checks if a SQLite error is a "duplicate column name" error.
-func isDuplicateColumn(err error) bool {
-	return strings.Contains(err.Error(), "duplicate column name")
-}
-
-// migrateDashboardItemTypes expands the dashboard_items CHECK constraint to
-// include 'feed_mode'. SQLite does not support ALTER TABLE to change constraints,
-// so this recreates the table when the migration has not yet been applied.
-func migrateDashboardItemTypes(db *sql.DB) error {
-	var createSQL string
-	err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dashboard_items'`).Scan(&createSQL)
-	if err != nil {
-		return fmt.Errorf("querying dashboard_items schema: %w", err)
-	}
-	if strings.Contains(createSQL, "'feed_mode'") {
-		return nil // already migrated
-	}
-
-	stmts := []string{
-		`CREATE TABLE dashboard_items_new (
-			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			item_type    TEXT    NOT NULL CHECK(item_type IN ('probe','outlet','device','separator','feed_mode')),
-			reference_id TEXT,
-			label        TEXT,
-			sort_order   INTEGER NOT NULL
-		)`,
-		`INSERT INTO dashboard_items_new SELECT * FROM dashboard_items`,
-		`DROP TABLE dashboard_items`,
-		`ALTER TABLE dashboard_items_new RENAME TO dashboard_items`,
-		`CREATE UNIQUE INDEX idx_dashboard_items_ref ON dashboard_items(item_type, reference_id) WHERE reference_id IS NOT NULL`,
-		`CREATE INDEX idx_dashboard_items_sort ON dashboard_items(sort_order)`,
-	}
-	for _, stmt := range stmts {
-		if _, err := db.Exec(stmt); err != nil {
-			return fmt.Errorf("migrating dashboard_items item_type constraint: %w", err)
-		}
-	}
-	return nil
-}
-
