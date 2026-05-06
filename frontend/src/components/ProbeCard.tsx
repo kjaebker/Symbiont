@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Thermometer, FlaskConical, Zap, ToggleLeft, Droplets, AlertTriangle } from 'lucide-react'
 import { getProbeHistory } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
@@ -115,7 +116,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
 
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
   const { data: history } = useQuery({
-    queryKey: ['probeSparkline', probe.name],
+    queryKey: qk.probes.sparkline(probe.name),
     queryFn: () =>
       getProbeHistory(probe.name, { from: twoHoursAgo, interval: '5m' }),
     staleTime: 60_000,

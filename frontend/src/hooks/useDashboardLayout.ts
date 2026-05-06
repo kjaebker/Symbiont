@@ -5,11 +5,12 @@ import {
   addDashboardItem,
   removeDashboardItem,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { DashboardItem } from '@/api/types'
 
 export function useDashboardLayout() {
   return useQuery({
-    queryKey: ['dashboardLayout'],
+    queryKey: qk.dashboard.layout,
     queryFn: getDashboardLayout,
     staleTime: 10_000,
   })
@@ -20,7 +21,7 @@ export function useReplaceDashboardLayout() {
   return useMutation({
     mutationFn: (items: Omit<DashboardItem, 'id' | 'sort_order'>[]) => replaceDashboardLayout(items),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboardLayout'] })
+      queryClient.invalidateQueries({ queryKey: qk.dashboard.layout })
     },
   })
 }
@@ -30,7 +31,7 @@ export function useAddDashboardItem() {
   return useMutation({
     mutationFn: (item: Omit<DashboardItem, 'id' | 'sort_order'>) => addDashboardItem(item),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboardLayout'] })
+      queryClient.invalidateQueries({ queryKey: qk.dashboard.layout })
     },
   })
 }
@@ -40,7 +41,7 @@ export function useRemoveDashboardItem() {
   return useMutation({
     mutationFn: (id: number) => removeDashboardItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboardLayout'] })
+      queryClient.invalidateQueries({ queryKey: qk.dashboard.layout })
     },
   })
 }

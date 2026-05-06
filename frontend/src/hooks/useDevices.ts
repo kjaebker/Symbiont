@@ -8,11 +8,12 @@ import {
   setDeviceOutlets,
   getDeviceSuggestions,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { Device, DeviceOutlet } from '@/api/types'
 
 export function useDevices() {
   return useQuery({
-    queryKey: ['devices'],
+    queryKey: qk.devices.all,
     queryFn: getDevices,
     staleTime: 10_000,
     notifyOnChangeProps: ['data', 'error'],
@@ -24,9 +25,9 @@ export function useCreateDevice() {
   return useMutation({
     mutationFn: (device: Omit<Device, 'id' | 'created_at' | 'updated_at'>) => createDevice(device),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
-      queryClient.invalidateQueries({ queryKey: ['probeConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['outletConfigs'] })
+      queryClient.invalidateQueries({ queryKey: qk.devices.all })
+      queryClient.invalidateQueries({ queryKey: qk.probes.configs })
+      queryClient.invalidateQueries({ queryKey: qk.outlets.configs })
     },
   })
 }
@@ -36,11 +37,11 @@ export function useUpdateDevice() {
   return useMutation({
     mutationFn: ({ id, device }: { id: number; device: Partial<Device> }) => updateDevice(id, device),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
-      queryClient.invalidateQueries({ queryKey: ['probeConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['outletConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['probes'] })
-      queryClient.invalidateQueries({ queryKey: ['outlets'] })
+      queryClient.invalidateQueries({ queryKey: qk.devices.all })
+      queryClient.invalidateQueries({ queryKey: qk.probes.configs })
+      queryClient.invalidateQueries({ queryKey: qk.outlets.configs })
+      queryClient.invalidateQueries({ queryKey: qk.probes.all })
+      queryClient.invalidateQueries({ queryKey: qk.outlets.all })
     },
   })
 }
@@ -50,7 +51,7 @@ export function useDeleteDevice() {
   return useMutation({
     mutationFn: (id: number) => deleteDevice(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: qk.devices.all })
     },
   })
 }
@@ -60,9 +61,9 @@ export function useSetDeviceProbes() {
   return useMutation({
     mutationFn: ({ id, probeNames }: { id: number; probeNames: string[] }) => setDeviceProbes(id, probeNames),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
-      queryClient.invalidateQueries({ queryKey: ['probeConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['probes'] })
+      queryClient.invalidateQueries({ queryKey: qk.devices.all })
+      queryClient.invalidateQueries({ queryKey: qk.probes.configs })
+      queryClient.invalidateQueries({ queryKey: qk.probes.all })
     },
   })
 }
@@ -72,14 +73,14 @@ export function useSetDeviceOutlets() {
   return useMutation({
     mutationFn: ({ id, outlets }: { id: number; outlets: DeviceOutlet[] }) => setDeviceOutlets(id, outlets),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: qk.devices.all })
     },
   })
 }
 
 export function useDeviceSuggestions() {
   return useQuery({
-    queryKey: ['devices', 'suggestions'],
+    queryKey: qk.devices.suggestions,
     queryFn: getDeviceSuggestions,
     staleTime: 30_000,
     enabled: false, // Only fetch on demand.

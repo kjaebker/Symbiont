@@ -6,11 +6,12 @@ import {
   updateJournalEntry,
   deleteJournalEntry,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { JournalCategory, JournalSentiment, JournalListParams } from '@/api/client'
 
 export function useJournalTemplates() {
   return useQuery({
-    queryKey: ['journal-templates'],
+    queryKey: qk.journal.templates,
     queryFn: getJournalTemplates,
     staleTime: Infinity,
   })
@@ -18,7 +19,7 @@ export function useJournalTemplates() {
 
 export function useJournalEntries(params?: JournalListParams) {
   return useQuery({
-    queryKey: ['journal', params],
+    queryKey: qk.journal.list(params),
     queryFn: () => listJournalEntries(params),
     staleTime: 15_000,
   })
@@ -34,7 +35,7 @@ export function useCreateJournalEntry() {
       body?: string
     }) => createJournalEntry(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] })
+      queryClient.invalidateQueries({ queryKey: qk.journal.list() })
     },
   })
 }
@@ -52,7 +53,7 @@ export function useUpdateJournalEntry() {
       }
     }) => updateJournalEntry(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] })
+      queryClient.invalidateQueries({ queryKey: qk.journal.list() })
     },
   })
 }
@@ -62,7 +63,7 @@ export function useDeleteJournalEntry() {
   return useMutation({
     mutationFn: (id: number) => deleteJournalEntry(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] })
+      queryClient.invalidateQueries({ queryKey: qk.journal.list() })
     },
   })
 }

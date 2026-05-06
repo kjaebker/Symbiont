@@ -7,10 +7,11 @@ import {
   updateMeasurement,
   deleteMeasurement,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 
 export function useMeasurementParameters() {
   return useQuery({
-    queryKey: ['measurement-parameters'],
+    queryKey: qk.measurements.parameters,
     queryFn: getMeasurementParameters,
     staleTime: Infinity, // parameters are seeded at startup and rarely change
   })
@@ -18,7 +19,7 @@ export function useMeasurementParameters() {
 
 export function useKitCatalog() {
   return useQuery({
-    queryKey: ['measurement-kits'],
+    queryKey: qk.measurements.kits,
     queryFn: getKitCatalog,
     staleTime: Infinity, // kit catalog is static — embedded in the binary
   })
@@ -31,7 +32,7 @@ export function useMeasurements(params?: {
   limit?: number
 }) {
   return useQuery({
-    queryKey: ['measurements', params],
+    queryKey: qk.measurements.list(params),
     queryFn: () => getMeasurements(params),
     staleTime: 30_000,
   })
@@ -42,7 +43,7 @@ export function useCreateMeasurement() {
   return useMutation({
     mutationFn: createMeasurement,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['measurements'] })
+      queryClient.invalidateQueries({ queryKey: qk.measurements.list() })
     },
   })
 }
@@ -58,7 +59,7 @@ export function useUpdateMeasurement() {
       data: Parameters<typeof updateMeasurement>[1]
     }) => updateMeasurement(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['measurements'] })
+      queryClient.invalidateQueries({ queryKey: qk.measurements.list() })
     },
   })
 }
@@ -68,7 +69,7 @@ export function useDeleteMeasurement() {
   return useMutation({
     mutationFn: (id: number) => deleteMeasurement(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['measurements'] })
+      queryClient.invalidateQueries({ queryKey: qk.measurements.list() })
     },
   })
 }

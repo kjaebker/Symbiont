@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getToken } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import { useToast } from '@/components/Toast'
 
 export function useSSE() {
@@ -21,15 +22,15 @@ export function useSSE() {
       es = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`)
 
       es.addEventListener('probe_update', () => {
-        queryClient.invalidateQueries({ queryKey: ['probes'] })
+        queryClient.invalidateQueries({ queryKey: qk.probes.all })
       })
 
       es.addEventListener('outlet_update', () => {
-        queryClient.invalidateQueries({ queryKey: ['outlets'] })
+        queryClient.invalidateQueries({ queryKey: qk.outlets.all })
       })
 
       es.addEventListener('alert_fired', (e) => {
-        queryClient.invalidateQueries({ queryKey: ['alerts'] })
+        queryClient.invalidateQueries({ queryKey: qk.alerts.all })
         try {
           const data = JSON.parse(e.data)
           addToastRef.current('alert', `Alert: ${data.probe_name ?? 'probe'} ${data.condition ?? 'triggered'} (${data.severity ?? 'warning'})`)
@@ -39,7 +40,7 @@ export function useSSE() {
       })
 
       es.addEventListener('alert_cleared', () => {
-        queryClient.invalidateQueries({ queryKey: ['alerts'] })
+        queryClient.invalidateQueries({ queryKey: qk.alerts.all })
       })
 
       es.onopen = () => {

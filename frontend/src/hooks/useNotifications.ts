@@ -5,11 +5,12 @@ import {
   deleteNotificationTarget,
   testNotifications,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { NotificationTarget } from '@/api/types'
 
 export function useNotificationTargets() {
   return useQuery({
-    queryKey: ['notifications', 'targets'],
+    queryKey: qk.notifications.targets,
     queryFn: getNotificationTargets,
     staleTime: 30_000,
   })
@@ -21,7 +22,7 @@ export function useUpsertNotificationTarget() {
     mutationFn: (target: Omit<NotificationTarget, 'id'> & { id?: number }) =>
       upsertNotificationTarget(target),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'targets'] })
+      queryClient.invalidateQueries({ queryKey: qk.notifications.targets })
     },
   })
 }
@@ -31,7 +32,7 @@ export function useDeleteNotificationTarget() {
   return useMutation({
     mutationFn: (id: number) => deleteNotificationTarget(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'targets'] })
+      queryClient.invalidateQueries({ queryKey: qk.notifications.targets })
     },
   })
 }

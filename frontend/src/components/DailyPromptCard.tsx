@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ThumbsUp, ThumbsDown, Star } from 'lucide-react'
 import { getDailyPrompt, respondToPrompt } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import { cn } from '@/lib/utils'
 
 export function DailyPromptCard() {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['daily-prompt'],
+    queryKey: qk.dailyPrompt.current,
     queryFn: getDailyPrompt,
     staleTime: 5 * 60 * 1000, // recheck every 5 min (crosses noon threshold)
   })
@@ -17,7 +18,7 @@ export function DailyPromptCard() {
     mutationFn: ({ question, response }: { question: string; response: string }) =>
       respondToPrompt(question, response),
     onSuccess: () => {
-      queryClient.setQueryData(['daily-prompt'], { prompt: null })
+      queryClient.setQueryData(qk.dailyPrompt.current, { prompt: null })
     },
   })
 
