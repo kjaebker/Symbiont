@@ -99,32 +99,35 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
       </button>
 
       {open && (
-        <div className="absolute z-20 top-full mt-1.5 left-0 min-w-[220px] bg-surface-container-high rounded-2xl p-1.5 shadow-abyss">
+        <div className="absolute z-20 top-full mt-1.5 left-0 bg-surface-container-high rounded-2xl p-1.5 shadow-abyss flex flex-col sm:flex-row">
           {/* Presets */}
-          {presets.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => {
-                const now = new Date()
-                onChange({ from: new Date(now.getTime() - p.duration), to: now })
-                setOpen(false)
-              }}
-              className={cn(
-                'w-full text-left px-3 py-2 text-sm rounded-xl transition-fluid',
-                activePreset === p.label
-                  ? 'text-primary bg-primary/10'
-                  : 'text-on-surface hover:bg-surface-container-highest',
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
+          <div className="flex flex-col min-w-[120px]">
+            {presets.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => {
+                  const now = new Date()
+                  onChange({ from: new Date(now.getTime() - p.duration), to: now })
+                  setOpen(false)
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-2 text-sm rounded-xl transition-fluid',
+                  activePreset === p.label
+                    ? 'text-primary bg-primary/10'
+                    : 'text-on-surface hover:bg-surface-container-highest',
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Divider */}
-          <div className="my-1 mx-2 h-px bg-outline-variant/20" />
+          {/* Divider — vertical on desktop, horizontal on mobile */}
+          <div className="sm:hidden my-1 mx-2 h-px bg-outline-variant/20" />
+          <div className="hidden sm:block mx-1 w-px bg-outline-variant/20 self-stretch" />
 
           {/* Custom date inputs */}
-          <div className="flex flex-col gap-1 px-1 py-0.5">
+          <div className="flex flex-col justify-center gap-1.5 px-1 py-1 min-w-[220px]">
             <label className="flex items-center gap-2">
               <span className="text-xs text-on-surface-faint w-7 shrink-0">From</span>
               <input
