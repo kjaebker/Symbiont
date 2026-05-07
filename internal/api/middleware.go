@@ -196,12 +196,6 @@ func Auth(sqlite *db.SQLiteDB, toucher *tokenToucher) func(http.Handler) http.Ha
 					return
 				}
 			}
-			// Control tokens may not manage tokens, config, backup, or agent settings.
-			if ta.Scope == "control" && isAdminRoute(r) {
-				writeError(w, http.StatusForbidden, "token scope 'control' does not permit this operation", "forbidden")
-				return
-			}
-
 			// Store scope and label in context for downstream use.
 			ctx := context.WithValue(r.Context(), tokenScopeKey, ta.Scope)
 			ctx = context.WithValue(ctx, tokenLabelKey, ta.Label)
@@ -213,31 +207,19 @@ func Auth(sqlite *db.SQLiteDB, toucher *tokenToucher) func(http.Handler) http.Ha
 	}
 }
 
-// isAdminRoute returns true for routes that require admin scope.
-func isAdminRoute(r *http.Request) bool {
-	p := r.URL.Path
-	m := r.Method
-	// Token management.
-	if strings.HasPrefix(p, "/api/tokens") {
-		return true
+// admin wraps h so that only admin-scoped tokens can call it. The Auth
+// middleware has already validated the token and stored its scope in context
+// before any handler runs; admin simply enforces the stricter level at the
+// point of route registration, so scope rules live next to the routes they
+// apply to rather than in a separate URL switch.
+func (s *Server) admin(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if TokenScopeFromContext(r.Context()) != "admin" {
+			writeError(w, http.StatusForbidden, "token scope does not permit this operation", "forbidden")
+			return
+		}
+		h(w, r)
 	}
-	// Probe and outlet config.
-	if strings.HasPrefix(p, "/api/config/") && (m == http.MethodPut || m == http.MethodPost || m == http.MethodDelete) {
-		return true
-	}
-	// Tank profile writes.
-	if strings.HasPrefix(p, "/api/tank/profile") && (m == http.MethodPut || m == http.MethodPost) {
-		return true
-	}
-	// Agent settings writes.
-	if p == "/api/agent/settings" && m == http.MethodPut {
-		return true
-	}
-	// System / backup.
-	if strings.HasPrefix(p, "/api/system/backup") || strings.HasPrefix(p, "/api/system/cleanup") {
-		return true
-	}
-	return false
 }
 
 // SecurityHeaders sets standard security headers on every response.
