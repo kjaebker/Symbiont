@@ -7,21 +7,8 @@ import (
 
 	"github.com/kjaebker/symbiont/internal/agent"
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 )
-
-var validTones = map[string]bool{
-	"analytical": true,
-	"casual":     true,
-	"terse":      true,
-}
-
-var validDosingProductLines = map[string]bool{
-	"brs_pharma":    true,
-	"red_sea":       true,
-	"tropic_marin":  true,
-	"generic":       true,
-	"none":          true,
-}
 
 // HandleAgentSettingsGet returns the current agent settings.
 //
@@ -60,14 +47,14 @@ func (s *Server) HandleAgentSettingsPut(w http.ResponseWriter, r *http.Request) 
 
 	// Patch fields that were provided.
 	if body.Tone != nil {
-		if !validTones[*body.Tone] {
+		if !enums.AgentTones.Has(*body.Tone) {
 			writeError(w, http.StatusBadRequest, "invalid tone; must be: analytical, casual, terse", "invalid_param")
 			return
 		}
 		existing.Tone = *body.Tone
 	}
 	if body.DosingProductLine != nil {
-		if !validDosingProductLines[*body.DosingProductLine] {
+		if !enums.DosingProductLines.Has(*body.DosingProductLine) {
 			writeError(w, http.StatusBadRequest, "invalid dosing_product_line; must be: brs_pharma, red_sea, tropic_marin, generic, none", "invalid_param")
 			return
 		}

@@ -12,13 +12,14 @@ import {
   triggerBackup,
   getBackupConfig,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { ProbeConfig, OutletConfig } from '@/api/types'
 
 // Probe configs
 
 export function useProbeConfigs() {
   return useQuery({
-    queryKey: ['probeConfigs'],
+    queryKey: qk.probes.configs,
     queryFn: getProbeConfigs,
     staleTime: 10_000,
   })
@@ -30,8 +31,7 @@ export function useUpdateProbeConfig() {
     mutationFn: ({ name, config }: { name: string; config: Partial<ProbeConfig> }) =>
       updateProbeConfig(name, config),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['probeConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['probes'] })
+      queryClient.invalidateQueries({ queryKey: qk.probes.all })
     },
   })
 }
@@ -40,7 +40,7 @@ export function useUpdateProbeConfig() {
 
 export function useOutletConfigs() {
   return useQuery({
-    queryKey: ['outletConfigs'],
+    queryKey: qk.outlets.configs,
     queryFn: getOutletConfigs,
     staleTime: 10_000,
   })
@@ -52,8 +52,7 @@ export function useUpdateOutletConfig() {
     mutationFn: ({ id, config }: { id: string; config: Partial<OutletConfig> }) =>
       updateOutletConfig(id, config),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outletConfigs'] })
-      queryClient.invalidateQueries({ queryKey: ['outlets'] })
+      queryClient.invalidateQueries({ queryKey: qk.outlets.all })
     },
   })
 }
@@ -62,7 +61,7 @@ export function useUpdateOutletConfig() {
 
 export function useTokens() {
   return useQuery({
-    queryKey: ['tokens'],
+    queryKey: qk.tokens.all,
     queryFn: listTokens,
     staleTime: 10_000,
   })
@@ -74,7 +73,7 @@ export function useCreateToken() {
     mutationFn: ({ label, scope }: { label: string; scope: string }) =>
       createToken(label, scope),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tokens'] })
+      queryClient.invalidateQueries({ queryKey: qk.tokens.all })
     },
   })
 }
@@ -85,7 +84,7 @@ export function useUpdateTokenScope() {
     mutationFn: ({ id, scope }: { id: number; scope: string }) =>
       updateTokenScope(id, scope),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tokens'] })
+      queryClient.invalidateQueries({ queryKey: qk.tokens.all })
     },
   })
 }
@@ -95,7 +94,7 @@ export function useRevokeToken() {
   return useMutation({
     mutationFn: (id: number) => revokeToken(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tokens'] })
+      queryClient.invalidateQueries({ queryKey: qk.tokens.all })
     },
   })
 }
@@ -104,7 +103,7 @@ export function useRevokeToken() {
 
 export function useBackups() {
   return useQuery({
-    queryKey: ['backups'],
+    queryKey: qk.backups.all,
     queryFn: getBackups,
     staleTime: 30_000,
   })
@@ -115,16 +114,15 @@ export function useTriggerBackup() {
   return useMutation({
     mutationFn: triggerBackup,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['backups'] })
+      queryClient.invalidateQueries({ queryKey: qk.backups.all })
     },
   })
 }
 
 export function useBackupConfig() {
   return useQuery({
-    queryKey: ['backup-config'],
+    queryKey: qk.backups.config,
     queryFn: getBackupConfig,
     staleTime: 60_000,
   })
 }
-

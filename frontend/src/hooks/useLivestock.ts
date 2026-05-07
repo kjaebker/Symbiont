@@ -17,11 +17,12 @@ import {
   editObservationImage,
   resetObservationImage,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 
 export function useLivestock(params?: { type?: LivestockType; status?: LivestockStatus }) {
   return useQuery({
-    queryKey: ['livestock', params],
+    queryKey: qk.livestock.list(params),
     queryFn: () => getLivestock(params),
     staleTime: 10_000,
   })
@@ -29,7 +30,7 @@ export function useLivestock(params?: { type?: LivestockType; status?: Livestock
 
 export function useLivestockItem(id: number) {
   return useQuery({
-    queryKey: ['livestock-item', id],
+    queryKey: qk.livestock.item(id),
     queryFn: () => getLivestockItem(id),
     staleTime: 10_000,
   })
@@ -37,7 +38,7 @@ export function useLivestockItem(id: number) {
 
 export function useLivestockSpecies() {
   return useQuery({
-    queryKey: ['livestock-species'],
+    queryKey: qk.livestock.species,
     queryFn: getLivestockSpecies,
     staleTime: Infinity,
   })
@@ -49,8 +50,7 @@ export function useCreateLivestockItem() {
     mutationFn: (item: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path'>) =>
       createLivestockItem(item),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-species'] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
     },
   })
 }
@@ -66,9 +66,8 @@ export function useUpdateLivestockItem() {
       data: Partial<Omit<LivestockItem, 'id' | 'created_at' | 'updated_at'>>
     }) => updateLivestockItem(id, data),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-species'] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.item(variables.id) })
     },
   })
 }
@@ -78,7 +77,7 @@ export function useDeleteLivestockItem() {
   return useMutation({
     mutationFn: (id: number) => deleteLivestockItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
     },
   })
 }
@@ -88,8 +87,8 @@ export function useUploadLivestockImage() {
   return useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) => uploadLivestockImage(id, file),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.item(variables.id) })
     },
   })
 }
@@ -99,8 +98,8 @@ export function useEditLivestockImage() {
   return useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) => editLivestockImage(id, file),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-item', variables.id] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.item(variables.id) })
     },
   })
 }
@@ -110,8 +109,8 @@ export function useResetLivestockImage() {
   return useMutation({
     mutationFn: (id: number) => resetLivestockImage(id),
     onSuccess: (_result, id) => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-item', id] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.item(id) })
     },
   })
 }
@@ -121,8 +120,7 @@ export function useDeleteLivestockImage() {
   return useMutation({
     mutationFn: (id: number) => deleteLivestockImage(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
-      queryClient.invalidateQueries({ queryKey: ['livestock-item'] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
     },
   })
 }
@@ -140,9 +138,7 @@ export function useUploadObservationImage() {
       file: File
     }) => uploadObservationImage(livestockId, obsId, file),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['livestock-observations', variables.livestockId],
-      })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.observations(variables.livestockId) })
     },
   })
 }
@@ -153,9 +149,7 @@ export function useDeleteObservationImage() {
     mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
       deleteObservationImage(livestockId, obsId),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['livestock-observations', variables.livestockId],
-      })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.observations(variables.livestockId) })
     },
   })
 }
@@ -166,9 +160,7 @@ export function useEditObservationImage() {
     mutationFn: ({ livestockId, obsId, file }: { livestockId: number; obsId: number; file: File }) =>
       editObservationImage(livestockId, obsId, file),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['livestock-observations', variables.livestockId],
-      })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.observations(variables.livestockId) })
     },
   })
 }
@@ -179,16 +171,14 @@ export function useResetObservationImage() {
     mutationFn: ({ livestockId, obsId }: { livestockId: number; obsId: number }) =>
       resetObservationImage(livestockId, obsId),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['livestock-observations', variables.livestockId],
-      })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.observations(variables.livestockId) })
     },
   })
 }
 
 export function useLivestockObservations(livestockId: number, enabled = true) {
   return useQuery({
-    queryKey: ['livestock-observations', livestockId],
+    queryKey: qk.livestock.observations(livestockId),
     queryFn: () => getLivestockObservations(livestockId),
     staleTime: 30_000,
     enabled,
@@ -206,11 +196,9 @@ export function useCreateLivestockObservation() {
       data: { status?: LivestockStatus | null; note?: string | null }
     }) => createLivestockObservation(livestockId, data),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['livestock-observations', variables.livestockId],
-      })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.observations(variables.livestockId) })
       // Invalidate livestock list so status badge refreshes if the handler auto-updated it.
-      queryClient.invalidateQueries({ queryKey: ['livestock'] })
+      queryClient.invalidateQueries({ queryKey: qk.livestock.all })
     },
   })
 }

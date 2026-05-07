@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { getProbeHistory, getOutletHistory } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
@@ -92,7 +93,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
   const { data: history } = useQuery({
-    queryKey: ['probeSparkline', primaryProbe?.name],
+    queryKey: qk.probes.sparkline(primaryProbe?.name ?? null),
     queryFn: () =>
       getProbeHistory(primaryProbe!.name, { from: twoHoursAgo, interval: '5m' }),
     staleTime: 60_000,
@@ -105,7 +106,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   const cycleOutlets = device.outlet_ids ?? []
   const cycleResults = useQueries({
     queries: cycleOutlets.map((o) => ({
-      queryKey: ['outletIntensityHistory', o.outlet_id, '6h'],
+      queryKey: qk.outlets.intensityHistory(o.outlet_id, '6h'),
       queryFn: () => {
         const from = new Date(Date.now() - 6 * 60 * 60 * 1000)
         return getOutletHistory(o.outlet_id, { from: from.toISOString(), interval: '15m' })

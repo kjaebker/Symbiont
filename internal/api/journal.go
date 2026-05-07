@@ -7,22 +7,9 @@ import (
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 	"github.com/kjaebker/symbiont/internal/events"
 )
-
-var validJournalCategories = map[string]bool{
-	"observation": true,
-	"maintenance": true,
-	"event":       true,
-	"milestone":   true,
-}
-
-var validJournalSentiments = map[string]bool{
-	"good":     true,
-	"neutral":  true,
-	"bad":      true,
-	"critical": true,
-}
 
 // HandleJournalTemplates returns the grouped template catalog.
 //
@@ -44,11 +31,11 @@ func (s *Server) HandleJournalList(w http.ResponseWriter, r *http.Request) {
 		Sentiment: q.Get("sentiment"),
 	}
 
-	if f.Category != "" && !validJournalCategories[f.Category] {
+	if f.Category != "" && !enums.JournalCategories.Has(f.Category) {
 		writeError(w, http.StatusBadRequest, "invalid category", "invalid_param")
 		return
 	}
-	if f.Sentiment != "" && !validJournalSentiments[f.Sentiment] {
+	if f.Sentiment != "" && !enums.JournalSentiments.Has(f.Sentiment) {
 		writeError(w, http.StatusBadRequest, "invalid sentiment", "invalid_param")
 		return
 	}
@@ -111,11 +98,11 @@ func (s *Server) HandleJournalCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required", "invalid_param")
 		return
 	}
-	if !validJournalCategories[body.Category] {
+	if !enums.JournalCategories.Has(body.Category) {
 		writeError(w, http.StatusBadRequest, "invalid category; must be one of: observation, maintenance, event, milestone", "invalid_param")
 		return
 	}
-	if body.Sentiment != nil && !validJournalSentiments[*body.Sentiment] {
+	if body.Sentiment != nil && !enums.JournalSentiments.Has(*body.Sentiment) {
 		writeError(w, http.StatusBadRequest, "invalid sentiment; must be one of: good, neutral, bad, critical", "invalid_param")
 		return
 	}
@@ -202,11 +189,11 @@ func (s *Server) HandleJournalUpdate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required", "invalid_param")
 		return
 	}
-	if !validJournalCategories[body.Category] {
+	if !enums.JournalCategories.Has(body.Category) {
 		writeError(w, http.StatusBadRequest, "invalid category; must be one of: observation, maintenance, event, milestone", "invalid_param")
 		return
 	}
-	if body.Sentiment != nil && !validJournalSentiments[*body.Sentiment] {
+	if body.Sentiment != nil && !enums.JournalSentiments.Has(*body.Sentiment) {
 		writeError(w, http.StatusBadRequest, "invalid sentiment; must be one of: good, neutral, bad, critical", "invalid_param")
 		return
 	}

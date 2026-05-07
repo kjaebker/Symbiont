@@ -4,16 +4,8 @@ import (
 	"net/http"
 
 	"github.com/kjaebker/symbiont/internal/db"
+	"github.com/kjaebker/symbiont/internal/enums"
 )
-
-var validTankTypes = map[string]bool{
-	"reef":       true,
-	"fowlr":      true,
-	"mixed":      true,
-	"nano":       true,
-	"freshwater": true,
-	"other":      true,
-}
 
 // HandleTankProfileGet returns the profiles for both the display tank and sump.
 // Either or both may be null if not yet configured.
@@ -61,7 +53,7 @@ func (s *Server) HandleTankProfileUpsert(section string) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body", "invalid_body")
 			return
 		}
-		if body.TankType != nil && !validTankTypes[*body.TankType] {
+		if body.TankType != nil && !enums.TankTypes.Has(*body.TankType) {
 			writeError(w, http.StatusBadRequest, "invalid tank_type; must be one of: reef, fowlr, mixed, nano, freshwater, other", "invalid_param")
 			return
 		}

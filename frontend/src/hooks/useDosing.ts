@@ -18,12 +18,13 @@ import {
   getMaintenanceLogs,
   getDueItems,
 } from '@/api/client'
+import { qk } from '@/api/queryKeys'
 
 // --- Products ---
 
 export function useDosingProducts() {
   return useQuery({
-    queryKey: ['dosing-products'],
+    queryKey: qk.dosing.products,
     queryFn: getDosingProducts,
     staleTime: 60_000,
   })
@@ -33,7 +34,7 @@ export function useCreateDosingProduct() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: createDosingProduct,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dosing-products'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.dosing.products }),
   })
 }
 
@@ -43,8 +44,8 @@ export function useUpdateDosingProduct() {
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateDosingProduct>[1] }) =>
       updateDosingProduct(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-products'] })
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.products })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
     },
   })
 }
@@ -54,8 +55,8 @@ export function useDeleteDosingProduct() {
   return useMutation({
     mutationFn: (id: number) => deleteDosingProduct(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-products'] })
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.products })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
     },
   })
 }
@@ -64,7 +65,7 @@ export function useDeleteDosingProduct() {
 
 export function useDosingSchedules() {
   return useQuery({
-    queryKey: ['dosing-schedules'],
+    queryKey: qk.dosing.schedules,
     queryFn: getDosingSchedules,
     staleTime: 30_000,
   })
@@ -75,8 +76,8 @@ export function useCreateDosingSchedule() {
   return useMutation({
     mutationFn: createDosingSchedule,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -87,8 +88,8 @@ export function useUpdateDosingSchedule() {
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateDosingSchedule>[1] }) =>
       updateDosingSchedule(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -98,8 +99,8 @@ export function useDeleteDosingSchedule() {
   return useMutation({
     mutationFn: (id: number) => deleteDosingSchedule(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -110,16 +111,16 @@ export function useLogDose() {
     mutationFn: ({ scheduleId, data }: { scheduleId: number; data: Parameters<typeof logDose>[1] }) =>
       logDose(scheduleId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['dosing-schedules'] })
-      qc.invalidateQueries({ queryKey: ['dosing-logs'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.dosing.schedules })
+      qc.invalidateQueries({ queryKey: qk.dosing.logs() })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
 
 export function useDosingLogs(params?: Parameters<typeof getDosingLogs>[0]) {
   return useQuery({
-    queryKey: ['dosing-logs', params],
+    queryKey: qk.dosing.logs(params),
     queryFn: () => getDosingLogs(params),
     staleTime: 30_000,
   })
@@ -129,7 +130,7 @@ export function useDosingLogs(params?: Parameters<typeof getDosingLogs>[0]) {
 
 export function useMaintenanceTasks() {
   return useQuery({
-    queryKey: ['maintenance-tasks'],
+    queryKey: qk.maintenance.tasks,
     queryFn: getMaintenanceTasks,
     staleTime: 30_000,
   })
@@ -140,8 +141,8 @@ export function useCreateMaintenanceTask() {
   return useMutation({
     mutationFn: createMaintenanceTask,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['maintenance-tasks'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.maintenance.tasks })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -152,8 +153,8 @@ export function useUpdateMaintenanceTask() {
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateMaintenanceTask>[1] }) =>
       updateMaintenanceTask(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['maintenance-tasks'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.maintenance.tasks })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -163,8 +164,8 @@ export function useDeleteMaintenanceTask() {
   return useMutation({
     mutationFn: (id: number) => deleteMaintenanceTask(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['maintenance-tasks'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.maintenance.tasks })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
@@ -175,16 +176,15 @@ export function useCompleteMaintenanceTask() {
     mutationFn: ({ id, data }: { id: number; data?: Parameters<typeof completeMaintenanceTask>[1] }) =>
       completeMaintenanceTask(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['maintenance-tasks'] })
-      qc.invalidateQueries({ queryKey: ['maintenance-logs'] })
-      qc.invalidateQueries({ queryKey: ['due-items'] })
+      qc.invalidateQueries({ queryKey: qk.maintenance.all })
+      qc.invalidateQueries({ queryKey: qk.due.all })
     },
   })
 }
 
 export function useMaintenanceLogs(taskId: number, limit?: number) {
   return useQuery({
-    queryKey: ['maintenance-logs', taskId, limit],
+    queryKey: qk.maintenance.logs(taskId, limit),
     queryFn: () => getMaintenanceLogs(taskId, limit),
     staleTime: 30_000,
   })
@@ -194,7 +194,7 @@ export function useMaintenanceLogs(taskId: number, limit?: number) {
 
 export function useDueItems() {
   return useQuery({
-    queryKey: ['due-items'],
+    queryKey: qk.due.all,
     queryFn: getDueItems,
     staleTime: 60_000,
     refetchInterval: 5 * 60_000, // re-check every 5 minutes
