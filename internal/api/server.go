@@ -33,6 +33,7 @@ type Server struct {
 	catalog          *kits.Catalog
 	events           *events.Bus
 	journalTemplates *journal.Catalog
+	tokenToucher     *tokenToucher
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the
@@ -53,6 +54,8 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 	broadcaster := NewBroadcaster()
 	broadcaster.RegisterSSESubscriber(bus)
 
+	toucher := newTokenToucher(sqlite, logger.With("component", "token_toucher"), 5*time.Second)
+
 	s := &Server{
 		duck:             duck,
 		sqlite:           sqlite,
@@ -64,6 +67,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 		catalog:          catalog,
 		events:           bus,
 		journalTemplates: journalCatalog,
+		tokenToucher:     toucher,
 	}
 
 	mux := http.NewServeMux()
@@ -71,7 +75,7 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 
 	// Build middleware chain: RequestID → Logger → Recover → SecurityHeaders → CORS → Auth → handler
 	var handler http.Handler = mux
-	handler = Auth(sqlite)(handler)
+	handler = Auth(sqlite, toucher)(handler)
 	handler = CORS(handler)
 	handler = SecurityHeaders(handler)
 	handler = Recover(logger)(handler)
@@ -281,6 +285,9 @@ func (s *Server) Run(ctx context.Context) error {
 	// Start background SSE poller.
 	s.StartSSEPoller(ctx)
 
+	// Start the batched token-touch flusher.
+	go s.tokenToucher.Run(ctx)
+
 	// Synthetic request used to pass the server context into program sync helpers.
 	syncReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
 
@@ -308,6 +315,12 @@ func (s *Server) Run(ctx context.Context) error {
 		defer cancel()
 		if err := s.http.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("http server shutdown: %w", err)
+		}
+		// Wait briefly for the toucher to flush its final batch.
+		select {
+		case <-s.tokenToucher.Done():
+		case <-time.After(2 * time.Second):
+			s.logger.Warn("token toucher shutdown timed out")
 		}
 		return nil
 	case err := <-errCh:

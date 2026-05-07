@@ -43,12 +43,6 @@ func OpenSQLite(path string) (*SQLiteDB, error) {
 
 	s := &SQLiteDB{db: db, path: path}
 
-	// Migrate legacy hidden/display_order data into dashboard_items.
-	if err := s.MigrateDashboardLayout(context.Background()); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrating dashboard layout: %w", err)
-	}
-
 	// Seed built-in measurement parameter definitions (idempotent).
 	if err := s.SeedMeasurementParameters(context.Background()); err != nil {
 		db.Close()

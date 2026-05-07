@@ -84,9 +84,7 @@ func (s *Server) HandleStream(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid token", "unauthorized")
 		return
 	}
-	go func() {
-		_ = s.sqlite.TouchToken(context.Background(), ta.ID)
-	}()
+	s.tokenToucher.Mark(ta.ID)
 
 	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -282,4 +280,3 @@ func (b *Broadcaster) RegisterSSESubscriber(bus *events.Bus) {
 		}
 	})
 }
-

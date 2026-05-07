@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"reflect"
 	"testing"
 )
@@ -22,6 +21,47 @@ func TestSQLiteSchemaIdempotent(t *testing.T) {
 	// Running schema creation again should not error.
 	if err := CreateSQLiteSchema(db.DB()); err != nil {
 		t.Fatalf("second schema creation failed: %v", err)
+	}
+}
+
+func TestSchemaVersionsRecordsBaseline(t *testing.T) {
+	db := openTestSQLite(t)
+
+	rows, err := db.DB().Query(`SELECT version, name FROM schema_versions ORDER BY version`)
+	if err != nil {
+		t.Fatalf("querying schema_versions: %v", err)
+	}
+	defer rows.Close()
+
+	var versions []int
+	var names []string
+	for rows.Next() {
+		var v int
+		var n string
+		if err := rows.Scan(&v, &n); err != nil {
+			t.Fatalf("scanning schema_versions: %v", err)
+		}
+		versions = append(versions, v)
+		names = append(names, n)
+	}
+
+	if len(versions) == 0 {
+		t.Fatal("expected at least one row in schema_versions")
+	}
+	if versions[0] != 1 {
+		t.Errorf("expected first version to be 1, got %d", versions[0])
+	}
+
+	// Re-running schema creation must not duplicate the baseline row.
+	if err := CreateSQLiteSchema(db.DB()); err != nil {
+		t.Fatalf("re-running schema: %v", err)
+	}
+	var count int
+	if err := db.DB().QueryRow(`SELECT COUNT(*) FROM schema_versions WHERE version = 1`).Scan(&count); err != nil {
+		t.Fatalf("counting baseline rows: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 baseline row after re-run, got %d", count)
 	}
 }
 
@@ -138,7 +178,6 @@ func TestProbeConfigUpsert(t *testing.T) {
 		t.Errorf("expected 1 config, got %d", len(configs))
 	}
 }
-
 
 func TestAlertRuleCRUD(t *testing.T) {
 	db := openTestSQLite(t)
@@ -521,119 +560,6 @@ func TestDashboardItemsLifecycle(t *testing.T) {
 	}
 
 	_ = id2
-}
-
-func TestMigrateDashboardLayout(t *testing.T) {
-	// Use raw sql.Open to set up legacy data before OpenSQLite runs migration.
-	rawDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("opening raw sqlite: %v", err)
-	}
-	rawDB.SetMaxOpenConns(1)
-	t.Cleanup(func() { rawDB.Close() })
-
-	if err := CreateSQLiteSchema(rawDB); err != nil {
-		t.Fatalf("creating schema: %v", err)
-	}
-
-	ctx := context.Background()
-
-	// Simulate an upgrade from the old schema by adding legacy columns.
-	// Some columns may already exist in newer schemas; duplicate column errors are ignored.
-	for _, alt := range []string{
-		"ALTER TABLE probe_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-		"ALTER TABLE outlet_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE outlet_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-		"ALTER TABLE devices ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE devices ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-	} {
-		if _, err := rawDB.ExecContext(ctx, alt); err != nil && !isDuplicateColumn(err) {
-			t.Fatalf("adding legacy column: %v", err)
-		}
-	}
-
-	// Insert legacy probe configs with hidden/display_order.
-	rawDB.ExecContext(ctx, "INSERT INTO probe_config (probe_name, display_order, hidden) VALUES ('Tmp', 1, 0)")
-	rawDB.ExecContext(ctx, "INSERT INTO probe_config (probe_name, display_order, hidden) VALUES ('pH', 2, 0)")
-	rawDB.ExecContext(ctx, "INSERT INTO probe_config (probe_name, display_order, hidden) VALUES ('HiddenProbe', 3, 1)")
-
-	// Insert legacy outlet config.
-	rawDB.ExecContext(ctx, "INSERT INTO outlet_config (outlet_id, display_order, hidden) VALUES ('base_Var1', 1, 0)")
-
-	// Insert legacy device.
-	rawDB.ExecContext(ctx, "INSERT INTO devices (name, display_order, hidden) VALUES ('Heater', 1, 0)")
-
-	// Run migration.
-	s := &SQLiteDB{db: rawDB, path: ":memory:"}
-	if err := s.MigrateDashboardLayout(ctx); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
-
-	items, err := s.ListDashboardItems(ctx)
-	if err != nil {
-		t.Fatalf("listing items: %v", err)
-	}
-
-	// Expect: separator + 2 probes + separator + 1 device + separator + 1 outlet = 7
-	if len(items) != 7 {
-		t.Fatalf("expected 7 items, got %d", len(items))
-	}
-	if items[0].ItemType != "separator" {
-		t.Errorf("expected first item to be separator, got %q", items[0].ItemType)
-	}
-	if items[1].ItemType != "probe" || *items[1].ReferenceID != "Tmp" {
-		t.Errorf("expected second item to be probe Tmp, got %s/%v", items[1].ItemType, items[1].ReferenceID)
-	}
-}
-
-func TestMigrateDashboardLayoutIdempotent(t *testing.T) {
-	rawDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("opening raw sqlite: %v", err)
-	}
-	rawDB.SetMaxOpenConns(1)
-	t.Cleanup(func() { rawDB.Close() })
-
-	if err := CreateSQLiteSchema(rawDB); err != nil {
-		t.Fatalf("creating schema: %v", err)
-	}
-
-	ctx := context.Background()
-
-	// Simulate upgrade from old schema with legacy columns.
-	// Some columns may already exist in newer schemas; duplicate column errors are ignored.
-	for _, alt := range []string{
-		"ALTER TABLE probe_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE probe_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-		"ALTER TABLE outlet_config ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE outlet_config ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-		"ALTER TABLE devices ADD COLUMN display_order INTEGER NOT NULL DEFAULT 999",
-		"ALTER TABLE devices ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
-	} {
-		if _, err := rawDB.ExecContext(ctx, alt); err != nil && !isDuplicateColumn(err) {
-			t.Fatalf("adding legacy column: %v", err)
-		}
-	}
-	rawDB.ExecContext(ctx, "INSERT INTO probe_config (probe_name, display_order, hidden) VALUES ('Tmp', 1, 0)")
-
-	s := &SQLiteDB{db: rawDB, path: ":memory:"}
-
-	// First migration.
-	if err := s.MigrateDashboardLayout(ctx); err != nil {
-		t.Fatalf("first migration: %v", err)
-	}
-	items1, _ := s.ListDashboardItems(ctx)
-
-	// Second migration — should be no-op.
-	if err := s.MigrateDashboardLayout(ctx); err != nil {
-		t.Fatalf("second migration: %v", err)
-	}
-	items2, _ := s.ListDashboardItems(ctx)
-
-	if len(items1) != len(items2) {
-		t.Errorf("expected same count after idempotent migration: %d vs %d", len(items1), len(items2))
-	}
 }
 
 func TestEnsureDefaultToken(t *testing.T) {

@@ -8,7 +8,11 @@ import (
 
 // --- Devices ---
 
-// ListDevices returns all devices with their linked probe names.
+// ListDevices returns all devices with their linked probe names and
+// visualization outlets. Three queries total — one for the device rows, one
+// to load every probe link in one shot, one to load every outlet link — then
+// joined application-side. Avoids the per-device round trips a naive
+// implementation would do.
 func (s *SQLiteDB) ListDevices(ctx context.Context) ([]Device, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, name, device_type, description, brand, model, notes, image_path, outlet_id, created_at, updated_at
@@ -25,27 +29,84 @@ func (s *SQLiteDB) ListDevices(ctx context.Context) ([]Device, error) {
 		if err := rows.Scan(&d.ID, &d.Name, &d.DeviceType, &d.Description, &d.Brand, &d.Model, &d.Notes, &d.ImagePath, &d.OutletID, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning device: %w", err)
 		}
+		d.ProbeNames = []string{}
+		d.OutletIDs = []DeviceOutlet{}
 		devices = append(devices, d)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	if len(devices) == 0 {
+		return devices, nil
+	}
 
-	// Load probe names and visualization outlets for each device.
+	probesByDevice, err := s.loadAllDeviceProbeNames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	outletsByDevice, err := s.loadAllDeviceOutlets(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range devices {
-		probes, err := s.listDeviceProbeNames(ctx, devices[i].ID)
-		if err != nil {
-			return nil, err
+		if names, ok := probesByDevice[devices[i].ID]; ok {
+			devices[i].ProbeNames = names
 		}
-		devices[i].ProbeNames = probes
-
-		outlets, err := s.ListDeviceOutlets(ctx, devices[i].ID)
-		if err != nil {
-			return nil, err
+		if outlets, ok := outletsByDevice[devices[i].ID]; ok {
+			devices[i].OutletIDs = outlets
 		}
-		devices[i].OutletIDs = outlets
 	}
 	return devices, nil
+}
+
+// loadAllDeviceProbeNames returns probe names grouped by device id in a
+// single query, used by ListDevices to avoid an N+1.
+func (s *SQLiteDB) loadAllDeviceProbeNames(ctx context.Context) (map[int64][]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT device_id, probe_name FROM probe_config
+		 WHERE device_id IS NOT NULL
+		 ORDER BY device_id, probe_name`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("loading all device probe links: %w", err)
+	}
+	defer rows.Close()
+
+	out := map[int64][]string{}
+	for rows.Next() {
+		var deviceID int64
+		var name string
+		if err := rows.Scan(&deviceID, &name); err != nil {
+			return nil, fmt.Errorf("scanning device probe link: %w", err)
+		}
+		out[deviceID] = append(out[deviceID], name)
+	}
+	return out, rows.Err()
+}
+
+// loadAllDeviceOutlets returns visualization outlets grouped by device id in a
+// single query, used by ListDevices to avoid an N+1.
+func (s *SQLiteDB) loadAllDeviceOutlets(ctx context.Context) (map[int64][]DeviceOutlet, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT device_id, outlet_id, label, color, sort_order
+		 FROM device_outlets
+		 ORDER BY device_id, sort_order, outlet_id`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("loading all device outlets: %w", err)
+	}
+	defer rows.Close()
+
+	out := map[int64][]DeviceOutlet{}
+	for rows.Next() {
+		var o DeviceOutlet
+		if err := rows.Scan(&o.DeviceID, &o.OutletID, &o.Label, &o.Color, &o.SortOrder); err != nil {
+			return nil, fmt.Errorf("scanning device outlet: %w", err)
+		}
+		out[o.DeviceID] = append(out[o.DeviceID], o)
+	}
+	return out, rows.Err()
 }
 
 // GetDevice returns a single device by ID with its linked probe names and visualization outlets.

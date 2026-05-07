@@ -15,6 +15,13 @@ type Correlatable interface {
 	CorrelationID() string
 }
 
+// Initiator is an optional interface for events that record which interface
+// caused them — "ui", "cli", "mcp", "api". The audit subscriber uses it to
+// populate the events.initiated_by column for fast filtering.
+type Initiator interface {
+	Initiator() string
+}
+
 // SystemEvent is the sealed interface for all system events.
 // The unexported sealed() method prevents implementation outside this package.
 type SystemEvent interface {
@@ -60,6 +67,7 @@ type EvtOutletChanged struct {
 
 func (e EvtOutletChanged) Kind() string          { return "outlet_changed" }
 func (e EvtOutletChanged) CorrelationID() string { return e.OutletID }
+func (e EvtOutletChanged) Initiator() string     { return e.InitiatedBy }
 
 // NewOutletChanged constructs an EvtOutletChanged with At = now.
 func NewOutletChanged(outletID, name, prevState, newState, initiatedBy string) EvtOutletChanged {
