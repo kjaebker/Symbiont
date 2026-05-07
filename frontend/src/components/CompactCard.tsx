@@ -6,6 +6,7 @@ import { useFeedStatus } from '@/hooks/useFeed'
 import type { Probe, Outlet, Device } from '@/api/types'
 import { getCategory } from './ProbeCard'
 import { inferPersonality } from '@/lib/devicePersonality'
+import { CardIconBlob } from './CardBase'
 
 // --- Category config ---
 
@@ -89,24 +90,15 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
           : `radial-gradient(ellipse 50% 50% at 100% 0%, ${config.hexColor}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${config.tint})`,
       }}
     >
-      <div
-        className="w-10 h-10 flex items-center justify-center shrink-0"
-        style={{
-          borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
-          background: isAlarmActive ? 'rgba(255,135,150,0.22)'
-            : (isFluidWarn || probe.status === 'warning') ? 'rgba(251,191,36,0.18)'
-            : probe.status === 'critical' ? 'rgba(255,135,150,0.22)'
-            : config.blobBg,
-          boxShadow: isAlarmActive || probe.status === 'critical' ? '0 0 14px rgba(255,135,150,0.50)'
-            : isFluidWarn || probe.status === 'warning' ? '0 0 12px rgba(251,191,36,0.40)'
-            : `0 0 8px ${config.hexColor}1a`,
-          animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
-            : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
-            : undefined,
-        }}
+      <CardIconBlob
+        color={config.hexColor}
+        blobShape={isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape}
+        status={isAlarmActive ? 'critical' : isFluidWarn ? 'warning' : probe.status}
+        normalBg={config.blobBg}
+        normalShadow={`0 0 8px ${config.hexColor}1a`}
       >
         <Icon size={16} className={iconColor} />
-      </div>
+      </CardIconBlob>
       <div className="min-w-0 flex-1">
         {isBinary ? (
           <p className={cn('text-base font-bold leading-none mb-0.5', iconColor)}>
@@ -165,20 +157,19 @@ export function OutletCompactCard({ outlet }: OutletCompactCardProps) {
         background: `radial-gradient(ellipse 50% 50% at 100% 0%, ${personality.color}${isOn ? '22' : '15'} 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}${isOn ? '22' : '0f'})`,
       }}
     >
-      <div
-        className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
-        style={{
-          borderRadius: personality.blob,
-          background: isOn ? personality.bg : `${personality.color}0a`,
-          boxShadow: isOn ? `0 0 10px ${personality.color}26` : `0 0 8px ${personality.color}1a`,
-        }}
+      <CardIconBlob
+        color={personality.color}
+        blobShape={personality.blob}
+        isOn={isOn}
+        activeBg={personality.bg}
+        normalShadow={`0 0 8px ${personality.color}1a`}
       >
         {isOn ? (
           <Zap size={16} style={{ color: personality.color }} />
         ) : (
           <Power size={16} style={{ color: personality.color, opacity: 0.5 }} />
         )}
-      </div>
+      </CardIconBlob>
       <div className="min-w-0 flex-1">
         <p
           className={cn(
@@ -221,16 +212,14 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
         background: 'radial-gradient(ellipse 50% 50% at 100% 0%, rgba(109,254,156,0.18) 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.18))',
       }}
     >
-      <div
-        className="w-10 h-10 flex items-center justify-center shrink-0"
-        style={{
-          borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
-          background: 'rgba(109,254,156,0.10)',
-          boxShadow: '0 0 8px #6dfe9c1a',
-        }}
+      <CardIconBlob
+        color="#6dfe9c"
+        blobShape="40% 60% 70% 30% / 50% 60% 40% 50%"
+        normalBg="rgba(109,254,156,0.10)"
+        normalShadow="0 0 8px #6dfe9c1a"
       >
         <FlaskConical size={16} className="text-secondary" />
-      </div>
+      </CardIconBlob>
       <div className="min-w-0 flex-1">
         {isLoading ? (
           <div className="h-4 w-12 bg-surface-container-high rounded animate-pulse mb-0.5" />
@@ -327,27 +316,17 @@ export function DeviceCompactCard({ device, primaryProbe }: DeviceCompactCardPro
         background: `linear-gradient(135deg, var(--color-surface-container) 55%, ${personality.color}18)`,
       }}
     >
-      <div
-        className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
-        style={{
-          borderRadius: personality.blob,
-          background: primaryProbe?.status === 'critical' ? 'rgba(255,135,150,0.22)'
-            : primaryProbe?.status === 'warning' ? 'rgba(251,191,36,0.18)'
-            : `${personality.color}0a`,
-          boxShadow: primaryProbe?.status === 'critical' ? '0 0 14px rgba(255,135,150,0.50)'
-            : primaryProbe?.status === 'warning' ? '0 0 12px rgba(251,191,36,0.40)'
-            : 'none',
-          animation: primaryProbe?.status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
-            : primaryProbe?.status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
-            : undefined,
-        }}
+      <CardIconBlob
+        color={personality.color}
+        blobShape={personality.blob}
+        status={primaryProbe?.status}
       >
         <Zap size={16} style={{
           color: primaryProbe?.status === 'critical' ? '#ff8796'
             : primaryProbe?.status === 'warning' ? '#fbbf24'
             : personality.color,
         }} />
-      </div>
+      </CardIconBlob>
       <div className="min-w-0 flex-1">
         {primaryProbe ? (
           <div className="flex items-baseline gap-1 mb-0.5">

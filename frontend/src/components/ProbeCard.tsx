@@ -6,6 +6,7 @@ import { qk } from '@/api/queryKeys'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
+import { CardIconBlob } from './CardBase'
 
 type ProbeCategory = 'temperature' | 'chemistry' | 'power' | 'digital'
 
@@ -147,28 +148,19 @@ export function ProbeCard({ probe }: ProbeCardProps) {
       }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <div
-          className="w-8 h-8 flex items-center justify-center shrink-0"
-          style={{
-            borderRadius: isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape,
-            background: isAlarmActive ? 'rgba(255,135,150,0.22)'
-              : (isFluidWarn || probe.status === 'warning') ? 'rgba(251,191,36,0.18)'
-              : probe.status === 'critical' ? 'rgba(255,135,150,0.22)'
-              : config.blobBg,
-            boxShadow: isAlarmActive ? '0 0 16px rgba(255,135,150,0.55)'
-              : (isFluidWarn || probe.status === 'warning') ? '0 0 14px rgba(251,191,36,0.45)'
-              : probe.status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
-              : `0 0 10px ${config.hexColor}1a`,
-            animation: isAlarmActive || probe.status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
-              : isFluidWarn || probe.status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
-              : undefined,
-          }}
+        <CardIconBlob
+          color={config.hexColor}
+          blobShape={isAlarmActive ? '60% 40% 30% 70% / 60% 30% 70% 40%' : config.blobShape}
+          size="sm"
+          status={isAlarmActive ? 'critical' : isFluidWarn ? 'warning' : probe.status}
+          normalBg={config.blobBg}
+          normalShadow={`0 0 10px ${config.hexColor}1a`}
         >
           <Icon
             size={14}
             className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color)}
           />
-        </div>
+        </CardIconBlob>
         <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
           {probe.display_name}
         </span>

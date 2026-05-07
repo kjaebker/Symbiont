@@ -3,6 +3,7 @@ import type { Outlet } from '@/api/types'
 import { useSetOutlet } from '@/hooks/useOutlets'
 import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
+import { cardGradient, CardIconBlob, OutletControlButtons } from './CardBase'
 
 const stateLabels: Record<string, string> = {
   ON: 'ON',
@@ -46,7 +47,6 @@ interface OutletCardProps {
 export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) {
   const mutation = useSetOutlet()
   const isOn = outlet.state === 'ON' || outlet.state === 'AON' || outlet.state === 'TBL'
-  const isAuto = outlet.state === 'AON' || outlet.state === 'AOF' || outlet.state === 'TBL'
   // outlet.type is Neptune port type ("outlet", "serial", etc.), not device category — use name
   const personality = inferPersonality(outlet.display_name || outlet.name, null)
   const DeviceIcon = deviceIcons[outlet.type] ?? (isOn ? Zap : Power)
@@ -59,24 +59,21 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
   return (
     <div
       className="rounded-2xl p-5 transition-fluid relative overflow-hidden"
-      style={{
-        background: `radial-gradient(ellipse 55% 50% at 100% 0%, ${personality.color}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
-      }}
+      style={{ background: cardGradient(personality.color, isOn) }}
     >
 
       {/* Header: icon + name + bio-dot */}
       <div className="flex items-center justify-between mb-1 relative">
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
-            style={{
-              borderRadius: personality.blob,
-              background: isOn ? personality.bg : `${personality.color}0a`,
-              boxShadow: isOn ? `0 0 14px ${personality.color}33` : `0 0 8px ${personality.color}1a`,
-            }}
+          <CardIconBlob
+            color={personality.color}
+            blobShape={personality.blob}
+            isOn={isOn}
+            activeBg={personality.bg}
+            normalShadow={`0 0 8px ${personality.color}1a`}
           >
             <DeviceIcon size={18} style={{ color: isOn ? personality.color : 'var(--color-on-surface-faint)' }} />
-          </div>
+          </CardIconBlob>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-on-surface truncate">
               {outlet.display_name || outlet.name}
@@ -99,48 +96,14 @@ export function OutletCard({ outlet, controlsLocked = false }: OutletCardProps) 
         </span>
       </div>
 
-      {/* Controls — revealed when unlocked via grid-template-rows animation */}
-      <div
-        className="grid overflow-hidden relative"
-        style={{
-          gridTemplateRows: controlsLocked ? '0fr' : '1fr',
-          transition: 'grid-template-rows 250ms cubic-bezier(0.65, 0, 0.35, 1)',
-        }}
-      >
-        <div className="min-h-0">
-          <div className="flex gap-1.5 pt-4">
-            {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-              const active =
-                (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-                (s === 'ON' && outlet.state === 'ON') ||
-                (s === 'AUTO' && isAuto)
-
-              return (
-                <button
-                  key={s}
-                  onClick={() => handleControl(s)}
-                  disabled={mutation.isPending}
-                  className={cn(
-                    'flex-1 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid',
-                    active
-                      ? s === 'AUTO'
-                        ? 'bg-primary text-on-primary'
-                        : s === 'ON'
-                          ? 'bg-secondary text-on-secondary'
-                          : 'bg-surface-container-highest text-on-surface'
-                      : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-highest',
-                  )}
-                >
-                  {s}
-                </button>
-              )
-            })}
-          </div>
-          {mutation.isError && (
-            <p className="text-xs text-tertiary mt-2">Failed to set state. Try again.</p>
-          )}
-        </div>
-      </div>
+      <OutletControlButtons
+        outletState={outlet.state}
+        onControl={handleControl}
+        isPending={mutation.isPending}
+        isError={mutation.isError}
+        revealed={!controlsLocked}
+        innerPadding="pt-4"
+      />
     </div>
   )
 }
