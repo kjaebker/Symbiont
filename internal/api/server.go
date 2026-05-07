@@ -138,11 +138,11 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/dashboard", s.HandleDashboardAddItem)
 	mux.HandleFunc("DELETE /api/dashboard/{id}", s.HandleDashboardRemoveItem)
 
-	// Config.
+	// Config — reads are control-accessible; writes require admin.
 	mux.HandleFunc("GET /api/config/probes", s.HandleProbeConfigList)
-	mux.HandleFunc("PUT /api/config/probes/{name}", s.HandleProbeConfigUpdate)
+	mux.HandleFunc("PUT /api/config/probes/{name}", s.admin(s.HandleProbeConfigUpdate))
 	mux.HandleFunc("GET /api/config/outlets", s.HandleOutletConfigList)
-	mux.HandleFunc("PUT /api/config/outlets/{id}", s.HandleOutletConfigUpdate)
+	mux.HandleFunc("PUT /api/config/outlets/{id}", s.admin(s.HandleOutletConfigUpdate))
 
 	// Alerts.
 	mux.HandleFunc("GET /api/alerts", s.HandleAlertList)
@@ -157,12 +157,12 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/notifications/targets/{id}", s.HandleNotificationTargetDelete)
 	mux.HandleFunc("POST /api/notifications/test", s.HandleNotificationTest)
 
-	// System management.
+	// System management — log is control-accessible; backup and cleanup require admin.
 	mux.HandleFunc("GET /api/system/log", s.HandleSystemLog)
-	mux.HandleFunc("GET /api/system/backups", s.HandleBackupList)
-	mux.HandleFunc("POST /api/system/backup", s.HandleBackupTrigger)
-	mux.HandleFunc("POST /api/system/cleanup", s.HandleCleanup)
-	mux.HandleFunc("GET /api/system/backup/config", s.HandleGetBackupConfig)
+	mux.HandleFunc("GET /api/system/backups", s.admin(s.HandleBackupList))
+	mux.HandleFunc("POST /api/system/backup", s.admin(s.HandleBackupTrigger))
+	mux.HandleFunc("POST /api/system/cleanup", s.admin(s.HandleCleanup))
+	mux.HandleFunc("GET /api/system/backup/config", s.admin(s.HandleGetBackupConfig))
 
 	// Export.
 	mux.HandleFunc("GET /api/probes/{name}/export", s.HandleProbeExport)
@@ -194,10 +194,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/livestock/{id}/observations/{obs_id}/image/edit", s.HandleObservationImageEdit)
 	mux.HandleFunc("POST /api/livestock/{id}/observations/{obs_id}/image/reset", s.HandleObservationImageReset)
 
-	// Tank profile.
+	// Tank profile — read is control-accessible; writes require admin.
 	mux.HandleFunc("GET /api/tank/profile", s.HandleTankProfileGet)
-	mux.HandleFunc("PUT /api/tank/profile/display", s.HandleTankProfileUpsert("display"))
-	mux.HandleFunc("PUT /api/tank/profile/sump", s.HandleTankProfileUpsert("sump"))
+	mux.HandleFunc("PUT /api/tank/profile/display", s.admin(s.HandleTankProfileUpsert("display")))
+	mux.HandleFunc("PUT /api/tank/profile/sump", s.admin(s.HandleTankProfileUpsert("sump")))
 
 	// Audit events.
 	mux.HandleFunc("GET /api/events/stats", s.HandleEventBusStats) // must be before /api/events
@@ -238,9 +238,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Due items (combined dosing + maintenance).
 	mux.HandleFunc("GET /api/tasks/due", s.HandleDueItems)
 
-	// Agent settings, context, and skills.
+	// Agent settings — read is control-accessible; write requires admin.
 	mux.HandleFunc("GET /api/agent/settings", s.HandleAgentSettingsGet)
-	mux.HandleFunc("PUT /api/agent/settings", s.HandleAgentSettingsPut)
+	mux.HandleFunc("PUT /api/agent/settings", s.admin(s.HandleAgentSettingsPut))
 	mux.HandleFunc("GET /api/agent/context", s.HandleAgentContext)
 	mux.HandleFunc("GET /api/agent/skills", s.HandleAgentSkillList)
 	mux.HandleFunc("GET /api/agent/skills/{name}/body", s.HandleAgentSkillBody)
@@ -258,11 +258,11 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// SSE stream.
 	mux.HandleFunc("GET /api/stream", s.HandleStream)
 
-	// Auth tokens.
-	mux.HandleFunc("GET /api/tokens", s.HandleTokenList)
-	mux.HandleFunc("POST /api/tokens", s.HandleTokenCreate)
-	mux.HandleFunc("PATCH /api/tokens/{id}", s.HandleTokenUpdateScope)
-	mux.HandleFunc("DELETE /api/tokens/{id}", s.HandleTokenDelete)
+	// Auth tokens — all operations require admin.
+	mux.HandleFunc("GET /api/tokens", s.admin(s.HandleTokenList))
+	mux.HandleFunc("POST /api/tokens", s.admin(s.HandleTokenCreate))
+	mux.HandleFunc("PATCH /api/tokens/{id}", s.admin(s.HandleTokenUpdateScope))
+	mux.HandleFunc("DELETE /api/tokens/{id}", s.admin(s.HandleTokenDelete))
 
 	// Image utilities.
 	mux.HandleFunc("POST /api/images/reprocess", s.HandleImagesReprocess)

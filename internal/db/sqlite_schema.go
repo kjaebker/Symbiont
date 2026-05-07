@@ -411,6 +411,11 @@ func createSchemaV1(tx *sql.Tx) error {
 			fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		// outlet_program_history is an audit log: UpsertOutletPrograms inserts
+		// a row whenever an outlet's Apex program string changes. There is no
+		// read path yet — the intended use is a future "program change history"
+		// API/UI so users can see when Apex programs were last edited and diff
+		// them. Do not drop: the write path is live and history is accumulating.
 		`CREATE TABLE IF NOT EXISTS outlet_program_history (
 			id         INTEGER  PRIMARY KEY AUTOINCREMENT,
 			did        TEXT     NOT NULL,
