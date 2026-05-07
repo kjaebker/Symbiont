@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
 import { Sparkline } from './Sparkline'
 import { LightCycleChart } from './LightCycleChart'
+import { cardGradient, CardIconBlob, OutletControlButtons } from './CardBase'
 
 const DEFAULT_CYCLE_COLORS = ['#3adffa', '#6dfe9c', '#ff8796']
 
@@ -134,28 +135,18 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   return (
     <div
       className="rounded-2xl p-5 transition-fluid flex flex-col relative overflow-hidden"
-      style={{
-        background: `radial-gradient(ellipse 55% 50% at 100% 0%, ${personality.color}22 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, ${personality.color}${isOn ? '33' : '18'})`,
-      }}
+      style={{ background: cardGradient(personality.color, isOn) }}
     >
 
       {/* Header: icon + name + type badge + state */}
       <div className="flex items-center justify-between mb-4 relative">
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 flex items-center justify-center shrink-0 transition-fluid"
-            style={{
-              borderRadius: personality.blob,
-              background: status === 'critical' ? 'rgba(255,135,150,0.22)'
-                : status === 'warning' ? 'rgba(251,191,36,0.18)'
-                : isOn ? personality.bg : `${personality.color}0a`,
-              boxShadow: status === 'critical' ? '0 0 16px rgba(255,135,150,0.55)'
-                : status === 'warning' ? '0 0 14px rgba(251,191,36,0.45)'
-                : isOn ? `0 0 14px ${personality.color}33` : 'none',
-              animation: status === 'critical' ? 'bioluminescent-pulse 1.8s ease-in-out infinite'
-                : status === 'warning' ? 'bioluminescent-pulse 2.8s ease-in-out infinite'
-                : undefined,
-            }}
+          <CardIconBlob
+            color={personality.color}
+            blobShape={personality.blob}
+            status={status}
+            isOn={isOn}
+            activeBg={personality.bg}
           >
             <Icon
               size={18}
@@ -166,7 +157,7 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
                 opacity: (status === 'normal' || status === 'unknown') && !isOn ? 0.5 : 1,
               }}
             />
-          </div>
+          </CardIconBlob>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-on-surface truncate">
               {device.name}
@@ -278,50 +269,13 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
 
       {/* Outlet controls */}
       {outlet && (
-        <div>
-          {/* Controls — revealed when unlocked */}
-          <div
-            className="grid overflow-hidden"
-            style={{
-              gridTemplateRows: controlsLocked ? '0fr' : '1fr',
-              transition: 'grid-template-rows 250ms cubic-bezier(0.65, 0, 0.35, 1)',
-            }}
-          >
-            <div className="min-h-0">
-              <div className="flex gap-1.5 pt-2">
-                {(['OFF', 'ON', 'AUTO'] as const).map((s) => {
-                  const active =
-                    (s === 'OFF' && (outlet.state === 'OFF' || outlet.state === 'AOF')) ||
-                    (s === 'ON' && outlet.state === 'ON') ||
-                    (s === 'AUTO' && isAuto)
-
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => handleControl(s)}
-                      disabled={mutation.isPending}
-                      className={cn(
-                        'flex-1 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-fluid',
-                        active
-                          ? s === 'AUTO'
-                            ? 'bg-primary text-on-primary'
-                            : s === 'ON'
-                              ? 'bg-secondary text-on-secondary'
-                              : 'bg-surface-container-highest text-on-surface'
-                          : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-highest',
-                      )}
-                    >
-                      {s}
-                    </button>
-                  )
-                })}
-              </div>
-              {mutation.isError && (
-                <p className="text-xs text-tertiary mt-2">Failed to set state. Try again.</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <OutletControlButtons
+          outletState={outlet.state}
+          onControl={handleControl}
+          isPending={mutation.isPending}
+          isError={mutation.isError}
+          revealed={!controlsLocked}
+        />
       )}
 
       {/* Empty state when no probes and no outlet */}

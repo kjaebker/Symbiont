@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { FlaskConical } from 'lucide-react'
 import { useMeasurements } from '@/hooks/useMeasurements'
 import { relativeTime } from '@/lib/utils'
+import { CardIconBlob } from './CardBase'
 
 interface MeasurementCardProps {
   parameter: string
@@ -26,16 +27,15 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 flex items-center justify-center shrink-0"
-            style={{
-              borderRadius: '40% 60% 70% 30% / 50% 60% 40% 50%',
-              background: 'rgba(109, 254, 156, 0.10)',
-              boxShadow: '0 0 10px #6dfe9c1a',
-            }}
+          <CardIconBlob
+            color="#6dfe9c"
+            blobShape="40% 60% 70% 30% / 50% 60% 40% 50%"
+            size="sm"
+            normalBg="rgba(109, 254, 156, 0.10)"
+            normalShadow="0 0 10px #6dfe9c1a"
           >
             <FlaskConical size={14} className="text-secondary" />
-          </div>
+          </CardIconBlob>
           <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
             {parameter}
           </span>
