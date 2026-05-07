@@ -37,7 +37,7 @@ func main() {
 			return nil, err
 		}
 		apiURL, _ := cmd.Root().PersistentFlags().GetString("api-url")
-		client = cli.NewAPIClient(apiURL, token)
+		client = cli.NewAPIClient(apiURL, token).WithSource("cli")
 		return client, nil
 	}
 

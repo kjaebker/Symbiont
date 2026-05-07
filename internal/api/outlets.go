@@ -203,9 +203,15 @@ func (s *Server) HandleOutletSet(w http.ResponseWriter, r *http.Request) {
 		prevState = *fromState
 	}
 	name := derefStr(outletName, did)
-	initiatedBy := "api"
-	if label := TokenLabelFromContext(ctx); label != "" && label != "default" {
-		initiatedBy = "api:" + label
+	initiatedBy := r.Header.Get("X-Source")
+	switch initiatedBy {
+	case "ui", "cli", "mcp":
+		// valid — use as-is
+	default:
+		initiatedBy = "api"
+		if label := TokenLabelFromContext(ctx); label != "" && label != "default" {
+			initiatedBy = "api:" + label
+		}
 	}
 	s.events.Publish(events.NewOutletChanged(did, name, prevState, body.State, initiatedBy))
 

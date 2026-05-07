@@ -21,6 +21,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
+  headers['X-Source'] = 'ui'
 
   if (init?.body && typeof init.body === 'string') {
     headers['Content-Type'] = 'application/json'

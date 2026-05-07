@@ -17,7 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := cli.NewAPIClient(apiURL, token)
+	client := cli.NewAPIClient(apiURL, token).WithSource("mcp")
 
 	s := server.NewMCPServer(
 		"symbiont",

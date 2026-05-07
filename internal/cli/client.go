@@ -24,6 +24,7 @@ func (e *APIError) Error() string {
 type APIClient struct {
 	BaseURL string
 	Token   string
+	Source  string // sent as X-Source header; sets initiated_by on mutating operations
 	HTTP    *http.Client
 }
 
@@ -34,6 +35,12 @@ func NewAPIClient(baseURL, token string) *APIClient {
 		Token:   token,
 		HTTP:    &http.Client{},
 	}
+}
+
+// WithSource returns the client with Source set to s.
+func (c *APIClient) WithSource(s string) *APIClient {
+	c.Source = s
+	return c
 }
 
 // Get sends a GET request and decodes the response into result.
@@ -63,6 +70,9 @@ func (c *APIClient) GetBytes(ctx context.Context, path string) ([]byte, string, 
 		return nil, "", fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
+	if c.Source != "" {
+		req.Header.Set("X-Source", c.Source)
+	}
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
@@ -96,6 +106,9 @@ func (c *APIClient) do(ctx context.Context, method, path string, body any, resul
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
+	if c.Source != "" {
+		req.Header.Set("X-Source", c.Source)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

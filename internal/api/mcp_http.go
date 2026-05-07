@@ -21,7 +21,7 @@ import (
 // but per-request calls use the caller's token extracted from the request.
 func newMCPHTTPHandler(apiPort, fallbackToken string) http.Handler {
 	apiBase := fmt.Sprintf("http://localhost:%s", apiPort)
-	fallbackClient := cli.NewAPIClient(apiBase, fallbackToken)
+	fallbackClient := cli.NewAPIClient(apiBase, fallbackToken).WithSource("mcp")
 
 	mcpServer := server.NewMCPServer(
 		"symbiont",
@@ -44,7 +44,7 @@ func newMCPHTTPHandler(apiPort, fallbackToken string) http.Handler {
 			token = r.URL.Query().Get("token")
 		}
 		if token != "" {
-			requestClient := cli.NewAPIClient(apiBase, token)
+			requestClient := cli.NewAPIClient(apiBase, token).WithSource("mcp")
 			r = r.WithContext(mcptools.WithLoopbackClient(r.Context(), requestClient))
 		}
 		streamHandler.ServeHTTP(w, r)
