@@ -315,12 +315,6 @@ function DosingTab() {
     if (!s.enabled || s.frequency === 'as_needed' || !s.next_due_at) return false
     return new Date(s.next_due_at) <= new Date()
   })
-  const upcoming = schedules.filter(s => {
-    if (!s.enabled || s.frequency === 'as_needed') return false
-    if (!s.next_due_at) return true
-    const diff = new Date(s.next_due_at).getTime() - Date.now()
-    return diff > 0 && diff <= 86400_000 * 2
-  })
 
   async function handleLogDose(scheduleId: number) {
     setLoggingId(scheduleId)
@@ -334,27 +328,27 @@ function DosingTab() {
   return (
     <div className="space-y-6">
       {/* Due / Overdue */}
-      {(overdue.length > 0 || upcoming.length > 0) && (
+      {overdue.length > 0 && (
         <div className="bg-surface-container rounded-2xl p-5">
           <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold mb-4">Due Now</h2>
           <div className="space-y-2">
-            {[...overdue, ...upcoming].map(s => {
-              const isOverdue = s.next_due_at ? new Date(s.next_due_at) <= new Date() : false
+            {overdue.map(s => {
+              const isOverdue = s.next_due_at ? new Date(s.next_due_at) < new Date() : false
               return (
                 <div key={s.id} className={cn(
                   'flex items-center justify-between p-3 rounded-xl',
                   isOverdue ? 'bg-tertiary/10' : 'bg-surface-container-high',
                 )}>
                   <div>
-                    <span className={cn('text-sm font-medium', isOverdue ? 'text-tertiary' : 'text-on-surface')}>
+                    <div className={cn('text-sm font-medium', isOverdue ? 'text-tertiary' : 'text-on-surface')}>
                       {s.product_brand} {s.product_name}
-                    </span>
-                    <span className="text-xs text-on-surface-dim ml-2">
+                      {isOverdue && (
+                        <span className="ml-2 text-xs uppercase tracking-wider font-semibold">Overdue</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-on-surface-dim mt-0.5">
                       {s.amount} {s.product_unit}
-                    </span>
-                    {isOverdue && (
-                      <span className="ml-2 text-xs uppercase tracking-wider text-tertiary font-semibold">Overdue</span>
-                    )}
+                    </div>
                   </div>
                   <button
                     onClick={() => handleLogDose(s.id)}
