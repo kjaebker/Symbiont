@@ -67,7 +67,7 @@ var (
 )
 
 // TokenScopes — see CHECK on `auth_tokens.scope`.
-var TokenScopes = NewSet("read", "control", "admin")
+var TokenScopes = NewSet("read", "write", "control", "admin")
 
 // TankTypes — see CHECK on `tank_profile.tank_type`.
 var TankTypes = NewSet("reef", "fowlr", "mixed", "nano", "freshwater", "other")

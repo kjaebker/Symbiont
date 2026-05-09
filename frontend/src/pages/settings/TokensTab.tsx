@@ -16,7 +16,7 @@ export default function TokensTab() {
 
   const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
-  const [scope, setScope] = useState<'read' | 'control' | 'admin'>('admin')
+  const [scope, setScope] = useState<'read' | 'write' | 'control' | 'admin'>('admin')
   const [newToken, setNewToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null)
@@ -105,11 +105,12 @@ export default function TokensTab() {
           />
           <select
             value={scope}
-            onChange={(e) => setScope(e.target.value as 'read' | 'control' | 'admin')}
+            onChange={(e) => setScope(e.target.value as 'read' | 'write' | 'control' | 'admin')}
             className="bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer"
           >
             <option value="admin">admin</option>
             <option value="control">control</option>
+            <option value="write">write</option>
             <option value="read">read</option>
           </select>
           <button
@@ -159,6 +160,7 @@ export default function TokensTab() {
                   >
                     <option value="admin">admin</option>
                     <option value="control">control</option>
+                    <option value="write">write</option>
                     <option value="read">read</option>
                   </select>
                 </div>

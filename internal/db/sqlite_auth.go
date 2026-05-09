@@ -51,7 +51,7 @@ func (s *SQLiteDB) InsertToken(ctx context.Context, label string) (string, error
 }
 
 // InsertTokenWithScope generates a random 32-byte token with a specific scope.
-// scope must be one of: read, control, admin.
+// scope must be one of: read, write, control, admin.
 func (s *SQLiteDB) InsertTokenWithScope(ctx context.Context, label, scope string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

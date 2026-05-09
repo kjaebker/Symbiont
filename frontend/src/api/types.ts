@@ -125,7 +125,7 @@ export interface BackupJob {
 export interface AuthToken {
   id: number
   label: string
-  scope: 'read' | 'control' | 'admin'
+  scope: 'read' | 'write' | 'control' | 'admin'
   created_at: string
   last_used: string | null
 }

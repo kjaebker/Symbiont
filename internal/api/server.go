@@ -107,7 +107,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Outlets.
 	mux.HandleFunc("GET /api/outlets", s.HandleOutletList)
 	mux.HandleFunc("GET /api/outlets/{id}/history", s.HandleOutletHistory)
-	mux.HandleFunc("PUT /api/outlets/{id}", s.HandleOutletSet)
+	mux.HandleFunc("PUT /api/outlets/{id}", s.control(s.HandleOutletSet))
 
 	// Programs (Apex output programs from /rest/config, stored in SQLite).
 	mux.HandleFunc("GET /api/programs", s.HandleProgramList)
@@ -115,7 +115,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 	// Feed mode.
 	mux.HandleFunc("GET /api/feed", s.HandleFeedGet)
-	mux.HandleFunc("PUT /api/feed", s.HandleFeedSet)
+	mux.HandleFunc("PUT /api/feed", s.control(s.HandleFeedSet))
 
 	// System.
 	mux.HandleFunc("GET /api/system", s.HandleSystemStatus)

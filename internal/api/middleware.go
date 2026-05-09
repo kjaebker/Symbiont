@@ -222,6 +222,20 @@ func (s *Server) admin(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// control wraps h so that only control- or admin-scoped tokens can call it.
+// Use this for live hardware operations (outlet state, feed mode) that write
+// scope tokens must not perform.
+func (s *Server) control(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch TokenScopeFromContext(r.Context()) {
+		case "control", "admin":
+			h(w, r)
+		default:
+			writeError(w, http.StatusForbidden, "token scope does not permit this operation", "forbidden")
+		}
+	}
+}
+
 // SecurityHeaders sets standard security headers on every response.
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
