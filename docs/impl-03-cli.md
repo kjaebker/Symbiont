@@ -3,6 +3,8 @@
 
 **Deliverable:** The `symbiont` binary is installed and usable as a standalone tool. All subcommands return correct data in both human-readable and `--json` modes. Token management works end-to-end.
 
+> **Status (May 2026):** Phase 3 complete. The CLI has expanded beyond the original scope — it now covers measurements, dosing, livestock, journal, and agent commands in addition to the original probes/outlets/alerts/system/auth. See `docs/symbiont-architecture.md` for the current command tree.
+
 ---
 
 ## 3.1 CLI Framework Setup

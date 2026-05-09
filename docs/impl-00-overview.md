@@ -13,7 +13,7 @@
 | `impl-04-frontend.md` | Phase 4 | React frontend MVP |
 | `impl-05-mcp.md` | Phase 5 | MCP server and AI integration |
 | `impl-06-polish.md` | Phase 6 | Alerts, notifications, backup, export |
-| `impl-07-layout-builder.md` | Phase 7 | Visual layout builder |
+| `impl-07-layout-builder.md` | Phase 7 | Dashboard layout builder (customizable items, drag-and-drop) |
 
 ---
 
@@ -70,7 +70,7 @@ Phase 1 → Phase 2 → Phase 3 ────────────────
 
 ---
 
-## Repository Layout (target)
+## Repository Layout (current)
 
 ```
 symbiont/
@@ -80,16 +80,30 @@ symbiont/
 │   ├── mcp/main.go
 │   └── symbiont/main.go
 ├── internal/
-│   ├── apex/
-│   ├── db/
-│   ├── poller/
-│   ├── api/
-│   ├── mcp/
-│   ├── cli/
-│   ├── alerts/
-│   ├── notify/
-│   └── config/
+│   ├── agent/               # Agent context assembly and skills pack
+│   ├── alerts/              # Alert evaluation engine
+│   ├── apex/                # Apex HTTP client (auth, session, models)
+│   ├── api/                 # HTTP handlers, middleware, SSE broadcaster
+│   ├── audit/               # Audit log helpers
+│   ├── backup/              # Backup and retention logic
+│   ├── cli/                 # CLI commands and output formatting
+│   ├── config/              # Config loading from env
+│   ├── db/                  # DuckDB + SQLite packages (many files each)
+│   ├── enums/               # Shared enum/vocabulary sets (validated against schema)
+│   ├── events/              # Internal event bus (publish/subscribe)
+│   ├── journal/             # Journal auto-logging driven by event bus
+│   ├── kits/                # Test kit definitions for chemistry measurements
+│   ├── mcp/                 # MCP tool implementations (14 files, 30+ tools)
+│   ├── notify/              # Notification delivery (ntfy.sh)
+│   └── poller/              # Polling loop
 ├── frontend/
+│   └── src/
+│       ├── api/             # Typed fetch client (22 files + barrel index)
+│       ├── components/      # Reusable components (CardBase, charts, etc.)
+│       ├── hooks/           # TanStack Query hooks + SSE hook
+│       └── pages/           # Route pages + settings tabs
+├── testdata/                # Apex API response fixtures (JSON)
+├── docs/                    # Architecture docs + design system
 ├── flake.nix
 ├── go.mod
 ├── go.sum

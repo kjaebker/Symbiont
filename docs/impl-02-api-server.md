@@ -3,6 +3,8 @@
 
 **Deliverable:** Full REST API queryable via curl. All probe and outlet endpoints return real data. Outlet control sends commands to the Apex and logs the event. SSE stream pushes updates every 10 seconds.
 
+> **Status (May 2026):** Phase 2 complete. The API surface has grown well beyond the original scope — see `docs/symbiont-architecture.md` for the current full route table (~80 routes). Unchecked items below are NixOS deployment verification steps that are done in production.
+
 ---
 
 ## 2.1 SQLite Package

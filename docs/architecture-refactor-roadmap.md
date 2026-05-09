@@ -11,41 +11,37 @@ A multi-phase refactor of Symbiont kicked off from an architecture review on 202
 | 1 | [#59](https://github.com/kjaebker/Symbiont/pull/59) | File splits: `sqlite_queries.go` (2540→16 files), `mcp/tools.go` (2012→13 files), `client.ts` (954→22 files + barrel), `Settings.tsx` (3084→11 tabs + shared). |
 | 2 | [#60](https://github.com/kjaebker/Symbiont/pull/60) | Pattern extractions: shared image-handler helper (`livestock.go` 881→401), `internal/enums` package (11 validation maps consolidated), typed `qk` query-key factory (19 hooks + 4 components). |
 | 3 | [#61](https://github.com/kjaebker/Symbiont/pull/61) | Schema v1 baseline + migration runner (drops 3 table-recreation funcs, all ALTERs inlined, `schema_versions` table); v2 partial index on active alert events; `ListDevices` N+1 → 3 queries; debounced batched `TouchToken`; v3 promoting `events.initiated_by` from JSON to indexed column. |
+| A1 | [#62](https://github.com/kjaebker/Symbiont/pull/62) | Schema-drift test: `internal/enums/drift_test.go` asserts no drift between `enums.Set` values and SQLite CHECK constraints. |
+| A2 | [#63](https://github.com/kjaebker/Symbiont/pull/63) | Card base extraction: `CardBase` primitives covering glass surface + status strip + header + body slot. 9 card variants refactored. |
+| A3 | [#64](https://github.com/kjaebker/Symbiont/pull/64) | Frontend code-splitting: `React.lazy()` + `Suspense` on off-critical-path routes. Bundle size reduced significantly. |
+| B1 | [#65](https://github.com/kjaebker/Symbiont/pull/65) | Declarative scope rules: replaced `isAdminRoute` URL switch with `s.admin()` and `s.control()` per-handler decorator wrappers. |
+| A4 | [#66](https://github.com/kjaebker/Symbiont/pull/66) | `outlet_program_history` documented as intentional append-only audit log. Not dropped. |
+| fix | [#67](https://github.com/kjaebker/Symbiont/pull/67) | `events.initiated_by` propagation fixed: X-Source header now correctly flows through outlet control path. |
 
 ---
 
 ## What's left, ordered by ROI
 
-### Tier A — clear wins, modest effort
+### Tier A — ✅ All shipped
 
-#### A1. Schema-drift test between `internal/enums` and SQLite CHECK constraints
-**Why:** Phase 2 consolidated enum vocabularies into `internal/enums/enums.go`, but each `Set` is still hand-kept in sync with the matching CHECK constraint in `internal/db/sqlite_schema.go`. A test that parses the schema once and asserts no drift would catch a real class of bug.
-**Effort:** small (half-day).
-**Where to start:** new `internal/enums/drift_test.go`. Open a test SQLite, query `SELECT sql FROM sqlite_master WHERE type='table'`, regex out the `CHECK(col IN (...))` literals, compare against the matching `enums.X.Values()`. Skip enums without a 1:1 CHECK (e.g. `InitiatedBy`, `HistoryIntervals`, `ImageExtensions` — comment them out of the comparison map).
+#### ~~A1. Schema-drift test~~ — shipped in #62
+`internal/enums/drift_test.go` — asserts no drift between `enums.Set` values and SQLite CHECK constraints.
 
-#### A2. Card component base extraction
-**Why:** 9 card variants — `LivestockCard`, `MeasurementCard`, `ProbeCard`, `OutletCard`, `DeviceCard`, `CompactCard`, `PowerPairCard`, `FeedCard`, `DailyPromptCard`. Each was built from scratch. Extract a base `Card` with composition slots before the 10th lands.
-**Effort:** medium (1 day).
-**Where to start:** look at the three biggest first (`DeviceCard.tsx` 363 lines, `ProbeCard.tsx` 207 lines, `LivestockCard.tsx` 93 lines). The repeated pattern is glass surface + status indicator strip + header (icon + name + meta) + body slot. A `<Card status={…} icon={…} title={…} meta={…}>{body}</Card>` covers most variants.
+#### ~~A2. Card component base extraction~~ — shipped in #63
+`CardBase` primitives cover glass surface + status strip + header + body. All 9 card variants refactored.
 
-#### A3. Frontend bundle code-splitting
-**Why:** `npm run build` warns that `dist/assets/index-*.js` is 744 KB. Settings + LivestockDetail + Journal are heavy and not on the critical path.
-**Effort:** small (couple of hours).
-**Where to start:** convert `src/App.tsx` route definitions to `React.lazy()` with `Suspense`. Settings (3 KB → multiple chunks for each tab), Livestock detail, Journal, History are obvious candidates.
+#### ~~A3. Frontend bundle code-splitting~~ — shipped in #64
+`React.lazy()` + `Suspense` on Settings, LivestockDetail, Journal, History.
 
-#### A4. Decide the fate of `outlet_program_history`
-**Why:** The DB review flagged this table as write-only — never SELECTed in this codebase. Either it's planned future work, or it's dead.
-**Effort:** small (30 min investigate; either drop with a v4 migration or wire up a UI later).
-**Where to start:** `grep -r "outlet_program_history" .` — confirm no consumers. Then either `DROP TABLE` as v4, or add a TODO with intended use.
+#### ~~A4. `outlet_program_history` fate decided~~ — shipped in #66
+Documented as intentional append-only audit log. Not dropped — kept for future query use.
 
 ---
 
-### Tier B — bigger, higher-value architectural pieces
+### Tier B
 
-#### B1. Declarative scope rules
-**Why:** `internal/api/middleware.go:isAdminRoute` is a hardcoded URL switch. Every new admin-only route needs two edits: register the route AND update the middleware. Drift waiting to happen.
-**Effort:** medium (1 day).
-**Where to start:** introduce a small registration wrapper, e.g. `s.adminMux.HandleFunc(...)` and `s.controlMux.HandleFunc(...)`, that records the required scope per pattern. The `Auth` middleware looks up the scope by matched pattern instead of regex-matching the URL. Alternative: per-handler decorator (`requireScope("admin")(s.HandleFoo)`) — more verbose but no central registry.
+#### ~~B1. Declarative scope rules~~ — shipped in #65
+`s.admin(handler)` and `s.control(handler)` decorator wrappers on individual route registrations. `isAdminRoute` URL switch removed. `write` scope added as a fourth level between `read` and `control`.
 
 #### B2. Form abstraction
 **Why:** `AlertRuleForm.tsx`, `LivestockForm.tsx`, the inline forms inside Settings tabs, the dosing/maintenance forms — they all do the same thing: validated input fields + save/cancel + error display. There's no shared `<Form>` or `<Field>` primitive.

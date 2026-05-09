@@ -1,12 +1,13 @@
 # Symbiont — Project Plan
 > A local-first Neptune Apex dashboard and data platform
 
+> Last updated: May 2026 — All phases 1–7 complete.
+
 ---
 
 ## Vision
 
-Replace Apex Fusion with a self-hosted stack that collects, stores, and visualizes all your
-aquarium data locally — with full outlet control — and no dependency on Neptune's cloud.
+Replace Apex Fusion with a self-hosted stack that collects, stores, and visualizes all your aquarium data locally — with full outlet control, AI integration, and no dependency on Neptune's cloud.
 
 **Design principles:**
 - Fully local, no cloud dependency
@@ -16,152 +17,46 @@ aquarium data locally — with full outlet control — and no dependency on Nept
 - SQLite for relational app state and configuration
 - Clean REST/JSON API decoupled from Apex's quirky auth
 - AI-first platform — MCP server and CLI as first-class integration surfaces
-- Sleek, minimal UI with depth available on demand
+- "Abyssal Laboratory" dark-mode UI with glassmorphism and ambient glow aesthetics
 
 ---
 
 ## What We Know About the Apex (AOS 5+)
 
-### Local API — Status
-
-The Apex runs a local web server. AOS 5+ exposes a proper REST API:
+### Local API
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/rest/login` | POST | Authenticate, get session token |
+| `/rest/login` | POST | Authenticate, get session cookie |
 | `/rest/status` | GET | Full JSON: probes, outputs, controller info |
 | `/rest/outlets` | GET | Outlet states only |
 | `/rest/outlets/{id}` | PUT | Control a single outlet |
 
-Legacy endpoints still work on newer firmware for read-only use:
-- `GET /cgi-bin/status.xml` — XML status dump
-- `GET /cgi-bin/status.json` — JSON status dump
-
 ### Auth
 
-Newer AOS uses session-cookie auth (not basic auth):
-1. POST credentials to `/rest/login`
-2. Server sets a `connect.sid` session cookie
-3. All subsequent requests include that cookie
-4. **Session expires** — the poller must detect 401s and re-authenticate
-
-We'll need to capture the exact login request/response from browser DevTools against
-your unit to confirm the payload shape and cookie behavior. This is the first
-reverse-engineering task.
-
-### Data Available from `/rest/status`
-
-**Inputs (probes):**
-- Temperature
-- pH
-- ORP
-- Salinity/conductivity
-- Any PM module probes (Ca, Alk, Mg via Trident if present)
-
-**Outputs:**
-- Per-outlet: name, state (ON/OFF/AON/AOF), type, intensity
-
-**Controller:**
-- Firmware version, serial number
-- `power_failed` / `power_restored` timestamps
-- System time (NTP-synced)
+Session-cookie auth: POST credentials to `/rest/login`, server sets `connect.sid` session cookie, all subsequent requests include it. The Apex client automatically re-authenticates on 401.
 
 ---
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        NixOS Mini PC                         │
-│                                                              │
-│  ┌──────────────┐     ┌──────────────────────────────────┐  │
-│  │   Poller     │────▶│           DuckDB                 │  │
-│  │   (Go)       │     │       symbiont.db                │  │
-│  │              │     │                                  │  │
-│  │ Polls Apex   │     │  Tables:                         │  │
-│  │ every 10s    │     │  - probe_readings                │  │
-│  │ Writes rows  │     │  - outlet_states                 │  │
-│  └──────────────┘     │  - power_events                  │  │
-│                       │  - controller_meta               │  │
-│  ┌──────────────┐     └──────────────────────────────────┘  │
-│  │  API Server  │──────────────▲                            │
-│  │  (Go/net     │              │ reads                      │
-│  │   http)      │                                           │
-│  │              │     ┌──────────────────────────────────┐  │
-│  │  /api/probes │     │           SQLite                 │  │
-│  │  /api/outlets│◀───▶│       symbiont-app.db            │  │
-│  │  /api/system │     │                                  │  │
-│  │  /api/config │     │  Tables:                         │  │
-│  │  /api/alerts │     │  - alert_rules                   │  │
-│  │  /api/control│     │  - probe_config                  │  │
-│  └──────────────┘     │  - outlet_config                 │  │
-│         │             │  - auth_tokens                   │  │
-│         │             │  - outlet_event_log              │  │
-│         │             │  - notification_targets          │  │
-│         │             │  - backup_jobs                   │  │
-│         ▼             └──────────────────────────────────┘  │
-│  ┌──────────────┐                                           │
-│  │   Frontend   │     ┌──────────────────────────────────┐  │
-│  │  (Vite +     │     │       Neptune Apex               │  │
-│  │   React)     │     │     (local network)              │  │
-│  │              │     └──────────────────────────────────┘  │
-│  │  Served by   │                    ▲                      │
-│  │  API or      │                    │ outlet control       │
-│  │  nginx       │     ┌──────────────┴───────────────────┐  │
-│  └──────────────┘     │         API Server               │  │
-│                       │   proxies all Apex commands      │  │
-│  ┌──────────────┐     └──────────────────────────────────┘  │
-│  │  MCP Server  │                                           │
-│  │  (Go)        │                                           │
-│  │              │                                           │
-│  │  Wraps REST  │                                           │
-│  │  API for AI  │                                           │
-│  │  assistants  │                                           │
-│  └──────────────┘                                           │
-│                                                              │
-│  ┌──────────────┐                                           │
-│  │  CLI         │                                           │
-│  │  (Go)        │                                           │
-│  │              │                                           │
-│  │  JSON output │                                           │
-│  │  mode built  │                                           │
-│  │  in          │                                           │
-│  └──────────────┘                                           │
-└─────────────────────────────────────────────────────────────┘
-```
+Four Go binaries + React frontend, all on one NixOS host. See `docs/symbiont-architecture.md` for the full technical breakdown.
 
 ### Key Design Decisions
 
-**Go throughout the backend.** Single binaries per service, low memory footprint, stable
-for long-running processes, clean goroutine model for the poller loop. Trivial NixOS
-deployment. No GIL, no interpreter overhead, no dependency hell.
+**Go throughout the backend.** Single binaries per service, low memory footprint, stable for long-running processes.
 
-**REST/JSON, not gRPC/protobuf.** All communication between services is HTTP/JSON.
-The browser can talk natively to the API, the CLI and MCP server are just HTTP clients,
-and everything is trivially debuggable with curl. No proto files to maintain.
+**REST/JSON, not gRPC.** All communication between services is HTTP/JSON. Trivially debuggable with curl.
 
-**Single writer to DuckDB.** DuckDB allows multiple readers but one writer at a time.
-The Poller is the sole writer. The API server is read-only against the DuckDB. Outlet
-control commands go directly from the API to the Apex.
+**Single writer to DuckDB.** The Poller is the sole writer. The API server is read-only against DuckDB. Never the reverse.
 
-**DuckDB vs SQLite — clear division of responsibility.**
-- DuckDB is the tank's memory — append-only time-series telemetry, write-heavy, columnar
-- SQLite is the app's brain — relational config, user-facing state, rarely written
-- Raw SQL queries in both, no ORM
+**DuckDB vs SQLite — clear division.**
+- DuckDB: tank telemetry — append-only time-series, write-heavy, columnar
+- SQLite: app state — relational config, user-facing state, rarely written
 
-**Poller ≠ API server.** Separate Go binaries running as separate systemd services.
-A frontend reload or API bug can never interrupt data collection.
+**API proxies all Apex communication.** The frontend and MCP server never talk to the Apex directly.
 
-**API proxies all Apex communication.** The frontend and MCP server never talk to the
-Apex directly. All outlet control goes through the API, which holds the Apex session
-and forwards commands. Apex auth logic lives in one place.
-
-**MCP and CLI are API clients.** Nothing is duplicated. Both wrap the REST API — the
-MCP server exposes tools that call API endpoints, the CLI does the same with human-
-friendly and JSON output modes.
-
-**Dark mode is the default.** Not a toggle, not an afterthought. The primary color scheme
-is dark. A light mode can be added later.
+**MCP and CLI are API clients.** Nothing is duplicated. Both wrap the REST API.
 
 ---
 
@@ -169,128 +64,13 @@ is dark. A light mode can be added later.
 
 ### DuckDB — Time-Series Telemetry
 
-```sql
--- Probe readings (temperature, pH, ORP, salinity, etc.)
-CREATE TABLE probe_readings (
-    ts          TIMESTAMPTZ NOT NULL,
-    probe_name  VARCHAR     NOT NULL,
-    probe_type  VARCHAR     NOT NULL,  -- 'temp', 'pH', 'ORP', 'salinity', etc.
-    value       DOUBLE      NOT NULL,
-    unit        VARCHAR,
-    PRIMARY KEY (ts, probe_name)
-);
-
--- Outlet / output states
-CREATE TABLE outlet_states (
-    ts          TIMESTAMPTZ NOT NULL,
-    outlet_id   VARCHAR     NOT NULL,
-    outlet_name VARCHAR     NOT NULL,
-    state       VARCHAR     NOT NULL,  -- 'ON', 'OFF', 'AON', 'AOF' (Apex-reported states)
-    watts       DOUBLE,
-    amps        DOUBLE,
-    PRIMARY KEY (ts, outlet_id)
-);
-
--- Power events from the controller
-CREATE TABLE power_events (
-    ts          TIMESTAMPTZ NOT NULL,
-    event_type  VARCHAR     NOT NULL,  -- 'power_failed', 'power_restored'
-    PRIMARY KEY (ts, event_type)
-);
-
--- Controller metadata snapshots
-CREATE TABLE controller_meta (
-    ts              TIMESTAMPTZ NOT NULL,
-    serial          VARCHAR,
-    firmware        VARCHAR,
-    hardware        VARCHAR,
-    PRIMARY KEY (ts)
-);
-```
-
-**Indexing:** DuckDB's columnar format makes range scans on `ts` fast by default.
-No extra indexes needed for typical dashboard queries.
-
-**Retention:** Systemd timer runs a weekly cleanup job deleting rows older than a
-configurable threshold. 1 year of 10-second data ≈ 3M rows per probe — very
-manageable for DuckDB.
-
-**Backup:** Systemd timer runs a nightly `COPY` or file-level backup of the DuckDB
-file to a configurable backup directory.
+Four tables: `probe_readings`, `outlet_states`, `power_events`, `controller_meta`. All append-only, written by the Poller every 10 seconds.
 
 ### SQLite — App State and Configuration
 
-```sql
--- API authentication tokens
-CREATE TABLE auth_tokens (
-    id          INTEGER PRIMARY KEY,
-    token       TEXT    NOT NULL UNIQUE,
-    label       TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_used   DATETIME
-);
+Over 20 tables covering: auth tokens, devices, probe/outlet config, alert rules, alert events, notifications, backups, dashboard items, measurement parameters, measurements, livestock, livestock observations, tank profile, journal entries, agent settings, system events, dosing products/schedules/logs, maintenance tasks/logs, outlet programs.
 
--- Per-probe display configuration
-CREATE TABLE probe_config (
-    probe_name      TEXT PRIMARY KEY,
-    display_name    TEXT,
-    unit_override   TEXT,
-    display_order   INTEGER,
-    min_normal      REAL,
-    max_normal      REAL,
-    min_warning     REAL,
-    max_warning     REAL
-);
-
--- Per-outlet display configuration
-CREATE TABLE outlet_config (
-    outlet_id       TEXT PRIMARY KEY,
-    display_name    TEXT,
-    display_order   INTEGER,
-    icon            TEXT
-);
-
--- Alert rules
-CREATE TABLE alert_rules (
-    id              INTEGER PRIMARY KEY,
-    probe_name      TEXT    NOT NULL,
-    condition       TEXT    NOT NULL,  -- 'above', 'below', 'outside_range'
-    threshold_low   REAL,
-    threshold_high  REAL,
-    severity        TEXT    NOT NULL,  -- 'warning', 'critical'
-    enabled         INTEGER NOT NULL DEFAULT 1,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Notification delivery targets
-CREATE TABLE notification_targets (
-    id          INTEGER PRIMARY KEY,
-    type        TEXT    NOT NULL,  -- 'ntfy', 'webhook', etc.
-    config      TEXT    NOT NULL,  -- JSON blob (URL, topic, etc.)
-    enabled     INTEGER NOT NULL DEFAULT 1
-);
-
--- Outlet event log (human and AI-initiated changes)
-CREATE TABLE outlet_event_log (
-    id          INTEGER PRIMARY KEY,
-    ts          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    outlet_id   TEXT     NOT NULL,
-    outlet_name TEXT,
-    from_state  TEXT,
-    to_state    TEXT     NOT NULL,
-    initiated_by TEXT    NOT NULL  -- 'ui', 'cli', 'mcp', 'api'
-);
-
--- Backup job metadata
-CREATE TABLE backup_jobs (
-    id          INTEGER PRIMARY KEY,
-    ts          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status      TEXT     NOT NULL,  -- 'success', 'failed'
-    path        TEXT,
-    error       TEXT,
-    size_bytes  INTEGER
-);
-```
+See `docs/symbiont-architecture.md` for the full schema.
 
 ---
 
@@ -299,76 +79,41 @@ CREATE TABLE backup_jobs (
 ```
 symbiont/
 ├── cmd/
-│   ├── poller/
-│   │   └── main.go             # Poller binary entrypoint
-│   ├── api/
-│   │   └── main.go             # API server binary entrypoint
-│   ├── mcp/
-│   │   └── main.go             # MCP server binary entrypoint
-│   └── symbiont/
-│       └── main.go             # CLI binary entrypoint
+│   ├── poller/main.go
+│   ├── api/main.go
+│   ├── mcp/main.go
+│   └── symbiont/main.go
 │
 ├── internal/
-│   ├── apex/
-│   │   ├── client.go           # Apex HTTP client (auth, session mgmt)
-│   │   ├── models.go           # Go structs for Apex API responses
-│   │   └── parser.go           # Normalize Apex response → internal models
-│   ├── db/
-│   │   ├── duckdb.go           # DuckDB connection and write functions
-│   │   ├── sqlite.go           # SQLite connection and query functions
-│   │   ├── schema.go           # Schema creation and migrations
-│   │   └── queries.go          # Named query functions
-│   ├── poller/
-│   │   └── poller.go           # Polling loop (goroutines, ticker)
-│   ├── api/
-│   │   ├── server.go           # HTTP server setup, middleware, routing
-│   │   ├── auth.go             # Token auth middleware
-│   │   ├── probes.go           # GET /api/probes, /api/probes/{name}/history
-│   │   ├── outlets.go          # GET /api/outlets, PUT /api/outlets/{id}
-│   │   ├── system.go           # GET /api/system
-│   │   ├── config.go           # GET/PUT /api/config (probe and outlet config)
-│   │   └── alerts.go           # CRUD /api/alerts
-│   ├── mcp/
-│   │   └── tools.go            # MCP tool definitions wrapping API calls
-│   ├── cli/
-│   │   ├── probes.go           # symbiont probes [current|history]
-│   │   ├── outlets.go          # symbiont outlets [list|set]
-│   │   └── system.go           # symbiont system [status|backup]
-│   ├── alerts/
-│   │   └── engine.go           # Alert evaluation and notification dispatch
-│   ├── notify/
-│   │   └── ntfy.go             # ntfy.sh delivery implementation
-│   └── config/
-│       └── config.go           # App config (env vars, .env file)
+│   ├── agent/               # Agent context assembly and skills
+│   ├── alerts/              # Alert evaluation engine
+│   ├── apex/                # Apex HTTP client (auth, session, models)
+│   ├── api/                 # HTTP handlers, middleware, SSE broadcaster
+│   ├── audit/               # Audit log helpers
+│   ├── backup/              # Backup and retention logic
+│   ├── cli/                 # CLI commands and output formatting
+│   ├── config/              # Config loading from env
+│   ├── db/                  # DuckDB + SQLite packages (many files)
+│   ├── enums/               # Shared vocabulary sets for validation
+│   ├── events/              # Internal event bus
+│   ├── journal/             # Journal auto-logging from event bus
+│   ├── kits/                # Test kit definitions
+│   ├── mcp/                 # MCP tool implementations (14 files)
+│   ├── notify/              # Notification delivery (ntfy.sh)
+│   └── poller/              # Polling loop
 │
 ├── frontend/
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
-│   │   ├── api/
-│   │   │   └── client.ts       # Typed fetch wrapper
-│   │   ├── components/
-│   │   │   ├── ProbeCard.tsx   # Current value + Tremor sparkline
-│   │   │   ├── ProbeChart.tsx  # uPlot time-series chart wrapper
-│   │   │   ├── OutletCard.tsx  # State badge + toggle control
-│   │   │   ├── AlertBadge.tsx  # Threshold status indicator
-│   │   │   └── PowerBadge.tsx  # Last power event indicator
-│   │   ├── pages/
-│   │   │   ├── Dashboard.tsx   # Minimal overview — probe cards, outlet states
-│   │   │   ├── History.tsx     # uPlot deep-dive, multi-probe, time range picker
-│   │   │   ├── Outlets.tsx     # Outlet management and event log
-│   │   │   ├── Alerts.tsx      # Alert rule configuration
-│   │   │   └── Settings.tsx    # Config, auth tokens, notifications, backup
-│   │   └── hooks/
-│   │       ├── useProbes.ts
-│   │       ├── useOutlets.ts
-│   │       └── useSSE.ts       # Server-Sent Events for real-time updates
-│   └── public/
+│   └── src/
+│       ├── api/             # Typed fetch client (22 files + barrel)
+│       ├── components/      # Reusable components
+│       ├── hooks/           # TanStack Query hooks + SSE hook
+│       └── pages/           # Route-level pages + settings tabs
 │
-├── flake.nix                   # NixOS dev environment and service definitions
-└── README.md
+├── testdata/                # Apex API response fixtures (JSON)
+├── docs/                    # Architecture docs
+├── flake.nix
+├── go.mod
+└── .env.example
 ```
 
 ---
@@ -382,17 +127,11 @@ github.com/marcboeker/go-duckdb # DuckDB driver
 modernc.org/sqlite              # SQLite driver (pure Go, no cgo)
 github.com/joho/godotenv        # .env file loading
 
-# API / serialization
-encoding/json                   # stdlib
-
 # CLI
-github.com/spf13/cobra          # CLI framework with subcommands and JSON output
+github.com/spf13/cobra          # CLI framework with subcommands
 
 # MCP
 github.com/mark3labs/mcp-go     # MCP server implementation
-
-# Scheduling
-time.Ticker                     # stdlib — sufficient for the poller loop
 
 # Testing
 net/http/httptest               # stdlib
@@ -408,358 +147,133 @@ net/http/httptest               # stdlib
     "react": "^18",
     "react-dom": "^18",
     "uplot": "^1",
-    "@tremor/react": "^3",
     "@tanstack/react-query": "^5",
-    "lucide-react": "latest"
+    "@dnd-kit/core": "^6",
+    "@dnd-kit/sortable": "^8",
+    "lucide-react": "latest",
+    "clsx": "latest",
+    "tailwind-merge": "latest"
   },
   "devDependencies": {
     "typescript": "^5",
     "vite": "^5",
-    "@types/react": "^18",
     "tailwindcss": "^3"
   }
 }
 ```
 
-**shadcn/ui** components added as needed via CLI — not a package dependency.
-
-**Component hierarchy:**
-- shadcn/ui — base primitives (buttons, dialogs, inputs, tables)
-- Tremor — dashboard stat cards, sparklines, badge components
-- uPlot — all time-series charting (wrapped in a reusable React component)
+No Tremor, no shadcn/ui. All UI is hand-built with Tailwind following the Abyssal Laboratory design system in `docs/design/DESIGN.md`.
 
 ---
 
 ## API Design
 
+See full route table in `docs/symbiont-architecture.md`. Summary:
+
 ### Authentication
 
-All requests require an `Authorization: Bearer <token>` header. Tokens are generated
-on first run and stored in SQLite. Rotation is manual via CLI or Settings page.
+All requests require `Authorization: Bearer <token>`. Token scopes: `read` | `write` | `control` | `admin`. Only `admin` tokens can manage other tokens or change config.
 
-### Read Endpoints
-
-```
-GET /api/probes
-→ { probes: [{ name, type, value, unit, ts, status }] }
-  status: 'normal' | 'warning' | 'critical' based on alert rule thresholds
-
-GET /api/probes/{name}/history?from=ISO&to=ISO&interval=1m
-→ { probe, data: [{ ts, value }] }
-  interval bucketed via DuckDB epoch math
-
-GET /api/outlets
-→ { outlets: [{ id, name, state, xstatus, watts, amps }] }
-
-GET /api/system
-→ { serial, firmware, last_poll_ts, poll_ok, db_size_bytes }
-
-GET /api/alerts
-→ { rules: [{ id, probe_name, condition, thresholds, severity, enabled }] }
-
-GET /api/outlets/{id}/events?limit=50
-→ { events: [{ ts, from_state, to_state, initiated_by }] }
-```
-
-### Write Endpoints
+### Key Endpoints
 
 ```
-PUT /api/outlets/{id}
-Body: { "state": "ON" | "OFF" | "AUTO" }
-→ Sends command to Apex, logs to outlet_event_log, returns updated outlet state
-→ ON/OFF use REST API; AUTO uses legacy CGI endpoint (state=0)
-
-POST /api/alerts
-PUT /api/alerts/{id}
-DELETE /api/alerts/{id}
-→ Alert rule management
-
-PUT /api/config/probes/{name}
-PUT /api/config/outlets/{id}
-→ Display config (friendly names, ordering, units)
-
-POST /api/auth/tokens
-DELETE /api/auth/tokens/{id}
-→ Token management
-```
-
-### Streaming
-
-```
-GET /api/stream   (Server-Sent Events)
-→ Pushes probe + outlet updates every 10s to the frontend
-  so the dashboard auto-refreshes without frontend polling
+GET  /api/probes                  → current probe readings
+GET  /api/probes/{name}/history   → time-series (DuckDB bucketed)
+GET  /api/outlets                 → current outlet states
+PUT  /api/outlets/{id}            → outlet control [control scope]
+GET  /api/feed                    → feed mode status
+PUT  /api/feed                    → set feed mode [control scope]
+GET  /api/dashboard               → customizable dashboard items
+GET  /api/measurements            → manual water chemistry log
+GET  /api/livestock               → livestock inventory
+GET  /api/journal                 → journal entries
+GET  /api/dosing/schedules        → dosing schedules + due dates
+GET  /api/maintenance/tasks       → maintenance task definitions
+GET  /api/tasks/due               → unified due queue (dosing + tasks)
+GET  /api/agent/context           → AI context bundle for MCP
+GET  /api/stream                  → SSE real-time push
 ```
 
 ---
 
 ## MCP Server
 
-The MCP server is a separate binary that wraps the REST API, exposing tools for
-AI assistants (Claude, Gemini, etc.). All tools are thin clients over the API —
-no direct DB access.
+30+ tools covering the full feature surface. All tools are thin clients over the REST API — no direct DB access. Supports two transports:
 
-```
-Tools:
-  get_current_parameters      → calls GET /api/probes
-  get_probe_history           → calls GET /api/probes/{name}/history
-  get_outlet_states           → calls GET /api/outlets
-  control_outlet              → calls PUT /api/outlets/{id}
-  get_system_status           → calls GET /api/system
-  get_alert_rules             → calls GET /api/alerts
-  get_outlet_event_log        → calls GET /api/outlets/{id}/events
-  summarize_tank_health       → calls multiple endpoints, returns synthesized summary
-```
-
-The token is configured in the MCP server's environment — not passed by the AI client.
-
-**Example interactions enabled:**
-- "Why did my pH drop last night?" — queries history, correlates with outlet events
-- "Turn off the skimmer for an hour" — outlet control with natural language
-- "Are all my parameters within range?" — health summary
-- "What changed in my tank yesterday?" — outlet event log + parameter deltas
+- **stdio** — for local Claude Desktop / Claude Code
+- **HTTP/SSE** — for claude.ai remote connections via Tailscale (see `docs/deployment-remote-mcp.md`)
 
 ---
 
 ## CLI
 
-Single binary `symbiont` with subcommands. All commands default to human-readable
-output. `--json` flag available on every command for scripting and agent use.
+Single binary `symbiont` with subcommands for all major features. All commands support `--json` flag for scripting.
 
 ```
-symbiont probes current [--json]
-symbiont probes history <name> [--from ISO] [--to ISO] [--interval 1m] [--json]
-symbiont outlets list [--json]
-symbiont outlets set <id> <ON|OFF|AUTO> [--json]
-symbiont system status [--json]
-symbiont system backup [--path /path/to/backup]
-symbiont alerts list [--json]
-symbiont auth tokens list
-symbiont auth tokens create --label "claude-desktop"
-symbiont auth tokens revoke <id>
+symbiont probes current
+symbiont outlets set <id> <ON|OFF|AUTO>
+symbiont measurements add
+symbiont dosing log
+symbiont livestock list
+symbiont journal add
+symbiont agent context
+symbiont system status
+symbiont auth tokens create --label "claude-desktop" --scope control
 ```
 
 ---
 
 ## Auth
 
-**Token-based, single shared secret model.** No user accounts, no sessions, no JWTs.
+Four scopes:
+- **read** — read-only access, no data modification, no hardware control
+- **write** — data management (measurements, livestock, dosing, maintenance, journal, dashboard) but no hardware control
+- **control** — write + outlet on/off/auto + feed mode
+- **admin** — full access including config, tokens, backup, agent settings
 
-- One or more tokens stored in SQLite `auth_tokens` table
-- Generated as cryptographically random 32-byte hex strings
-- Required as `Authorization: Bearer <token>` on every API request
-- First token auto-generated on first run, printed to stdout once
-- Additional tokens created via CLI or Settings UI
-- Each token has an optional label (e.g. "claude-desktop", "phone")
-- `last_used` timestamp updated on each request for visibility
-- Remote access via Tailscale — no ports exposed to the internet
+Tokens are 64-char hex strings stored in SQLite. First token is auto-generated on first run.
 
 ---
 
 ## Alerting
 
-Alert rules are stored in SQLite and evaluated by a background goroutine in the
-API server process on each poller tick (via the SSE stream or internal channel).
-
-**Rule types:**
-- Value above threshold
-- Value below threshold
-- Value outside range (min/max)
-
-**Severity levels:** warning, critical
-
-**Delivery:** ntfy.sh (self-hosted or cloud). Config stored in SQLite
-`notification_targets`. Additional delivery types (webhook, etc.) can be added
-as new implementations of a `Notifier` interface.
-
-**Alert state tracking:** debounced — only fires once when condition is first
-breached, not on every poll. Re-arms when condition clears.
+Rules stored in SQLite, evaluated by background goroutine in the API server on each poll cycle. Three rule types: above threshold, below threshold, outside range. Notifications delivered via ntfy.sh. Cooldown period prevents notification spam.
 
 ---
 
 ## Backup Strategy
 
-**DuckDB:** Nightly systemd timer copies the DuckDB file to a configurable backup
-directory. Keeps last N backups (configurable). Status recorded in SQLite
-`backup_jobs` table and visible in the Settings UI.
-
-**SQLite:** Included in the same nightly backup job. Both files backed up together
-as a consistent snapshot.
-
-**Recovery:** CLI command `symbiont system restore --from /path/to/backup` stops
-services, replaces DB files, restarts.
+Nightly systemd timer copies both DuckDB and SQLite files to a configurable backup directory. Keeps last N backups (configurable). Status visible in Settings > Backup.
 
 ---
 
 ## NixOS Integration
 
-```nix
-# flake.nix — systemd services
-
-services.symbiont-poller = {
-  description = "Symbiont Poller";
-  wantedBy = [ "multi-user.target" ];
-  after = [ "network.target" ];
-  serviceConfig = {
-    ExecStart = "${symbiont-poller}/bin/poller";
-    Restart = "always";
-    RestartSec = "5s";
-    EnvironmentFile = "/etc/symbiont/env";
-  };
-};
-
-services.symbiont-api = {
-  description = "Symbiont API";
-  wantedBy = [ "multi-user.target" ];
-  after = [ "network.target" "symbiont-poller.service" ];
-  serviceConfig = {
-    ExecStart = "${symbiont-api}/bin/api --host 0.0.0.0 --port 8420";
-    Restart = "always";
-    EnvironmentFile = "/etc/symbiont/env";
-  };
-};
-
-services.symbiont-mcp = {
-  description = "Symbiont MCP Server";
-  wantedBy = [ "multi-user.target" ];
-  after = [ "symbiont-api.service" ];
-  serviceConfig = {
-    ExecStart = "${symbiont-mcp}/bin/mcp";
-    Restart = "always";
-    EnvironmentFile = "/etc/symbiont/env";
-  };
-};
-
-# Nightly backup timer
-systemd.timers.symbiont-backup = {
-  wantedBy = [ "timers.target" ];
-  timerConfig.OnCalendar = "daily";
-};
-
-# Weekly retention cleanup timer
-systemd.timers.symbiont-cleanup = {
-  wantedBy = [ "timers.target" ];
-  timerConfig.OnCalendar = "weekly";
-};
-```
+Four systemd services + two systemd timers (backup + cleanup). Services run as `symbiont` system user with read-write access limited to `/var/lib/symbiont`. Config loaded from `/etc/symbiont/env`.
 
 ---
 
-## Phased Roadmap
+## Completed Phases
 
-### Phase 1 — Data Collection
-**Goal:** Poller running on NixOS, writing to DuckDB, verifiable via CLI
+### Phase 1 — Data Collection ✓
+Apex client, DuckDB schema, polling loop, systemd service.
 
-- [ ] Capture Apex login flow from browser DevTools (auth reverse-engineering)
-- [ ] Build `apex/client.go` — login, session refresh on 401, GET status
-- [ ] Define Go structs for Apex JSON response
-- [ ] Set up DuckDB schema
-- [ ] Build polling loop (goroutines + time.Ticker, 10s interval)
-- [ ] Wire up as a systemd service via flake.nix
+### Phase 2 — API Server ✓
+Full REST API, SQLite schema, auth middleware, history endpoint, outlet control, SSE.
 
-**Deliverable:** Poller binary runs cleanly; DuckDB file accumulates rows.
+### Phase 3 — CLI ✓
+Cobra CLI with all subcommands and JSON output mode.
 
-### Phase 2 — API Server
-**Goal:** Clean REST API queryable from curl
+### Phase 4 — Frontend MVP ✓
+Vite + React + TypeScript + Tailwind, full dashboard with real-time SSE updates.
 
-- [ ] Go HTTP server with probe, outlet, and system endpoints
-- [ ] SQLite schema and raw query functions
-- [ ] Token auth middleware
-- [ ] History endpoint with DuckDB time-bucketing
-- [ ] Outlet control endpoint (proxies to Apex REST, logs to SQLite)
-- [ ] SSE endpoint for real-time push
-- [ ] CORS configured for local frontend dev
+### Phase 5 — MCP Server and AI Layer ✓
+30+ MCP tools, stdio + HTTP transport, Claude Desktop + claude.ai integration. Agent settings, embedded skills pack, agent context assembly.
 
-**Deliverable:** Full API documented and testable via curl.
+### Phase 6 — Alerts, Notifications, and Polish ✓
+Alert engine with debounce, ntfy.sh, CSV export, backup automation, dosing schedules, maintenance tasks, livestock tracking, water chemistry measurements, journal, tank profile, devices, dashboard customization.
 
-### Phase 3 — CLI
-**Goal:** Full CLI with JSON output mode
+### Phase 7 — Dashboard Layout Builder ✓
+Customizable dashboard via `dashboard_items` SQLite table. Settings > Dashboard tab with drag-and-drop reordering (dnd-kit). Six item types: probe, outlet, device, separator, feed_mode, measurement. Display mode (normal/compact) per item.
 
-- [ ] Cobra CLI with all subcommands
-- [ ] Human-readable and `--json` output modes on every command
-- [ ] Token management commands
-- [ ] Backup and restore commands
-
-**Deliverable:** `symbiont` binary usable as a standalone tool and scripting surface.
-
-### Phase 4 — Frontend MVP
-**Goal:** Usable dashboard replacing daily Fusion use
-
-- [ ] Vite + React + TypeScript + Tailwind + shadcn/ui scaffold
-- [ ] Dark mode as default theme
-- [ ] Dashboard page: Tremor probe stat cards, outlet state badges
-- [ ] Outlets page: outlet cards with ON/OFF/AUTO toggle, event log
-- [ ] History page: uPlot charts, multi-probe overlay, time range picker
-- [ ] Alerts page: rule configuration UI
-- [ ] Settings page: probe/outlet config, token management, notifications, backup status
-- [ ] SSE integration for real-time updates
-- [ ] Mobile-responsive layout
-
-**Deliverable:** Full local dashboard accessible in browser.
-
-### Phase 5 — MCP Server and AI Layer
-**Goal:** Symbiont queryable and controllable by AI assistants
-
-- [ ] MCP server binary with full tool surface
-- [ ] All tools as thin API wrappers
-- [ ] Tested against Claude Desktop and Claude Code
-- [ ] `summarize_tank_health` composite tool
-
-**Deliverable:** Claude can query and control the tank via MCP.
-
-### Phase 6 — Alerts, Notifications, and Polish
-**Goal:** Features that make it genuinely better than Fusion
-
-- [ ] Alert evaluation engine with debounce
-- [ ] ntfy.sh notification delivery
-- [ ] Data export (CSV download for any probe range)
-- [ ] Outlet event log UI improvements
-- [ ] Backup automation and Settings UI integration
-- [ ] Retention policy cleanup job
-
-**Deliverable:** Symbiont is the primary and complete tank management interface.
-
-### Phase 7 — Visual Layout Builder
-**Goal:** Live schematic of the physical system
-
-- [ ] React Flow canvas with edit and view modes
-- [ ] Draggable probe and outlet nodes
-- [ ] Layout config persisted as JSON in SQLite
-- [ ] Live data overlaid on static layout
-- [ ] Color-coded node status based on alert thresholds
-- [ ] Click-through to history drawer and outlet control
-
-**Deliverable:** Interactive tank diagram with live parameter overlay.
-
----
-
-## Reverse Engineering Plan
-
-The first step before writing a line of application code:
-
-1. **Open Chrome DevTools** → Network tab → filter XHR/Fetch
-2. **Browse to Apex local IP** and log in
-3. **Capture:** the login POST (URL, body shape, response cookies)
-4. **Capture:** a status GET (URL, headers sent including cookie, response JSON structure)
-5. **Capture:** an outlet toggle PUT (URL, body shape, response)
-6. **Capture:** a 401 flow if possible (let cookie expire or try without it)
-
-This gives us the exact API contract to build `apex/client.go` against.
-The community Go client and the Home Assistant Python integration
-(`itchannel/apex-ha`) are useful cross-references but may be on slightly
-different firmware — your DevTools capture is ground truth.
-
----
-
-## Open Questions / Risks
-
-| Question | Notes |
-|---|---|
-| Exact AOS 5+ login endpoint and payload | Resolve via DevTools capture |
-| Session token lifetime | May be hours; need to test expiry behavior |
-| Rate limits on local polling | Community reports 5-10s is safe; test with your unit |
-| Outlet control payload shape | Needs verification — varies between firmware versions |
-| Trident data availability | Check if Ca/Alk/Mg appear in `/rest/status` |
-| WAV / Vortech xstatus | Extra field on wireless outputs; parse carefully |
-| DuckDB Go driver stability | go-duckdb is CGO-based; test on NixOS specifically |
-| Historical data backfill | Investigate whether Apex exposes any stored history for initial import |
+> Note: The original Phase 7 plan described a React Flow canvas with draggable nodes. The actual implementation used a simpler, more practical approach: a sortable item list in Settings that customizes what appears on the main dashboard — same goal (customization), different implementation (list vs. canvas).

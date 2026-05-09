@@ -3,6 +3,8 @@
 
 **Deliverable:** Claude can query tank parameters, view outlet states, control outlets, and get a health summary through MCP. Tested against Claude Desktop and Claude Code.
 
+> **Status (May 2026):** Phase 5 is fully complete. The MCP surface has grown well beyond the original 8 tools — it now covers 30+ tools across probes, outlets, feed mode, alerts, measurements, livestock, journal, dosing, maintenance, agent settings, and more. Both stdio (local) and HTTP/SSE (remote via Tailscale for claude.ai) transports are implemented.
+
 ---
 
 ## 5.1 MCP Dependency and Server Setup
@@ -87,29 +89,32 @@
 
 ## 5.4 Claude Desktop Integration
 
-- [ ] [config] Build `symbiont-mcp` binary and place at a stable path
-- [ ] [config] Create Claude Desktop MCP config
-- [ ] [verify] Claude Desktop connects to MCP server without error
-- [ ] [verify] Claude can list available tools
-- [ ] [verify] Claude correctly calls `get_current_parameters`
-- [ ] [verify] Claude correctly calls `summarize_tank_health`
-- [ ] [verify] Claude correctly calls `control_outlet` after confirming intent
+- [x] [config] Build `symbiont-mcp` binary and place at a stable path
+- [x] [config] Create Claude Desktop MCP config
+- [x] [verify] Claude Desktop connects to MCP server without error
+- [x] [verify] Claude can list available tools
+- [x] [verify] Claude correctly calls `get_current_parameters`
+- [x] [verify] Claude correctly calls `summarize_tank_health`
+- [x] [verify] Claude correctly calls `control_outlet` after confirming intent
 
 ---
 
 ## 5.5 Claude Code Integration
 
-- [ ] [config] Add MCP server to Claude Code config
-- [ ] [verify] Claude Code has `symbiont` MCP server available
-- [ ] [verify] "Check my tank parameters" returns data
-- [ ] [verify] Natural language outlet control works
+- [x] [config] Add MCP server to Claude Code config (via `.mcp.json` in project root)
+- [x] [verify] Claude Code has `symbiont` MCP server available
+- [x] [verify] "Check my tank parameters" returns data
+- [x] [verify] Natural language outlet control works
 
 ---
 
-## 5.6 NixOS MCP Service
+## 5.6 Remote MCP Transport (HTTP/SSE for claude.ai)
 
-- [ ] [config] Evaluate whether systemd service is needed (MCP stdio servers are typically launched as subprocesses)
-- [ ] [decision] Defer SSE transport decision to after initial stdio testing
+- [x] [code] `POST /api/mcp` serves the MCP HTTP+SSE transport (Streamable HTTP)
+- [x] [code] Auth middleware validates Bearer token on MCP endpoint
+- [x] [config] Exposed via Tailscale for claude.ai remote connections
+- [x] [verify] claude.ai can connect to Symbiont MCP server over Tailscale URL
+- [x] [docs] See `docs/deployment-remote-mcp.md` for full setup guide
 
 ---
 
@@ -135,13 +140,33 @@
 
 ---
 
+## 5.7 Additional Tools (Beyond Original Scope)
+
+The following tools were added after the original 8 were implemented:
+
+- [x] Feed mode: `get_feed_mode`, `set_feed_mode`
+- [x] Measurements: `get_measurements`, `add_measurement`, `delete_measurement`, `get_measurement_parameters`
+- [x] Livestock: `get_livestock`, `add_livestock`, `update_livestock`, `add_livestock_observation`, `get_livestock_observations`, `get_livestock_image`
+- [x] Journal: `get_journal_entries`, `add_journal_entry`, `get_journal_templates`
+- [x] Dosing: `get_dosing_products`, `get_dosing_schedule`, `create_dosing_schedule`, `get_dosing_history`, `log_dose`
+- [x] Maintenance: `list_maintenance_tasks`, `create_maintenance_task`, `complete_maintenance_task`, `get_due_tasks`
+- [x] Devices: `get_devices`
+- [x] Skills: `list_skills`, `get_skill`
+- [x] Agent context: `get_agent_context` (assembles full tank context bundle for AI reasoning)
+- [x] Tank: `get_tank_profile`
+- [x] Alerts extended: `create_alert_rule`, `update_alert_rule`, `delete_alert_rule`, `get_alert_events`
+- [x] Probe config: `list_probe_configs`, `update_probe_config`
+
+---
+
 ## Phase 5 Checklist Summary
 
 - [x] `mcp-go` dependency integrated
-- [x] All 8 tools implemented and tested
+- [x] All 30+ tools implemented and tested
 - [x] Error handling returns clear messages
-- [ ] Claude Desktop integration verified
-- [ ] Claude Code integration verified
-- [ ] All manual interaction scenarios pass
+- [x] Claude Desktop integration verified
+- [x] Claude Code integration verified
+- [x] Remote MCP via HTTP/SSE for claude.ai
+- [x] All manual interaction scenarios pass
 
-**Phase 5 is complete when:** Claude Desktop can answer "Is my tank healthy?" with real data from Symbiont, and "Turn off my return pump" physically toggles the outlet.
+**Phase 5 is complete.** Claude can answer "Is my tank healthy?", log a measurement, check what's due today, and control outlets — all via natural language through MCP.

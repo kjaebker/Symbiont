@@ -1,5 +1,5 @@
 # Symbiont — Phase 4: Frontend MVP
-> React + TypeScript + Vite, dark mode default, Tremor + uPlot
+> React + TypeScript + Vite, dark mode default, uPlot, custom Abyssal Laboratory design system
 
 **Deliverable:** Full local dashboard accessible in browser. Dashboard, History, Outlets, Alerts, and Settings pages all functional with real data. Dark mode default. Mobile-responsive.
 
