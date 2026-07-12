@@ -13,6 +13,7 @@ func (d *DuckDB) CurrentProbeReadings(ctx context.Context) ([]ProbeReading, erro
 		FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY probe_did ORDER BY ts DESC) AS rn
 			FROM probe_readings
+			WHERE ts >= (SELECT COALESCE(MAX(ts), '1970-01-01'::TIMESTAMP) FROM probe_readings) - INTERVAL 5 MINUTE
 		)
 		WHERE rn = 1
 		ORDER BY probe_name`
@@ -103,6 +104,7 @@ func (d *DuckDB) CurrentOutletStates(ctx context.Context) ([]OutletState, error)
 		FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY outlet_did ORDER BY ts DESC) AS rn
 			FROM outlet_states
+			WHERE ts >= (SELECT COALESCE(MAX(ts), '1970-01-01'::TIMESTAMP) FROM outlet_states) - INTERVAL 5 MINUTE
 		)
 		WHERE rn = 1
 		ORDER BY outlet_name`
