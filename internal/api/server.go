@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
@@ -34,6 +35,10 @@ type Server struct {
 	events           *events.Bus
 	journalTemplates *journal.Catalog
 	tokenToucher     *tokenToucher
+	feedMu           sync.RWMutex
+	feedName         int
+	feedActive       int
+	feedCacheTime    time.Time
 }
 
 // New creates a new API server. frontendFS is the filesystem to serve the

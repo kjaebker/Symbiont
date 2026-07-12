@@ -2,11 +2,26 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/kjaebker/symbiont/internal/events"
 )
 
 func (s *Server) HandleFeedGet(w http.ResponseWriter, r *http.Request) {
+	s.feedMu.RLock()
+	cachedName := s.feedName
+	cachedActive := s.feedActive
+	cacheTime := s.feedCacheTime
+	s.feedMu.RUnlock()
+
+	if time.Since(cacheTime) < 30*time.Second {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"name":   cachedName,
+			"active": cachedActive,
+		})
+		return
+	}
+
 	status, err := s.apex.Status(r.Context())
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "failed to fetch feed status", "apex_error")
@@ -30,6 +45,12 @@ func (s *Server) HandleFeedGet(w http.ResponseWriter, r *http.Request) {
 			name = 0
 		}
 	}
+
+	s.feedMu.Lock()
+	s.feedName = name
+	s.feedActive = active
+	s.feedCacheTime = time.Now()
+	s.feedMu.Unlock()
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"name":   name,
@@ -63,6 +84,11 @@ func (s *Server) HandleFeedSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logger.Info("feed mode set", "name", body.Name, "active", body.Active)
+
+	// Invalidate feed cache immediately
+	s.feedMu.Lock()
+	s.feedCacheTime = time.Time{}
+	s.feedMu.Unlock()
 
 	if body.Active && body.Name >= 1 && body.Name <= 4 {
 		feedNames := map[int]string{1: "A", 2: "B", 3: "C", 4: "D"}
