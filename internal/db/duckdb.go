@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/kjaebker/symbiont/internal/apex"
@@ -15,6 +16,66 @@ import (
 type DuckDB struct {
 	db   *sql.DB
 	path string
+
+	// Latest ts written to each append-only table. "Current state" queries
+	// use these as a lower bound so DuckDB's zone maps can skip all older row
+	// groups, instead of running MAX(ts) — a full-column scan that costs tens
+	// of milliseconds once a year of 10s polls has accumulated. Populated on
+	// write by this handle, or lazily from MAX(ts) on first read.
+	latestProbeTS  latestTS
+	latestOutletTS latestTS
+	latestMetaTS   latestTS
+}
+
+// latestTS tracks the newest timestamp observed for a table. It only ever
+// moves forward, so a value that lags the true MAX(ts) is still a valid
+// lower bound — queries just prune a little less.
+type latestTS struct {
+	v atomic.Pointer[time.Time]
+}
+
+func (l *latestTS) load() (time.Time, bool) {
+	p := l.v.Load()
+	if p == nil {
+		return time.Time{}, false
+	}
+	return *p, true
+}
+
+func (l *latestTS) observe(ts time.Time) {
+	// Normalize to what DuckDB round-trips: UTC, microsecond precision.
+	ts = ts.UTC().Truncate(time.Microsecond)
+	for {
+		cur := l.v.Load()
+		if cur != nil && !ts.After(*cur) {
+			return
+		}
+		if l.v.CompareAndSwap(cur, &ts) {
+			return
+		}
+	}
+}
+
+// recentWindow is how far before the latest poll a "current" query looks.
+// Matches the original MAX(ts) - INTERVAL 5 MINUTE semantics.
+const recentWindow = 5 * time.Minute
+
+// latest returns the newest ts in table, from cache when available. ok is
+// false when the table is empty. table must be a trusted constant.
+func (d *DuckDB) latest(ctx context.Context, l *latestTS, table string) (time.Time, bool, error) {
+	if ts, ok := l.load(); ok {
+		return ts, true, nil
+	}
+	var ts sql.NullTime
+	if err := d.db.QueryRowContext(ctx, "SELECT MAX(ts) FROM "+table).Scan(&ts); err != nil {
+		return time.Time{}, false, fmt.Errorf("querying latest ts from %s: %w", table, err)
+	}
+	if !ts.Valid {
+		return time.Time{}, false, nil
+	}
+	l.observe(ts.Time)
+	ts.Time, _ = l.load()
+	return ts.Time, true, nil
 }
 
 // DB returns the underlying *sql.DB for use in queries.
@@ -69,7 +130,13 @@ func (d *DuckDB) Close() error {
 
 // WriteProbeReadings batch-inserts probe readings into DuckDB.
 func (d *DuckDB) WriteProbeReadings(ctx context.Context, ts time.Time, inputs []apex.Input) error {
-	return d.writeProbeReadingsTx(ctx, nil, ts, inputs)
+	if err := d.writeProbeReadingsTx(ctx, nil, ts, inputs); err != nil {
+		return err
+	}
+	if len(inputs) > 0 {
+		d.latestProbeTS.observe(ts)
+	}
+	return nil
 }
 
 func (d *DuckDB) writeProbeReadingsTx(ctx context.Context, tx *sql.Tx, ts time.Time, inputs []apex.Input) error {
@@ -94,7 +161,13 @@ func (d *DuckDB) writeProbeReadingsTx(ctx context.Context, tx *sql.Tx, ts time.T
 
 // WriteOutletStates batch-inserts outlet states into DuckDB.
 func (d *DuckDB) WriteOutletStates(ctx context.Context, ts time.Time, outputs []apex.Output) error {
-	return d.writeOutletStatesTx(ctx, nil, ts, outputs)
+	if err := d.writeOutletStatesTx(ctx, nil, ts, outputs); err != nil {
+		return err
+	}
+	if len(outputs) > 0 {
+		d.latestOutletTS.observe(ts)
+	}
+	return nil
 }
 
 func (d *DuckDB) writeOutletStatesTx(ctx context.Context, tx *sql.Tx, ts time.Time, outputs []apex.Output) error {
@@ -174,7 +247,11 @@ func (d *DuckDB) writePowerEventsTx(ctx context.Context, tx *sql.Tx, ts time.Tim
 
 // WriteControllerMeta inserts a controller metadata snapshot into DuckDB.
 func (d *DuckDB) WriteControllerMeta(ctx context.Context, ts time.Time, sys apex.SystemInfo) error {
-	return d.writeControllerMetaTx(ctx, nil, ts, sys)
+	if err := d.writeControllerMetaTx(ctx, nil, ts, sys); err != nil {
+		return err
+	}
+	d.latestMetaTS.observe(ts)
+	return nil
 }
 
 func (d *DuckDB) writeControllerMetaTx(ctx context.Context, tx *sql.Tx, ts time.Time, sys apex.SystemInfo) error {
@@ -222,5 +299,14 @@ func (d *DuckDB) WritePollCycle(ctx context.Context, ts time.Time, status *apex.
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing poll cycle transaction: %w", err)
 	}
+
+	// Record only after commit so readers never bound on uncommitted data.
+	if len(status.Inputs) > 0 {
+		d.latestProbeTS.observe(ts)
+	}
+	if len(status.Outputs) > 0 {
+		d.latestOutletTS.observe(ts)
+	}
+	d.latestMetaTS.observe(ts)
 	return nil
 }

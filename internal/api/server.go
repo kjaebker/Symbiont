@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,11 +79,12 @@ func New(cfg *config.Config, duck *db.DuckDB, sqlite *db.SQLiteDB, apexClient ap
 	mux := http.NewServeMux()
 	s.registerRoutes(mux)
 
-	// Build middleware chain: RequestID → Logger → Recover → SecurityHeaders → CORS → Auth → handler
+	// Build middleware chain: RequestID → Logger → Recover → Compress → SecurityHeaders → CORS → Auth → handler
 	var handler http.Handler = mux
 	handler = Auth(sqlite, toucher)(handler)
 	handler = CORS(handler)
 	handler = SecurityHeaders(handler)
+	handler = Compress(handler)
 	handler = Recover(logger)(handler)
 	handler = Logger(logger)(handler)
 	handler = RequestID(handler)
@@ -357,6 +359,14 @@ func spaHandler(fsys fs.FS) http.Handler {
 		}
 
 		if _, err := fs.Stat(fsys, path); err == nil {
+			// Vite emits content-hashed filenames under assets/, so they never
+			// change in place. The embedded FS has no modtimes (no Last-Modified,
+			// no 304s), so without this every page load re-downloads the bundle.
+			if strings.HasPrefix(path, "assets/") {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			fileServer.ServeHTTP(w, r)
 			return
 		}
@@ -366,6 +376,9 @@ func spaHandler(fsys fs.FS) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		// index.html references the current hashed assets, so it must always
+		// be revalidated to pick up a new deploy.
+		w.Header().Set("Cache-Control", "no-cache")
 		r.URL.Path = "/"
 		fileServer.ServeHTTP(w, r)
 	})
