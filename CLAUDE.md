@@ -17,10 +17,10 @@ The codebase is Go (backend) and TypeScript/React (frontend). There is no cloud.
 ```
 symbiont/
 ├── cmd/
-│   ├── poller/main.go       # Data collection binary
-│   ├── api/main.go          # HTTP API + SSE + static file server
-│   ├── mcp/main.go          # MCP server for AI assistant integration
-│   └── symbiont/main.go     # CLI binary
+│   ├── symbiont/            # Production binary: `symbiont serve` (poller + API + alerts in one process) and the CLI
+│   ├── api/main.go          # Dev server: same in-process stack, frontend served from disk
+│   ├── mcp/main.go          # MCP server (stdio) for AI assistant integration
+│   └── poller/main.go       # Standalone poller (legacy; cannot run alongside serve: DuckDB file lock)
 ├── internal/
 │   ├── apex/                # Apex HTTP client (auth, session, models)
 │   ├── db/                  # DuckDB and SQLite packages (separate files)
@@ -44,7 +44,7 @@ symbiont/
 └── .env                     # Local dev secrets (not committed)
 ```
 
-All four binaries in `cmd/` are independent. All shared logic lives in `internal/`. There are no public packages — this is not a library.
+All shared logic lives in `internal/`. There are no public packages — this is not a library. Production runs a single process (`symbiont serve`, systemd unit `symbiont`); release builds embed `frontend/dist`.
 
 ---
 
@@ -55,14 +55,19 @@ All four binaries in `cmd/` are independent. All shared logic lives in `internal
 go build ./...
 
 # Build individual binaries
-go build ./cmd/poller
+go build ./cmd/symbiont
 go build ./cmd/api
 go build ./cmd/mcp
-go build ./cmd/symbiont
 
-# Run a binary with local .env (load vars first, then run)
+# Release build with embedded frontend
+make build
+
+# Run the full stack locally with .env (load vars first, then run)
 set -a && source .env && set +a
-go run ./cmd/poller
+go run ./cmd/symbiont serve
+
+# Release: checks, tag, push, wait for CI (then deploy to the server)
+make release V=x.y.z
 
 # Frontend
 cd frontend && npm run dev     # Dev server (proxies /api to localhost:8420)
@@ -92,7 +97,7 @@ go test -race ./internal/api/...
 # Run a specific test
 go test -run TestApexClientReauth ./internal/apex/...
 
-# Frontend tests (if added)
+# Frontend tests (vitest + Testing Library, jsdom)
 cd frontend && npm test
 ```
 
@@ -119,7 +124,7 @@ All tests must pass before considering any task complete. If a test is failing a
 
 **Database:**
 - Raw SQL only — no ORM, no query builder
-- DuckDB: `internal/db/duckdb.go` for writes (Poller), `internal/db/queries.go` for reads (API)
+- DuckDB: `internal/db/duckdb.go` for writes (Poller), `internal/db/queries.go` for reads (API). Filter time-series reads by a `ts` bound passed as a parameter so zone maps can prune; avoid unbounded `MAX(ts)` / `ORDER BY ts DESC LIMIT 1` over whole tables
 - SQLite: `internal/db/sqlite.go` and `internal/db/sqlite_queries.go`
 - All queries are named functions with typed return values — no inline SQL in handlers
 - DuckDB writes are wrapped in transactions via `WritePollCycle`
@@ -193,9 +198,13 @@ This is the most important architectural fact:
 | Store | File | Owns | Who Writes |
 |---|---|---|---|
 | DuckDB | `telemetry.db` | All time-series data (probes, outlets, power events) | Poller only |
-| SQLite | `app.db` | App state (config, tokens, alerts, event log) | API server only |
+| SQLite | `app.db` | App state (config, tokens, alerts, event log) | API layer only |
 
-**DuckDB is append-only.** The Poller is the sole writer. The API server opens it read-only. Never write to DuckDB from the API server.
+**One process owns both databases.** `symbiont serve` opens DuckDB read-write once and shares the `*db.DuckDB` handle between the poller goroutine, the API handlers, the SSE ticker and the alert engine. DuckDB takes an exclusive file lock, so no other process (including `cmd/poller`) can open `telemetry.db` while the server runs.
+
+**DuckDB is append-only and the Poller is the sole writer.** API handlers, SSE and alerts only read, even though the handle is read-write. Never write to DuckDB from the API layer. (Retention cleanup, `DeleteOldRows`, is the one deliberate exception.)
+
+**"Current state" reads depend on the shared handle.** `CurrentProbeReadings`, `CurrentOutletStates`, `ControllerMeta` and `LastPollTime` use a per-table latest-`ts` value cached in memory as a lower bound, which lets DuckDB prune old row groups (a full `MAX(ts)` scan took ~1s in production). Writes through `WritePollCycle`/`Write*` advance it. A stale value is still a valid lower bound, so correctness holds; it is only fast if writes go through the same handle. Don't add a second DuckDB handle or an out-of-process writer without revisiting this.
 
 **SQLite is the app's brain.** Config, tokens, alert rules, outlet event log, backup records. The Poller never touches SQLite.
 
@@ -203,16 +212,17 @@ When adding a new feature, the first question is: does this data belong in DuckD
 
 ---
 
-## The Four Binaries and Their Responsibilities
+## Components and Their Responsibilities
 
-| Binary | Talks To | Never Touches |
-|---|---|---|
-| `poller` | Apex (HTTP), DuckDB (write) | SQLite, frontend |
-| `api` | DuckDB (read), SQLite (r/w), Apex (outlet control only) | Poller directly |
-| `mcp` | API server (HTTP client) | Databases directly |
-| `symbiont` (CLI) | API server (HTTP client) | Databases directly |
+| Component | Runs in | Talks To | Never Touches |
+|---|---|---|---|
+| Poller (`internal/poller`) | `symbiont serve` | Apex (HTTP), DuckDB (write) | SQLite, frontend |
+| API (`internal/api`) | `symbiont serve` | DuckDB (read), SQLite (r/w), Apex (outlet control only) | DuckDB writes |
+| Alert engine (`internal/alerts`) | `symbiont serve` | DuckDB (read), SQLite, notifiers | DuckDB writes |
+| MCP (`cmd/mcp`, `/api/mcp`) | own process / API | API server (HTTP client) | Databases directly |
+| CLI (`symbiont <cmd>`) | user shell | API server (HTTP client) | Databases directly |
 
-The MCP server and CLI are thin HTTP clients over the REST API. They never touch the databases. If you're writing database code in `cmd/mcp/` or `cmd/symbiont/`, something is wrong.
+The MCP server and CLI subcommands are thin HTTP clients over the REST API. They never touch the databases. The only database code under `cmd/` is the wiring in `cmd/symbiont/serve.go` (and its dev twin `cmd/api/main.go`); if you're writing queries in `cmd/`, something is wrong.
 
 ---
 
@@ -240,7 +250,7 @@ Error:
 
 - **Do not use an ORM.** Raw SQL only. If you find yourself reaching for GORM or sqlx, stop.
 - **Do not add a framework to the HTTP server.** stdlib `net/http` only.
-- **Do not write to DuckDB from the API server.** DuckDB is read-only for the API.
+- **Do not write to DuckDB from the API layer.** Only the poller writes; API handlers, SSE and alerts read through the shared handle.
 - **Do not access databases from the MCP server or CLI.** They are HTTP clients only.
 - **Do not use `fmt.Println` or `log.Printf` for logging.** Use `slog` everywhere.
 - **Do not swallow errors.** Log and surface them.
