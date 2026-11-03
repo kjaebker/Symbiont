@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { Zap } from 'lucide-react'
-import { getProbeHistory } from '@/api/client'
-import { qk } from '@/api/queryKeys'
+import { useProbeSparkline } from '@/hooks/useProbes'
 import type { Probe } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Sparkline } from './Sparkline'
@@ -23,13 +21,7 @@ interface PowerPairCardProps {
 export function PowerPairCard({ watts, amps, label }: PowerPairCardProps) {
   const navigate = useNavigate()
 
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  const { data: history } = useQuery({
-    queryKey: qk.probes.sparkline(watts.name),
-    queryFn: () =>
-      getProbeHistory(watts.name, { from: twoHoursAgo, interval: '5m' }),
-    staleTime: 60_000,
-  })
+  const { data: history } = useProbeSparkline(watts.name)
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
