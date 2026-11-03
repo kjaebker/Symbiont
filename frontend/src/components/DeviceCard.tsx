@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQueries } from '@tanstack/react-query'
 import {
   Flame,
   Waves,
@@ -14,9 +14,10 @@ import {
   Power,
   RefreshCw,
 } from 'lucide-react'
-import { getProbeHistory, getOutletHistory } from '@/api/client'
+import { getOutletHistory } from '@/api/client'
 import { qk } from '@/api/queryKeys'
 import { useSetOutlet } from '@/hooks/useOutlets'
+import { useProbeSparkline } from '@/hooks/useProbes'
 import type { Device, Probe, Outlet, ProbeStatus } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { inferPersonality } from '@/lib/devicePersonality'
@@ -92,14 +93,10 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
   const primaryProbe = pickPrimaryProbe(probes)
   const secondaryProbes = probes.filter((p) => p !== primaryProbe)
 
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  const { data: history } = useQuery({
-    queryKey: qk.probes.sparkline(primaryProbe?.name ?? null),
-    queryFn: () =>
-      getProbeHistory(primaryProbe!.name, { from: twoHoursAgo, interval: '5m' }),
-    staleTime: 60_000,
-    enabled: !!primaryProbe && !primaryProbe.is_binary,
-  })
+  const { data: history } = useProbeSparkline(
+    primaryProbe?.name ?? null,
+    !!primaryProbe && !primaryProbe.is_binary,
+  )
 
   const sparklineData = history?.data.map((d) => d.value) ?? []
 
@@ -112,7 +109,9 @@ export function DeviceCard({ device, probes, outlet, controlsLocked = false }: D
         const from = new Date(Date.now() - 6 * 60 * 60 * 1000)
         return getOutletHistory(o.outlet_id, { from: from.toISOString(), interval: '15m' })
       },
-      staleTime: 5 * 60_000,
+      // 15m buckets: refresh once per bucket. Not SSE-driven (see useSSE).
+      staleTime: 15 * 60_000,
+      refetchInterval: 15 * 60_000,
     })),
   })
   const cycleSeries = cycleOutlets.map((o, i) => ({

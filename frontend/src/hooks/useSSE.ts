@@ -21,12 +21,16 @@ export function useSSE() {
 
       es = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`)
 
+      // `exact: true` — refresh only the current-value lists. The server
+      // emits these on every poll (10s); a prefix match would also refetch
+      // every sparkline and history chart under ['probes'] / ['outlets'],
+      // which have their own, much slower refetch cadence.
       es.addEventListener('probe_update', () => {
-        queryClient.invalidateQueries({ queryKey: qk.probes.all })
+        queryClient.invalidateQueries({ queryKey: qk.probes.all, exact: true })
       })
 
       es.addEventListener('outlet_update', () => {
-        queryClient.invalidateQueries({ queryKey: qk.outlets.all })
+        queryClient.invalidateQueries({ queryKey: qk.outlets.all, exact: true })
       })
 
       es.addEventListener('alert_fired', (e) => {
