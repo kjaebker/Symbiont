@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/kjaebker/symbiont/internal/db"
 	"github.com/kjaebker/symbiont/internal/notify"
@@ -12,10 +13,19 @@ import (
 
 // validateNotificationURL checks that the URL is safe to use as a notification
 // target: must be https and must not point at a private/loopback IP or hostname.
-func validateNotificationURL(raw string) string {
+// Hosts explicitly listed in allowed (host:port, from
+// SYMBIONT_NOTIFY_ALLOWED_HOSTS) are exempt, and may also use plain http.
+func validateNotificationURL(raw string, allowed []string) string {
 	u, err := url.ParseRequestURI(raw)
 	if err != nil {
 		return "config must be a valid URL"
+	}
+	if u.Scheme == "http" || u.Scheme == "https" {
+		for _, h := range allowed {
+			if strings.EqualFold(u.Host, h) {
+				return ""
+			}
+		}
 	}
 	if u.Scheme != "https" {
 		return "notification URL must use https"
@@ -50,7 +60,7 @@ func (s *Server) HandleNotificationTargetUpsert(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusBadRequest, "type, label, and config are required", "validation_error")
 		return
 	}
-	if errMsg := validateNotificationURL(target.Config); errMsg != "" {
+	if errMsg := validateNotificationURL(target.Config, s.cfg.NotifyAllowedHosts); errMsg != "" {
 		writeError(w, http.StatusBadRequest, errMsg, "invalid_url")
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -35,6 +36,10 @@ type Config struct {
 
 	// Notifications
 	NtfyURL string
+	// NotifyAllowedHosts lists host:port pairs that notification targets may
+	// use even though they are private or loopback addresses (and over plain
+	// http), e.g. a notification server on the same machine. Empty by default.
+	NotifyAllowedHosts []string
 
 	// Frontend
 	FrontendPath string
@@ -62,6 +67,7 @@ func Load() *Config {
 		Token:      os.Getenv("SYMBIONT_TOKEN"),
 		FrontendPath: envOrDefault("SYMBIONT_FRONTEND_PATH", "./frontend/dist"),
 		NtfyURL:       os.Getenv("SYMBIONT_NTFY_URL"),
+		NotifyAllowedHosts: splitList(os.Getenv("SYMBIONT_NOTIFY_ALLOWED_HOSTS")),
 		HeartbeatPath: os.Getenv("SYMBIONT_HEARTBEAT_PATH"),
 		BackupDir:     envOrDefault("SYMBIONT_BACKUP_DIR", "./backups"),
 	}
@@ -94,6 +100,17 @@ func Load() *Config {
 	}
 
 	return cfg
+}
+
+// splitList parses a comma-separated list, trimming spaces and dropping empties.
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.ToLower(strings.TrimSpace(p)); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func envOrDefault(key, def string) string {
