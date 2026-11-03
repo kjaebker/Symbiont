@@ -205,15 +205,7 @@ Restrict access via Tailscale ACLs to only your own devices.
 
 ## Development
 
-The dev environment is managed via [Nix](https://nixos.org/) and provides Go 1.25, Node 22, DuckDB, and all required C libraries automatically. Non-Nix builds are possible but require Go 1.25+, Node 22+, and DuckDB development headers installed manually.
-
-### Enter the dev shell
-
-```bash
-nix develop
-```
-
-All commands below assume you are inside the dev shell.
+Requirements: Go 1.25+, Node 22+, and a C compiler (DuckDB is linked through cgo; the `go-duckdb` module ships its own prebuilt library).
 
 ### Build (release only)
 

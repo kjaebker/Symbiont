@@ -40,7 +40,6 @@ symbiont/
 │       └── pages/           # Route-level page components
 ├── testdata/                # Apex API response fixtures (JSON)
 ├── docs/                    # Architecture docs, API notes
-├── flake.nix                # NixOS dev environment
 ├── go.mod
 └── .env                     # Local dev secrets (not committed)
 ```

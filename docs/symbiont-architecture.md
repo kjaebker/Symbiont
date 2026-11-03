@@ -991,6 +991,8 @@ Browser → POST /api/measurements { parameter_id, value, measured_at }
 
 ## 14. NixOS Deployment
 
+> **Historical.** Symbiont no longer ships a Nix flake. It is deployed with `install.sh` (release binaries + a systemd unit); the layout below still applies.
+
 ### File System Layout
 
 ```

@@ -45,10 +45,6 @@ frontend/node_modules/
 .DS_Store
 Thumbs.db
 
-# Nix
-result
-result-*
-
 # direnv (local shell environment, may contain secrets)
 .direnv/
 .envrc
