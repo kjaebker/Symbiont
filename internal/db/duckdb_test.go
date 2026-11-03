@@ -341,3 +341,104 @@ func TestControllerMeta(t *testing.T) {
 		t.Errorf("expected type A3, got %s", meta.Type)
 	}
 }
+
+// TestCurrentReadsUseLatestBound covers the cached latest-ts bound used by the
+// "current state" queries: it must agree with MAX(ts) whether it was seeded
+// from disk (fresh handle) or from writes, and a cache that lags behind rows
+// inserted by another path must still return the newest rows.
+func TestCurrentReadsUseLatestBound(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bound.db")
+
+	d, err := Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+
+	// Empty tables: no rows, no error.
+	if r, err := d.CurrentProbeReadings(ctx); err != nil || len(r) != 0 {
+		t.Fatalf("empty CurrentProbeReadings = %v, %v; want empty, nil", r, err)
+	}
+	if o, err := d.CurrentOutletStates(ctx); err != nil || len(o) != 0 {
+		t.Fatalf("empty CurrentOutletStates = %v, %v; want empty, nil", o, err)
+	}
+
+	// An old cycle well outside the 5-minute window, then a current one.
+	old := time.Now().Add(-2 * time.Hour)
+	if err := d.WritePollCycle(ctx, old, sampleStatus()); err != nil {
+		t.Fatalf("write old cycle: %v", err)
+	}
+	now := time.Now()
+	cur := sampleStatus()
+	cur.Inputs[0].Value = 80.5
+	if err := d.WritePollCycle(ctx, now, cur); err != nil {
+		t.Fatalf("write current cycle: %v", err)
+	}
+
+	assertCurrent := func(t *testing.T, d *DuckDB, wantTemp float64, wantTS time.Time) {
+		t.Helper()
+		readings, err := d.CurrentProbeReadings(ctx)
+		if err != nil {
+			t.Fatalf("CurrentProbeReadings: %v", err)
+		}
+		if len(readings) != 3 {
+			t.Fatalf("got %d readings, want 3", len(readings))
+		}
+		for _, r := range readings {
+			if r.Name == "Temp" && r.Value != wantTemp {
+				t.Errorf("Temp = %v, want %v", r.Value, wantTemp)
+			}
+		}
+		outlets, err := d.CurrentOutletStates(ctx)
+		if err != nil {
+			t.Fatalf("CurrentOutletStates: %v", err)
+		}
+		if len(outlets) != len(sampleStatus().Outputs) {
+			t.Errorf("got %d outlets, want %d", len(outlets), len(sampleStatus().Outputs))
+		}
+		last, err := d.LastPollTime(ctx)
+		if err != nil {
+			t.Fatalf("LastPollTime: %v", err)
+		}
+		if !last.Equal(wantTS.Truncate(time.Microsecond)) {
+			t.Errorf("LastPollTime = %v, want %v", last, wantTS)
+		}
+		if _, err := d.ControllerMeta(ctx); err != nil {
+			t.Errorf("ControllerMeta: %v", err)
+		}
+	}
+
+	t.Run("seeded by writes", func(t *testing.T) {
+		assertCurrent(t, d, 80.5, now)
+	})
+
+	d.Close()
+	d, err = Open(path)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	t.Cleanup(func() { d.Close() })
+
+	t.Run("seeded from disk", func(t *testing.T) {
+		assertCurrent(t, d, 80.5, now)
+	})
+
+	t.Run("lagging cache still returns newer rows", func(t *testing.T) {
+		later := now.Add(10 * time.Second)
+		if _, err := d.DB().ExecContext(ctx,
+			`INSERT INTO probe_readings (ts, probe_did, probe_type, probe_name, value) VALUES (?, 'base_Temp', 'Temp', 'Temp', 81.0)`,
+			later); err != nil {
+			t.Fatalf("raw insert: %v", err)
+		}
+		readings, err := d.CurrentProbeReadings(ctx)
+		if err != nil {
+			t.Fatalf("CurrentProbeReadings: %v", err)
+		}
+		for _, r := range readings {
+			if r.Name == "Temp" && r.Value != 81.0 {
+				t.Errorf("Temp = %v, want 81.0 from the newer row", r.Value)
+			}
+		}
+	})
+}

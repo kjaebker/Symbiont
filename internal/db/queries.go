@@ -13,12 +13,20 @@ func (d *DuckDB) CurrentProbeReadings(ctx context.Context) ([]ProbeReading, erro
 		FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY probe_did ORDER BY ts DESC) AS rn
 			FROM probe_readings
-			WHERE ts >= (SELECT COALESCE(MAX(ts), '1970-01-01'::TIMESTAMP) FROM probe_readings) - INTERVAL 5 MINUTE
+			WHERE ts >= ?
 		)
 		WHERE rn = 1
 		ORDER BY probe_name`
 
-	rows, err := d.db.QueryContext(ctx, query)
+	latest, ok, err := d.latest(ctx, &d.latestProbeTS, "probe_readings")
+	if err != nil {
+		return nil, fmt.Errorf("querying current probe readings: %w", err)
+	}
+	if !ok {
+		return nil, nil
+	}
+
+	rows, err := d.db.QueryContext(ctx, query, latest.Add(-recentWindow))
 	if err != nil {
 		return nil, fmt.Errorf("querying current probe readings: %w", err)
 	}
@@ -104,12 +112,20 @@ func (d *DuckDB) CurrentOutletStates(ctx context.Context) ([]OutletState, error)
 		FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY outlet_did ORDER BY ts DESC) AS rn
 			FROM outlet_states
-			WHERE ts >= (SELECT COALESCE(MAX(ts), '1970-01-01'::TIMESTAMP) FROM outlet_states) - INTERVAL 5 MINUTE
+			WHERE ts >= ?
 		)
 		WHERE rn = 1
 		ORDER BY outlet_name`
 
-	rows, err := d.db.QueryContext(ctx, query)
+	latest, ok, err := d.latest(ctx, &d.latestOutletTS, "outlet_states")
+	if err != nil {
+		return nil, fmt.Errorf("querying current outlet states: %w", err)
+	}
+	if !ok {
+		return nil, nil
+	}
+
+	rows, err := d.db.QueryContext(ctx, query, latest.Add(-recentWindow))
 	if err != nil {
 		return nil, fmt.Errorf("querying current outlet states: %w", err)
 	}
@@ -131,14 +147,24 @@ func (d *DuckDB) CurrentOutletStates(ctx context.Context) ([]OutletState, error)
 
 // ControllerMeta returns the most recent controller metadata snapshot.
 func (d *DuckDB) ControllerMeta(ctx context.Context) (*ControllerMeta, error) {
+	// The ts bound lets DuckDB skip every row group but the last instead of
+	// top-N scanning the whole table (one row is written per poll).
 	const query = `
 		SELECT ts, serial, hostname, software, hardware, controller_type, timezone
 		FROM controller_meta
+		WHERE ts >= ?
 		ORDER BY ts DESC
 		LIMIT 1`
 
+	var bound time.Time // zero bound = no pruning; Scan reports ErrNoRows on an empty table
+	if latest, ok, err := d.latest(ctx, &d.latestMetaTS, "controller_meta"); err != nil {
+		return nil, fmt.Errorf("querying controller meta: %w", err)
+	} else if ok {
+		bound = latest
+	}
+
 	var m ControllerMeta
-	err := d.db.QueryRowContext(ctx, query).Scan(
+	err := d.db.QueryRowContext(ctx, query, bound).Scan(
 		&m.Timestamp, &m.Serial, &m.Hostname, &m.Software,
 		&m.Hardware, &m.Type, &m.Timezone,
 	)
@@ -150,6 +176,10 @@ func (d *DuckDB) ControllerMeta(ctx context.Context) (*ControllerMeta, error) {
 
 // LastPollTime returns the timestamp of the most recent probe reading.
 func (d *DuckDB) LastPollTime(ctx context.Context) (time.Time, error) {
+	if ts, ok := d.latestProbeTS.load(); ok {
+		return ts, nil
+	}
+
 	const query = `SELECT MAX(ts) FROM probe_readings`
 
 	var ts time.Time
