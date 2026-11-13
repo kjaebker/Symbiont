@@ -145,8 +145,8 @@ export default function HistoryPage() {
   return (
     <div>
       <PageHeader
-        subtitle="Telemetry Archive and Log"
-        title="Aquatic History"
+        subtitle="Journal, Telemetry and Timeline"
+        title="Log"
         tabs={[
           { key: 'journal', label: 'Journal', icon: ScrollText },
           { key: 'telemetry', label: 'Telemetry', icon: Clock },

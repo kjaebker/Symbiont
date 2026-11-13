@@ -22,7 +22,7 @@ export const tabs: { key: Tab; label: string }[] = [
   { key: 'tokens', label: 'Tokens' },
   { key: 'notifications', label: 'Notifications' },
   { key: 'backup', label: 'Backup' },
-  { key: 'log', label: 'Log' },
+  { key: 'log', label: 'System Log' },
   { key: 'system', label: 'System' },
 ]
 

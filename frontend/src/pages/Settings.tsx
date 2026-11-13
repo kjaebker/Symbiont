@@ -34,8 +34,8 @@ export default function Settings() {
   return (
     <div>
       <PageHeader
-        subtitle="Admin Console"
-        title="System Core Settings"
+        subtitle="Configuration"
+        title="Settings"
         tabs={tabs.map((t) => ({ key: t.key, label: t.label }))}
         activeTab={activeTab}
         onTabChange={(k) => setActiveTab(k as Tab)}

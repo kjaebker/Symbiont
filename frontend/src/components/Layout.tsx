@@ -7,6 +7,7 @@ import {
   Bell,
   Settings,
   Wrench,
+  Menu,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSSE } from '@/hooks/useSSE'
@@ -285,111 +286,48 @@ function MobileBottomBar({ open, onToggle, activeItem }: MobileBottomBarProps) {
     if (target) navigate(target.to)
   }
 
-  const Icon = activeItem.icon
-
   return (
     <div
-      className="md:hidden"
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingBottom: 30,
-        zIndex: 20,
-        background: '#0c1326',
-        borderTop: '1px solid rgba(65,71,91,0.15)',
-      }}
+      className="md:hidden absolute inset-x-0 bottom-0 z-20 bg-surface-container-low pb-[env(safe-area-inset-bottom,0px)]"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div
-        className="flex items-center"
-        style={{
-          height: 48,
-          paddingLeft: 16,
-          paddingRight: 18,
-          gap: 10,
-        }}
-      >
-      {/* Hamburger button */}
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-label="Toggle navigation"
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          border: 'none',
-          cursor: 'pointer',
-          background: open ? 'rgba(58,223,250,0.12)' : 'transparent',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 4.5,
-          transition: 'all 200ms ease',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ width: 15, height: 1.5, borderRadius: 9, background: open ? '#3adffa' : '#8a90a8', transition: 'all 200ms ease' }} />
-        <div style={{ width: 11, height: 1.5, borderRadius: 9, background: open ? '#3adffa' : '#5a6080', transition: 'all 200ms ease' }} />
-        <div style={{ width: 15, height: 1.5, borderRadius: 9, background: open ? '#3adffa' : '#8a90a8', transition: 'all 200ms ease' }} />
-      </button>
-
-      {/* Vertical rule */}
-      <div style={{ width: 1, height: 20, background: 'rgba(65,71,91,0.4)', flexShrink: 0 }} />
-
-      {/* Active page indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0 }}>
-        <Icon size={16} strokeWidth={1.75} color={activeItem.color} />
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: activeItem.color,
-            letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
+      <div className="flex items-center h-13 px-2 gap-1">
+        {/* Menu button: opens the drawer with labels and poll status */}
+        <button
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label="Toggle navigation"
+          className={cn(
+            'h-10 w-10 shrink-0 rounded-xl flex items-center justify-center cursor-pointer transition-fluid',
+            open ? 'bg-primary/15 text-primary' : 'text-on-surface-dim',
+          )}
         >
-          {activeItem.label}
-        </span>
-      </div>
+          <Menu size={18} strokeWidth={1.75} />
+        </button>
 
-      {/* Quick-jump dots — one per page, tap to navigate, swipe bar to step through */}
-      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        {mobileNavItems.map(item => {
-          const isActive = item.to === activeItem.to
-          return (
-            <button
-              key={item.to}
-              onClick={() => navigate(item.to)}
-              aria-label={item.label}
-              style={{
-                padding: '6px 4px',
-                border: 'none',
-                cursor: 'pointer',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <div style={{
-                width: isActive ? 20 : 6,
-                height: 6,
-                borderRadius: 9999,
-                background: isActive ? item.color : '#1c253e',
-                boxShadow: isActive ? `0 0 8px ${item.glow}` : 'none',
-                transition: 'all 280ms cubic-bezier(0.34,1.4,0.64,1)',
-              }} />
-            </button>
-          )
-        })}
-      </div>
+        {/* One icon per page: tap to go, swipe the bar to step through */}
+        <div className="flex flex-1 items-center justify-between">
+          {mobileNavItems.map(item => {
+            const isActive = item.to === activeItem.to
+            const Icon = item.icon
+            return (
+              <button
+                key={item.to}
+                onClick={() => navigate(item.to)}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'relative h-10 flex-1 max-w-12 rounded-xl flex items-center justify-center cursor-pointer transition-fluid',
+                  isActive ? 'bg-surface-container-high' : 'text-on-surface-faint',
+                )}
+                style={isActive ? { color: item.color, boxShadow: `0 0 14px ${item.glow}` } : undefined}
+              >
+                <Icon size={19} strokeWidth={1.75} />
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -496,7 +434,7 @@ export default function Layout() {
             <Caustic />
             {bubblesEnabled && <Bubbles />}
 
-            <main className="flex-1 overflow-y-auto relative pb-12 md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+            <main className="flex-1 overflow-y-auto relative pb-[var(--mobile-bar-height)] md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
               {/* Scrim — covers content while drawer is open, tap to close */}
               {drawerOpen && (
                 <div

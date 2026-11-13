@@ -174,6 +174,12 @@
   transition: background-color 300ms ease-in-out, color 300ms ease-in-out, box-shadow 300ms ease-in-out, opacity 300ms ease-in-out, transform 300ms ease-in-out, border-color 300ms ease-in-out;
 }
 
+/* Height of the phone bottom navigation bar, including the home-indicator
+   inset. Content and floating buttons clear the bar with this. */
+:root {
+  --mobile-bar-height: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
