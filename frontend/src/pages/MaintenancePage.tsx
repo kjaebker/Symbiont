@@ -3,10 +3,10 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { useSearchParams } from 'react-router-dom'
 import { Wrench, Power, Plus, Trash2, CheckCircle2, Pencil } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn, overdueBy } from '@/lib/utils'
 import Control from '@/pages/Control'
 import { PageHeader } from '@/components/PageHeader'
-import { Button, Card, EmptyState, Field, Input, PageBody, Select, SectionHeader } from '@/components/ui'
+import { Button, Card, EmptyState, Field, Input, PageBody, Select, SectionHeader, TimeAgo } from '@/components/ui'
 import {
   useMaintenanceTasks,
   useCreateMaintenanceTask,
@@ -23,15 +23,6 @@ const FREQUENCY_LABELS: Record<MaintenanceFrequency, string> = {
   weekly: 'Weekly',
   monthly: 'Monthly',
   as_needed: 'As needed',
-}
-
-/** "3 days", "2 weeks", "5 months": how long ago a due date passed. */
-function overdueBy(iso: string): string {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400_000)
-  if (days < 1) return ''
-  if (days < 14) return `${days} day${days === 1 ? '' : 's'}`
-  if (days < 60) return `${Math.floor(days / 7)} weeks`
-  return `${Math.floor(days / 30)} months`
 }
 
 function formatNextDue(iso: string | null): { label: string; overdue: boolean } {
@@ -286,7 +277,7 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
                     {FREQUENCY_LABELS[t.frequency]}
                     {t.interval_days && t.frequency === 'every_n_days' && ` (${t.interval_days}d)`}
                     {t.last_completed_at && (
-                      <span className="text-on-surface-faint"> · Last {relativeTime(t.last_completed_at)}</span>
+                      <span className="text-on-surface-faint"> · Last <TimeAgo ts={t.last_completed_at} /></span>
                     )}
                   </div>
                   {/* Action pills */}

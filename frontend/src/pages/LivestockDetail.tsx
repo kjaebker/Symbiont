@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, ZoomIn, Crop, History,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { LivestockStatus, LivestockType } from '@/api/types'
 import {
   useLivestockItem,
@@ -33,7 +33,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { thumbUrl, originalUrl } from '@/api/client'
 import {
   Button, IconButton, Card, Chip, SectionHeader, LoadingState, EmptyState, PageBody,
-  Select, Textarea, labelClass,
+  Select, Textarea, labelClass, TimeAgo,
 } from '@/components/ui'
 import type { ChipTone } from '@/components/ui'
 
@@ -697,7 +697,7 @@ export default function LivestockDetail() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-xs text-on-surface-faint">
-                        {relativeTime(obs.ts)}
+                        <TimeAgo ts={obs.ts} />
                       </span>
                       {obs.status && (
                         <Chip

@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { Fish, Flower2, Shell, Box } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, relativeTime, absoluteTime } from '@/lib/utils'
+import { isStale } from '@/lib/staleness'
 import type { LivestockItem, LivestockType, LivestockStatus } from '@/api/types'
 import { thumbUrl } from '@/api/client'
 
@@ -47,6 +48,11 @@ interface LivestockCardProps {
 export function LivestockCard({ item }: LivestockCardProps) {
   const TypeIcon = typeIcons[item.type] ?? Box
 
+  // A sick or quarantined animal should be getting looked at. Say when it was
+  // last observed, and flag it once that is long ago (or never).
+  const unwell = item.status === 'sick' || item.status === 'quarantine'
+  const neglected = unwell && (!item.last_observed_at || isStale(item.last_observed_at, 'livestockObservation'))
+
   return (
     <Link
       to={`/livestock/${item.id}`}
@@ -85,7 +91,17 @@ export function LivestockCard({ item }: LivestockCardProps) {
           <div className="text-xs text-on-surface-dim italic line-clamp-1 mt-0.5">{item.species}</div>
         )}
         <div className="flex items-center gap-1.5 mt-1.5">
-          <span className="text-xs text-on-surface-faint">{statusLabel[item.status]}</span>
+          <span className={cn('text-xs', unwell ? 'text-warning' : 'text-on-surface-faint')}>
+            {statusLabel[item.status]}
+          </span>
+          {unwell && (
+            <span
+              className={cn('text-xs truncate', neglected ? 'text-warning' : 'text-on-surface-faint')}
+              title={item.last_observed_at ? `Last observed ${absoluteTime(item.last_observed_at)}` : undefined}
+            >
+              · {item.last_observed_at ? `seen ${relativeTime(item.last_observed_at)}` : 'no observations'}
+            </span>
+          )}
           {item.quantity > 1 && (
             <span className="ml-auto text-xs text-on-surface-faint">×{item.quantity}</span>
           )}

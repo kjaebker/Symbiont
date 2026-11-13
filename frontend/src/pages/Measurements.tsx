@@ -8,6 +8,7 @@ import {
   useKitCatalog,
 } from '@/hooks/useMeasurements'
 import { getKitPref, setKitPref } from '@/api/client'
+import { LatestMeasurements } from '@/components/LatestMeasurements'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
 import { Button, Card, EmptyState, Field, Input, LoadingState, PageBody, SectionHeader, Select, labelClass } from '@/components/ui'
@@ -328,6 +329,9 @@ export default function Measurements({
           </div>
         </>
       )}
+
+      {/* Latest result per parameter; a tile filters the table below */}
+      <LatestMeasurements parameters={parameters} selected={selectedParam} onSelect={setSelectedParam} />
 
       {/* Add form */}
       {showForm && parameters.length > 0 && (

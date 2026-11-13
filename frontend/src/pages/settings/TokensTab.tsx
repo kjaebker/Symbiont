@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { relativeTime } from '@/lib/utils'
+
 import { Settings as SettingsIcon,Plus,Trash2,Copy,Check } from 'lucide-react'
 import { useTokens,useCreateToken,useUpdateTokenScope,useRevokeToken } from '@/hooks/useSettings'
 import { APIRequestError } from '@/api/_fetch'
-import { Button, IconButton, Input, Select, SectionHeader, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { Button, IconButton, Input, Select, SectionHeader, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 
 // =============================================================================
@@ -160,8 +160,8 @@ export default function TokensTab() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 text-xs text-on-surface-faint">
-                    <span>Created {relativeTime(t.created_at)}</span>
-                    <span>Used {t.last_used ? relativeTime(t.last_used) : 'never'}</span>
+                    <span>Created <TimeAgo ts={t.created_at} /></span>
+                    <span>Used {t.last_used ? <TimeAgo ts={t.last_used} /> : 'never'}</span>
                   </div>
                   <ConfirmButton
                     onConfirm={() => handleRevoke(t.id)}
@@ -208,10 +208,10 @@ export default function TokensTab() {
                       </Select>
                     </td>
                     <td className="py-3 px-4 text-sm text-on-surface-dim">
-                      {relativeTime(t.created_at)}
+                      <TimeAgo ts={t.created_at} />
                     </td>
                     <td className="py-3 px-4 text-sm text-on-surface-dim">
-                      {t.last_used ? relativeTime(t.last_used) : 'Never'}
+                      {t.last_used ? <TimeAgo ts={t.last_used} /> : 'Never'}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end">

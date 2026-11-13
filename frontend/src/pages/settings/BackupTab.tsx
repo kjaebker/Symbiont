@@ -1,7 +1,7 @@
-import { relativeTime,formatBytes } from '@/lib/utils'
+import { formatBytes } from '@/lib/utils'
 import { Download,RefreshCw } from 'lucide-react'
 import { useBackups,useTriggerBackup,useBackupConfig } from '@/hooks/useSettings'
-import { Button, Chip, SectionHeader, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { Button, Chip, SectionHeader, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
 
 // =============================================================================
 // Backup Tab
@@ -68,7 +68,7 @@ export default function BackupTab() {
             {backups.map((b) => (
               <div key={b.id} className="bg-surface-container-high rounded-2xl px-4 py-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-on-surface-dim">{relativeTime(b.ts)}</span>
+                  <span className="text-sm text-on-surface-dim"><TimeAgo ts={b.ts} /></span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono text-on-surface">{formatBytes(b.size_bytes)}</span>
                     <Chip tone={b.status === 'success' ? 'secondary' : 'critical'}>{b.status}</Chip>
@@ -97,7 +97,7 @@ export default function BackupTab() {
                 {backups.map((b) => (
                   <tr key={b.id} className="transition-fluid hover:bg-surface-container-high/50">
                     <td className="py-3 px-4 text-sm text-on-surface-dim">
-                      {relativeTime(b.ts)}
+                      <TimeAgo ts={b.ts} />
                     </td>
                     <td className="py-3 px-4">
                       <Chip tone={b.status === 'success' ? 'secondary' : 'critical'}>{b.status}</Chip>

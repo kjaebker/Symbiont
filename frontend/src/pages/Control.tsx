@@ -5,9 +5,9 @@ import { useAuditEvents } from '@/hooks/useEvents'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { usePrograms, useSyncPrograms } from '@/hooks/usePrograms'
 import { RefreshCw } from 'lucide-react'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { ProgramView } from '@/components/ProgramView'
-import { Button, Card, Chip, EmptyState, LoadingState, PageBody, SectionHeader, Select, labelClass } from '@/components/ui'
+import { Button, Card, Chip, EmptyState, LoadingState, PageBody, SectionHeader, Select, labelClass, TimeAgo } from '@/components/ui'
 import type { ChipTone } from '@/components/ui'
 import type { Outlet, AuditEvent, OutputProgram } from '@/api/client'
 
@@ -296,7 +296,7 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
         <div className="flex items-center justify-between px-4 py-2.5 bg-surface-container rounded-2xl sm:rounded-none sm:bg-surface-container-high/30">
           <span className="text-xs text-on-surface-faint">
             {programsData?.synced_at
-              ? <><span className="hidden sm:inline">Programs synced </span><span className="text-on-surface-dim">{relativeTime(programsData.synced_at)}</span></>
+              ? <><span className="hidden sm:inline">Programs synced </span><span className="text-on-surface-dim"><TimeAgo ts={programsData.synced_at} /></span></>
               : <span className="text-on-surface-faint/50">Programs not yet synced</span>}
           </span>
           <Button
@@ -418,12 +418,12 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
                         className="transition-fluid hover:bg-surface-container-high/50"
                       >
                         <td className="hidden sm:table-cell py-2.5 px-4 text-xs text-on-surface-dim whitespace-nowrap">
-                          {relativeTime(event.ts)}
+                          <TimeAgo ts={event.ts} />
                         </td>
                         <td className="py-2.5 px-4">
                           <span className="text-sm text-on-surface block">{displayName}</span>
                           <span className="sm:hidden text-xs text-on-surface-dim">
-                            {relativeTime(event.ts)}
+                            <TimeAgo ts={event.ts} />
                           </span>
                         </td>
                         <td className="py-2.5 px-4">

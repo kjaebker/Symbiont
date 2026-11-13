@@ -1,9 +1,9 @@
-import { cn,relativeTime,formatBytes } from '@/lib/utils'
+import { cn, formatBytes } from '@/lib/utils'
 import { getBubblesEnabled,setBubblesEnabled } from '@/api/client'
 import { RefreshCw,Activity,Droplets } from 'lucide-react'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { useEventBusStats } from '@/hooks/useEvents'
-import { Chip, IconButton, Toggle, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { Chip, IconButton, Toggle, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
 
 // =============================================================================
 // System Tab
@@ -98,7 +98,7 @@ export default function SystemTab() {
             {data.poller.poll_ok ? 'Poller running' : 'Poller degraded'}
           </p>
           <p className="text-xs text-on-surface-dim mt-0.5">
-            Last poll {relativeTime(data.poller.last_poll_ts)} · every {data.poller.poll_interval_seconds}s
+            Last poll <TimeAgo ts={data.poller.last_poll_ts} /> · every {data.poller.poll_interval_seconds}s
           </p>
         </div>
         <IconButton

@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { FlaskConical } from 'lucide-react'
 import { useMeasurements } from '@/hooks/useMeasurements'
-import { relativeTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { isStale } from '@/lib/staleness'
+import { TimeAgo } from '@/components/ui'
 import { CardIconBlob } from './CardBase'
 
 interface MeasurementCardProps {
@@ -12,6 +14,9 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
   const navigate = useNavigate()
   const { data, isLoading } = useMeasurements({ parameter, limit: 1 })
   const latest = data?.measurements[0] ?? null
+
+  // An old test result is not the tank's current chemistry: dim it and flag its age.
+  const stale = isStale(latest?.measured_at, 'measurement')
 
   const displayValue = latest
     ? latest.value % 1 === 0
@@ -40,16 +45,22 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
             {parameter}
           </span>
         </div>
-        <span className="text-xs text-on-surface-faint">
-          {latest ? relativeTime(latest.measured_at) : ''}
-        </span>
+        {latest && (
+          <TimeAgo
+            ts={latest.measured_at}
+            className={cn('text-xs', stale ? 'text-warning font-medium' : 'text-on-surface-faint')}
+          />
+        )}
       </div>
 
       {isLoading ? (
         <div className="h-10 w-24 bg-surface-container-high rounded animate-pulse" />
       ) : latest ? (
         <div className="flex items-baseline gap-1.5">
-          <span className="text-4xl font-bold text-secondary tracking-tight text-glow-secondary">
+          <span className={cn(
+            'text-4xl font-bold tracking-tight',
+            stale ? 'text-on-surface-dim' : 'text-secondary text-glow-secondary',
+          )}>
             {displayValue}
           </span>
           {latest.canonical_unit && (

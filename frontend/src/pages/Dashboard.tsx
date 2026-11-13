@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
+import { TimeAgo } from '@/components/ui'
 import { Link } from 'react-router-dom'
 import { Lock, Unlock, ClipboardList, Droplets } from 'lucide-react'
 import { PageThemeContext } from '@/lib/pageTheme'
@@ -24,7 +25,7 @@ import {
   FeedCompactCard,
   DeviceCompactCard,
 } from '@/components/CompactCard'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { DashboardItem, Probe, Outlet, Device } from '@/api/types'
 
 // ─── Status configuration ────────────────────────────────────────────────────
@@ -185,7 +186,7 @@ function TankStatusHeader({
             )}
             {lastPoll && (
               <p className="text-xs text-on-surface-faint mt-1">
-                {pollOk === false ? '⚠ Poller down · ' : ''}{relativeTime(lastPoll)}
+                {pollOk === false ? '⚠ Poller down · ' : ''}<TimeAgo ts={lastPoll} />
               </p>
             )}
           </div>

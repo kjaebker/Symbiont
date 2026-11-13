@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func openTestSQLite(t *testing.T) *SQLiteDB {
@@ -744,5 +745,39 @@ func TestAlertRulesMigrationKeepsRowsAndEvents(t *testing.T) {
 	// Foreign keys must still be enforced against the rebuilt table.
 	if _, err := raw.Exec(`INSERT INTO alert_events (rule_id, peak_value) VALUES (999, 1)`); err == nil {
 		t.Error("expected foreign key violation for an event with no rule")
+	}
+}
+
+func TestLivestockLastObservedAt(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	id, err := db.InsertLivestockItem(ctx, LivestockItem{Name: "Toadstool", Type: "coral", Quantity: 1, Status: "sick"})
+	if err != nil {
+		t.Fatalf("inserting livestock: %v", err)
+	}
+
+	item, err := db.GetLivestockItem(ctx, id)
+	if err != nil {
+		t.Fatalf("getting livestock: %v", err)
+	}
+	if item.LastObservedAt != nil {
+		t.Errorf("expected no observation time, got %v", item.LastObservedAt)
+	}
+
+	note := "polyps closed"
+	if _, err := db.InsertLivestockObservation(ctx, LivestockObservation{LivestockID: id, Note: &note}); err != nil {
+		t.Fatalf("inserting observation: %v", err)
+	}
+
+	items, err := db.ListLivestock(ctx, LivestockFilter{Status: "sick"})
+	if err != nil {
+		t.Fatalf("listing livestock: %v", err)
+	}
+	if len(items) != 1 || items[0].LastObservedAt == nil {
+		t.Fatalf("expected one item with an observation time, got %+v", items)
+	}
+	if age := time.Since(*items[0].LastObservedAt); age < 0 || age > time.Minute {
+		t.Errorf("observation time %v is not recent", items[0].LastObservedAt)
 	}
 }

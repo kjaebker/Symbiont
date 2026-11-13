@@ -264,6 +264,8 @@ export interface LivestockItem {
   image_path: string | null
   created_at: string
   updated_at: string
+  /** Time of the most recent observation; null if none has been logged. */
+  last_observed_at: string | null
 }
 
 export interface LivestockObservation {

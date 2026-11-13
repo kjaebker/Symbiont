@@ -8,27 +8,35 @@ import (
 
 // --- Livestock ---
 
+// livestockSelect reads livestock rows with the time of each item's most
+// recent observation. The observation is joined as a real column (not an
+// aggregate) so the driver still decodes it as a timestamp.
+const livestockSelect = `SELECT l.id, l.name, l.species, l.type, l.quantity, l.status, l.date_added, l.notes, l.image_path, l.created_at, l.updated_at, o.ts
+		FROM livestock l
+		LEFT JOIN livestock_observations o ON o.id = (
+			SELECT id FROM livestock_observations WHERE livestock_id = l.id ORDER BY ts DESC LIMIT 1
+		)`
+
 // ListLivestock returns livestock items matching the filter, ordered by name.
 func (s *SQLiteDB) ListLivestock(ctx context.Context, f LivestockFilter) ([]LivestockItem, error) {
-	query := `SELECT id, name, species, type, quantity, status, date_added, notes, image_path, created_at, updated_at
-		FROM livestock`
+	query := livestockSelect
 
 	var conditions []string
 	var args []any
 
 	if f.Type != "" {
-		conditions = append(conditions, "type = ?")
+		conditions = append(conditions, "l.type = ?")
 		args = append(args, f.Type)
 	}
 	if f.Status != "" {
-		conditions = append(conditions, "status = ?")
+		conditions = append(conditions, "l.status = ?")
 		args = append(args, f.Status)
 	}
 
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
-	query += " ORDER BY name"
+	query += " ORDER BY l.name"
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -39,7 +47,7 @@ func (s *SQLiteDB) ListLivestock(ctx context.Context, f LivestockFilter) ([]Live
 	var items []LivestockItem
 	for rows.Next() {
 		var item LivestockItem
-		if err := rows.Scan(&item.ID, &item.Name, &item.Species, &item.Type, &item.Quantity, &item.Status, &item.DateAdded, &item.Notes, &item.ImagePath, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.Species, &item.Type, &item.Quantity, &item.Status, &item.DateAdded, &item.Notes, &item.ImagePath, &item.CreatedAt, &item.UpdatedAt, &item.LastObservedAt); err != nil {
 			return nil, fmt.Errorf("scanning livestock item: %w", err)
 		}
 		items = append(items, item)
@@ -78,9 +86,8 @@ func (s *SQLiteDB) ListLivestockSpecies(ctx context.Context) ([]string, error) {
 func (s *SQLiteDB) GetLivestockItem(ctx context.Context, id int64) (*LivestockItem, error) {
 	var item LivestockItem
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, species, type, quantity, status, date_added, notes, image_path, created_at, updated_at
-		FROM livestock WHERE id = ?`, id,
-	).Scan(&item.ID, &item.Name, &item.Species, &item.Type, &item.Quantity, &item.Status, &item.DateAdded, &item.Notes, &item.ImagePath, &item.CreatedAt, &item.UpdatedAt)
+		livestockSelect+` WHERE l.id = ?`, id,
+	).Scan(&item.ID, &item.Name, &item.Species, &item.Type, &item.Quantity, &item.Status, &item.DateAdded, &item.Notes, &item.ImagePath, &item.CreatedAt, &item.UpdatedAt, &item.LastObservedAt)
 	if err != nil {
 		return nil, err
 	}

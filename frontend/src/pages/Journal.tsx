@@ -4,8 +4,8 @@ import { ScrollText, Plus, Pencil, Trash2, Bot, Cpu, Check, X, Activity } from '
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useJournalEntries, useJournalTemplates, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from '@/hooks/useJournal'
 import { useAuditEvents } from '@/hooks/useEvents'
-import { cn, relativeTime } from '@/lib/utils'
-import { Button, IconButton, Card, Chip, Field, Select, Input, Textarea, PageBody, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { cn } from '@/lib/utils'
+import { Button, IconButton, Card, Chip, Field, Select, Input, Textarea, PageBody, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
 import type { ChipTone } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { JournalEntry, JournalCategory, JournalSentiment, JournalTemplate, AuditEvent } from '@/api/client'
@@ -272,7 +272,7 @@ function EntryCard({
                 AI
               </Chip>
             )}
-            <span className="text-xs text-on-surface-faint ml-auto">{relativeTime(entry.ts)}</span>
+            <span className="text-xs text-on-surface-faint ml-auto"><TimeAgo ts={entry.ts} /></span>
           </div>
 
           {/* Body (expanded) */}
@@ -367,7 +367,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <Chip tone={tone}>{label}</Chip>
             {summary && <span className="text-sm text-on-surface-dim truncate">{summary}</span>}
-            <span className="text-xs text-on-surface-faint ml-auto">{relativeTime(event.ts)}</span>
+            <span className="text-xs text-on-surface-faint ml-auto"><TimeAgo ts={event.ts} /></span>
           </div>
           {expanded && (
             <pre className="mt-2 text-xs text-on-surface-faint font-mono bg-surface-container-highest/30 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">

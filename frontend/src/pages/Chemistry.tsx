@@ -3,10 +3,10 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { useSearchParams } from 'react-router-dom'
 import { FlaskConical, Droplets, Plus, Pencil, Trash2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn, overdueBy } from '@/lib/utils'
 import Measurements from '@/pages/Measurements'
 import { PageHeader } from '@/components/PageHeader'
-import { Button, Card, EmptyState, Field, IconButton, Input, PageBody, SectionHeader, Select } from '@/components/ui'
+import { Button, Card, EmptyState, Field, IconButton, Input, PageBody, SectionHeader, Select, TimeAgo } from '@/components/ui'
 import { FilterDropdown } from '@/components/FilterDropdown'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import {
@@ -49,7 +49,10 @@ function formatNextDue(iso: string | null): string {
   const d = new Date(iso)
   const now = new Date()
   const diff = d.getTime() - now.getTime()
-  if (diff < 0) return 'Overdue'
+  if (diff < 0) {
+    const late = overdueBy(iso)
+    return late ? `Overdue ${late}` : 'Overdue'
+  }
   if (diff < 3600_000) return 'Due soon'
   if (diff < 86400_000) return 'Due today'
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -311,7 +314,9 @@ function DosingTab() {
                     <div className={cn('text-sm font-medium', isOverdue ? 'text-tertiary' : 'text-on-surface')}>
                       {s.product_brand} {s.product_name}
                       {isOverdue && (
-                        <span className="ml-2 text-xs uppercase tracking-wider font-semibold">Overdue</span>
+                        <span className="ml-2 text-xs uppercase tracking-wider font-semibold">
+                          {formatNextDue(s.next_due_at)}
+                        </span>
                       )}
                     </div>
                     <div className="text-xs text-on-surface-dim mt-0.5">
@@ -389,7 +394,7 @@ function DosingTab() {
                   </div>
                   {s.last_completed_at && (
                     <div className="text-xs text-on-surface-faint">
-                      Last: {relativeTime(s.last_completed_at)}
+                      Last: <TimeAgo ts={s.last_completed_at} />
                     </div>
                   )}
                 </div>
@@ -429,7 +434,7 @@ function DosingTab() {
                   <span className="text-sm text-on-surface">{l.product_brand} {l.product_name}</span>
                   <span className="text-xs text-on-surface-dim ml-2">{l.amount} {l.product_unit}</span>
                 </div>
-                <span className="text-xs text-on-surface-dim">{relativeTime(l.dosed_at)}</span>
+                <span className="text-xs text-on-surface-dim"><TimeAgo ts={l.dosed_at} /></span>
               </div>
             ))}
           </div>
