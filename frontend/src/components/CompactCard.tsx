@@ -73,7 +73,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
   const isAlarmActive = probe.input_category === 'alarm' && probe.status === 'critical'
   const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
 
-  const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color
+  const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-warning' : config.color
 
   const binaryLabel = probe.value !== 0 ? (probe.on_label ?? 'On') : (probe.off_label ?? 'Off')
 

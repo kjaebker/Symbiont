@@ -3,7 +3,8 @@ import { Settings as SettingsIcon,ArrowRight } from 'lucide-react'
 import { useProbeConfigs,useUpdateProbeConfig } from '@/hooks/useSettings'
 import { useProbes } from '@/hooks/useProbes'
 import type { ProbeConfig } from '@/api/types'
-import { EditableCell,UnitSelect,getCategoryIcon,CategorySelect,LoadingState,EmptyState } from './_shared'
+import { Button, SectionHeader, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { EditableCell,UnitSelect,getCategoryIcon,CategorySelect } from './_shared'
 
 // =============================================================================
 // Probes Tab — table for configuration (no drag-and-drop)
@@ -77,7 +78,7 @@ export default function ProbesTab() {
     <div className="space-y-6 pt-5">
       {analogProbes.length > 0 && (
         <div>
-          <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold sm:px-5 mb-3">Analog Probes</p>
+          <SectionHeader title="Analog Probes" className="sm:px-5 mb-3" />
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {analogProbes.map((c) => {
@@ -87,29 +88,30 @@ export default function ProbesTab() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-on-surface">{c.probe_name}</span>
                     {isDigital && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={ArrowRight}
                         onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
-                        className="inline-flex items-center gap-1 text-xs text-on-surface-faint hover:text-primary transition-fluid whitespace-nowrap"
                         title="Move to Binary Inputs"
                       >
-                        <ArrowRight size={11} />
-                        <span>Binary</span>
-                      </button>
+                        Binary
+                      </Button>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+                      <p className={`${labelClass} mb-1`}>Display Name</p>
                       <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Unit</p>
+                      <p className={`${labelClass} mb-1`}>Unit</p>
                       <UnitSelect value={c.unit_override} onSave={(v) => handleUpdate(c.probe_name, 'unit_override', v)} />
                     </div>
                   </div>
                   <div className="space-y-2.5">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Normal Range</p>
+                      <p className={`${labelClass} mb-1`}>Normal Range</p>
                       <div className="flex items-center gap-2">
                         <div className="flex-1"><EditableCell value={c.min_normal} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_normal', v)} /></div>
                         <span className="text-on-surface-faint text-xs shrink-0">to</span>
@@ -117,7 +119,7 @@ export default function ProbesTab() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Warn Range</p>
+                      <p className={`${labelClass} mb-1`}>Warn Range</p>
                       <div className="flex items-center gap-2">
                         <div className="flex-1"><EditableCell value={c.min_warning} type="number" onSave={(v) => handleUpdate(c.probe_name, 'min_warning', v)} /></div>
                         <span className="text-on-surface-faint text-xs shrink-0">to</span>
@@ -135,7 +137,7 @@ export default function ProbesTab() {
             <thead>
               <tr className="bg-surface-container-high">
                 {['Probe', 'Display Name', 'Unit', 'Min Normal', 'Max Normal', 'Min Warn', 'Max Warn', ''].map((h) => (
-                  <th key={h} className="text-left py-3.5 px-5 text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+                  <th key={h} className={`text-left py-3.5 px-5 ${labelClass}`}>
                     {h}
                   </th>
                 ))}
@@ -167,14 +169,15 @@ export default function ProbesTab() {
                     </td>
                     <td className="py-2 px-5">
                       {isDigital && (
-                        <button
-                          onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
-                          className="inline-flex items-center gap-1 text-xs text-on-surface-faint hover:text-primary transition-fluid whitespace-nowrap"
-                          title="Move to Binary Inputs"
-                        >
-                          <ArrowRight size={11} />
-                          <span>binary</span>
-                        </button>
+                        <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={ArrowRight}
+                        onClick={() => handleUpdate(c.probe_name, 'is_binary', true)}
+                        title="Move to Binary Inputs"
+                      >
+                        binary
+                      </Button>
                       )}
                     </td>
                   </tr>
@@ -188,10 +191,11 @@ export default function ProbesTab() {
 
       {binaryInputs.length > 0 && (
         <div>
-          <div className="flex items-baseline justify-between sm:px-5 mb-3">
-            <p className="text-xs text-on-surface-dim uppercase tracking-widest font-semibold">Binary Inputs</p>
-            <p className="text-xs text-on-surface-faint hidden sm:block">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>
-          </div>
+          <SectionHeader
+            title="Binary Inputs"
+            className="sm:px-5 mb-3"
+            action={<p className="text-xs text-on-surface-faint hidden sm:block">Click a cell to edit · Category controls dashboard icon &amp; alert behavior</p>}
+          />
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {binaryInputs.filter((c) => c.probe_name !== '').map((c) => {
@@ -219,19 +223,19 @@ export default function ProbesTab() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Category</p>
+                      <p className={`${labelClass} mb-1`}>Category</p>
                       <CategorySelect value={c.input_category} onSave={(v) => handleUpdate(c.probe_name, 'input_category', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+                      <p className={`${labelClass} mb-1`}>Display Name</p>
                       <EditableCell value={c.display_name} onSave={(v) => handleUpdate(c.probe_name, 'display_name', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">On Label</p>
+                      <p className={`${labelClass} mb-1`}>On Label</p>
                       <EditableCell value={c.on_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'on_label', v)} />
                     </div>
                     <div>
-                      <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Off Label</p>
+                      <p className={`${labelClass} mb-1`}>Off Label</p>
                       <EditableCell value={c.off_label ?? ''} onSave={(v) => handleUpdate(c.probe_name, 'off_label', v)} />
                     </div>
                   </div>
@@ -245,7 +249,7 @@ export default function ProbesTab() {
             <thead>
               <tr className="bg-surface-container-high">
                 {['Input', 'Category', 'Display Name', 'On Label', 'Off Label', 'Hidden'].map((h) => (
-                  <th key={h} className="text-left py-3.5 px-5 text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+                  <th key={h} className={`text-left py-3.5 px-5 ${labelClass}`}>
                     {h}
                   </th>
                 ))}

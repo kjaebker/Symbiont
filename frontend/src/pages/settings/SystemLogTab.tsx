@@ -3,29 +3,29 @@ import { cn } from '@/lib/utils'
 import { RefreshCw,Terminal } from 'lucide-react'
 import { useSystemLog } from '@/hooks/useSystem'
 import type { SystemLogLine } from '@/api/types'
-import { LoadingState,EmptyState } from './_shared'
+import { Button, Chip, SectionHeader, LoadingState, EmptyState, type ChipTone } from '@/components/ui'
 
 // =============================================================================
 // System Log Tab
 // =============================================================================
 
-const levelBadge: Record<string, string> = {
-  ERROR: 'bg-tertiary/15 text-tertiary',
-  WARN:  'bg-amber-400/15 text-amber-400',
-  INFO:  'bg-primary/10 text-primary',
-  DEBUG: 'bg-surface-container-highest text-on-surface-faint',
+const levelTone: Record<string, ChipTone> = {
+  ERROR: 'critical',
+  WARN: 'warning',
+  INFO: 'primary',
+  DEBUG: 'neutral',
 }
 
 const levelText: Record<string, string> = {
   ERROR: 'text-tertiary',
-  WARN:  'text-amber-400',
+  WARN:  'text-warning',
   INFO:  'text-on-surface-dim',
   DEBUG: 'text-on-surface-faint',
 }
 
-const serviceBadge: Record<string, string> = {
-  api:    'bg-primary/10 text-primary',
-  poller: 'bg-secondary/10 text-secondary',
+const serviceTone: Record<string, ChipTone> = {
+  api: 'primary',
+  poller: 'secondary',
 }
 
 function LogEntry({ line }: { line: SystemLogLine }) {
@@ -44,12 +44,8 @@ function LogEntry({ line }: { line: SystemLogLine }) {
         <span className="text-on-surface-faint shrink-0 tabular-nums">
           {line.ts ? new Date(line.ts).toLocaleTimeString() : '—'}
         </span>
-        <span className={cn('shrink-0 px-1.5 py-0.5 rounded text-xs font-medium uppercase', serviceBadge[line.service] ?? 'bg-surface-container-highest text-on-surface-faint')}>
-          {line.service}
-        </span>
-        <span className={cn('shrink-0 px-1.5 py-0.5 rounded text-xs font-medium uppercase', levelBadge[line.level] ?? levelBadge.INFO)}>
-          {line.level}
-        </span>
+        <Chip tone={serviceTone[line.service] ?? 'neutral'} className="shrink-0">{line.service}</Chip>
+        <Chip tone={levelTone[line.level] ?? 'primary'} className="shrink-0">{line.level}</Chip>
         <span className={cn('flex-1 min-w-0', levelText[line.level] ?? levelText.INFO)}>
           {line.msg}
         </span>
@@ -79,9 +75,9 @@ export default function SystemLogTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between px-4 pt-2">
+      <div className="flex items-center justify-between gap-3 px-4 pt-2">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-on-surface-faint uppercase tracking-widest">System Log</span>
+          <SectionHeader title="System Log" />
           <div className="flex gap-1">
             {(['', 'api', 'poller'] as const).map((s) => (
               <button
@@ -99,14 +95,14 @@ export default function SystemLogTab() {
             ))}
           </div>
         </div>
-        <button
-          onClick={() => refetch()}
+        <Button
+          size="sm"
           disabled={isFetching}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer disabled:opacity-50"
+          onClick={() => refetch()}
         >
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (

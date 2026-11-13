@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { ProbeSelector, MeasurementSelector } from '@/components/ProbeSelector'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { FilterDropdown } from '@/components/FilterDropdown'
+import { PageBody } from '@/components/ui'
 import { useAuditEvents } from '@/hooks/useEvents'
 import type { JournalCategory, JournalSentiment } from '@/api/client'
 
@@ -161,7 +162,6 @@ export default function HistoryPage() {
         filterCount={getFilterCount()}
         filterActive={getFilterActive()}
         onClearFilters={getClearFilters()}
-        maxWidth="max-w-7xl"
       />
 
       {tab === 'telemetry' && (
@@ -189,13 +189,13 @@ export default function HistoryPage() {
         />
       )}
       {tab === 'timeline' && (
-        <div className="px-6 md:px-8 pt-6 pb-8 max-w-7xl mx-auto">
+        <PageBody>
           <FullTimeline
             kindFilter={kindFilter}
             onKindFilterChange={setKindFilter}
             allKinds={allKinds}
           />
-        </div>
+        </PageBody>
       )}
     </div>
   )

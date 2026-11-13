@@ -178,7 +178,7 @@ export const binaryCategoryOptions: { value: InputCategory; label: string }[] = 
 
 export function getCategoryIcon(category: InputCategory): { Icon: typeof ToggleLeft; color: string; bg: string } {
   switch (category) {
-    case 'fluid': return { Icon: Droplets, color: 'text-amber-400', bg: 'bg-amber-400/10' }
+    case 'fluid': return { Icon: Droplets, color: 'text-warning', bg: 'bg-warning/10' }
     case 'alarm': return { Icon: AlertTriangle, color: 'text-tertiary', bg: 'bg-tertiary/10' }
     case 'virtual': return { Icon: Activity, color: 'text-primary', bg: 'bg-primary/10' }
     default: return { Icon: ToggleLeft, color: 'text-on-surface-dim', bg: 'bg-surface-container-high' }
@@ -190,7 +190,7 @@ export function CategorySelect({ value, onSave }: { value: InputCategory; onSave
     <select
       value={value}
       onChange={(e) => onSave(e.target.value)}
-      className="w-full bg-transparent text-on-surface text-sm rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
+      className="w-full bg-transparent text-on-surface text-base rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
     >
       {binaryCategoryOptions.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-container text-on-surface">
@@ -198,27 +198,5 @@ export function CategorySelect({ value, onSave }: { value: InputCategory; onSave
         </option>
       ))}
     </select>
-  )
-}
-
-// --- Loading / Empty states ---
-
-export function LoadingState({ label }: { label: string }) {
-  return (
-    <div className="p-12 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
-        <span className="text-xs text-on-surface-faint uppercase tracking-widest">{label}</span>
-      </div>
-    </div>
-  )
-}
-
-export function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
-  return (
-    <div className="p-12 flex flex-col items-center justify-center gap-3">
-      <div className="text-on-surface-faint">{icon}</div>
-      <span className="text-on-surface-dim text-sm text-center max-w-sm">{message}</span>
-    </div>
   )
 }

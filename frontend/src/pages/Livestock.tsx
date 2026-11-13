@@ -12,6 +12,7 @@ import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/comp
 import { PageHeader } from '@/components/PageHeader'
 import { FilterDropdown } from '@/components/FilterDropdown'
 import { cn } from '@/lib/utils'
+import { Button, Chip, PageBody, LoadingState, EmptyState } from '@/components/ui'
 import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
@@ -77,29 +78,19 @@ export default function Livestock() {
   const statusPills = allItems.length > 0 ? (
     <>
       {countType('fish') > 0 && (
-        <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-          {countType('fish')} Fish
-        </span>
+        <Chip tone="primary">{countType('fish')} Fish</Chip>
       )}
       {countType('coral') > 0 && (
-        <span className="px-3 py-1.5 rounded-full bg-tertiary/10 text-tertiary text-xs font-medium">
-          {countType('coral')} Corals
-        </span>
+        <Chip tone="critical">{countType('coral')} Corals</Chip>
       )}
       {countType('invertebrate') > 0 && (
-        <span className="px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-xs font-medium">
-          {countType('invertebrate')} Invertebrates
-        </span>
+        <Chip tone="secondary">{countType('invertebrate')} Invertebrates</Chip>
       )}
       {countType('other') > 0 && (
-        <span className="px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-dim text-xs font-medium">
-          {countType('other')} Other
-        </span>
+        <Chip>{countType('other')} Other</Chip>
       )}
       {needAttentionCount > 0 && (
-        <span className="px-3 py-1.5 rounded-full bg-amber-400/10 text-amber-400 text-xs font-medium">
-          {needAttentionCount} Need attention
-        </span>
+        <Chip tone="warning">{needAttentionCount} Need attention</Chip>
       )}
       {deceasedCount > 0 && (
         <button
@@ -128,10 +119,9 @@ export default function Livestock() {
         filterActive={!!(typeFilter || statusFilter)}
         onClearFilters={() => { setTypeFilter(''); setStatusFilter('') }}
         statusPills={statusPills ?? undefined}
-        maxWidth="max-w-6xl"
       />
 
-      <div className="px-6 md:px-8 pt-5 pb-8 max-w-6xl mx-auto space-y-6">
+      <PageBody>
       {/* Add form */}
       {showAddForm && (
         <LivestockForm
@@ -145,30 +135,19 @@ export default function Livestock() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="aspect-[4/3] bg-surface-container rounded-2xl animate-pulse" />
-          ))}
-        </div>
+        <LoadingState label="Loading livestock" />
       ) : isError ? (
-        <div className="text-center py-16 text-on-surface-faint">
-          Failed to load livestock.
-        </div>
+        <EmptyState message="Failed to load livestock." />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 space-y-4">
-          <Fish className="h-12 w-12 text-on-surface-faint mx-auto" />
-          <p className="text-on-surface-dim">
-            {allItems.length === 0 ? 'Your tank is waiting for its first resident.' : 'No livestock match the current filters.'}
-          </p>
-          {allItems.length === 0 && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-fluid"
-            >
+        <EmptyState
+          icon={<Fish className="h-12 w-12" />}
+          message={allItems.length === 0 ? 'Your tank is waiting for its first resident.' : 'No livestock match the current filters.'}
+          action={allItems.length === 0 && (
+            <Button variant="tonal" onClick={() => setShowAddForm(true)}>
               Add your first resident
-            </button>
+            </Button>
           )}
-        </div>
+        />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((item) => (
@@ -176,7 +155,7 @@ export default function Livestock() {
           ))}
         </div>
       )}
-      </div>
+      </PageBody>
     </div>
   )
 }

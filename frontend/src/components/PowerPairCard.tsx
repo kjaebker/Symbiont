@@ -7,7 +7,7 @@ import { Sparkline } from './Sparkline'
 
 const statusColor = {
   normal: 'bg-secondary',
-  warning: 'bg-amber-400',
+  warning: 'bg-warning',
   critical: 'bg-tertiary',
   unknown: 'bg-on-surface-faint',
 } as const

@@ -72,7 +72,7 @@ function getBinaryLabel(probe: Probe): string {
 
 function getBinaryColor(probe: Probe): string {
   if (probe.status === 'critical') return 'text-tertiary'
-  if (probe.status === 'warning') return 'text-amber-400'
+  if (probe.status === 'warning') return 'text-warning'
   return 'text-secondary'
 }
 

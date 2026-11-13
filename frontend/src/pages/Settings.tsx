@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { PageHeader } from '@/components/PageHeader'
+import { PageBody } from '@/components/ui'
 import { tabs, type Tab } from './settings/_shared'
 import DashboardTab from './settings/DashboardTab'
 import DevicesTab from './settings/DevicesTab'
@@ -38,10 +39,9 @@ export default function Settings() {
         tabs={tabs.map((t) => ({ key: t.key, label: t.label }))}
         activeTab={activeTab}
         onTabChange={(k) => setActiveTab(k as Tab)}
-        maxWidth="max-w-7xl"
       />
 
-      <div className="px-6 md:px-8 pt-5 pb-8 max-w-7xl mx-auto">
+      <PageBody>
         <div className={tabContainerClass}>
           {activeTab === 'dashboard' && <DashboardTab />}
           {activeTab === 'devices' && <DevicesTab />}
@@ -55,7 +55,7 @@ export default function Settings() {
           {activeTab === 'log' && <SystemLogTab />}
           {activeTab === 'system' && <SystemTab />}
         </div>
-      </div>
+      </PageBody>
     </div>
   )
 }

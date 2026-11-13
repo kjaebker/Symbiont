@@ -7,6 +7,8 @@ import { usePrograms, useSyncPrograms } from '@/hooks/usePrograms'
 import { RefreshCw } from 'lucide-react'
 import { cn, relativeTime } from '@/lib/utils'
 import { ProgramView } from '@/components/ProgramView'
+import { Button, Card, Chip, EmptyState, LoadingState, PageBody, SectionHeader, Select, labelClass } from '@/components/ui'
+import type { ChipTone } from '@/components/ui'
 import type { Outlet, AuditEvent, OutputProgram } from '@/api/client'
 
 const stateLabels: Record<string, string> = {
@@ -33,11 +35,24 @@ const stateColors: Record<string, string> = {
   PF4: 'text-tertiary',
 }
 
-const initiatedByColors: Record<string, string> = {
-  ui: 'bg-primary/15 text-primary',
-  cli: 'bg-secondary/15 text-secondary',
-  mcp: 'bg-tertiary/15 text-tertiary',
-  api: 'bg-on-surface-faint/15 text-on-surface-dim',
+const stateTones: Record<string, ChipTone> = {
+  ON: 'secondary',
+  AON: 'primary',
+  OFF: 'neutral',
+  AOF: 'neutral',
+  TBL: 'primary',
+  PF1: 'critical',
+  PF2: 'critical',
+  PF3: 'critical',
+  PF4: 'critical',
+}
+
+const initiatedByTones: Record<string, ChipTone> = {
+  ui: 'primary',
+  cli: 'secondary',
+  // Coral is reserved for critical/destructive, so the assistant is neutral.
+  mcp: 'neutral',
+  api: 'neutral',
 }
 
 function ControlButtons({
@@ -113,14 +128,9 @@ function OutletCard({ outlet, programsByDID }: { outlet: Outlet; programsByDID: 
             </span>
           </div>
         </div>
-        <span
-          className={cn(
-            'text-xs font-semibold uppercase tracking-wider flex-shrink-0',
-            stateColors[outlet.state] ?? 'text-on-surface-dim',
-          )}
-        >
+        <Chip tone={stateTones[outlet.state] ?? 'neutral'} className="shrink-0">
           {stateLabels[outlet.state] ?? outlet.state}
-        </span>
+        </Chip>
       </div>
       <div className="flex gap-1.5 items-center flex-wrap pl-11">
         <ControlButtons
@@ -129,21 +139,18 @@ function OutletCard({ outlet, programsByDID }: { outlet: Outlet; programsByDID: 
           isPending={mutation.isPending}
         />
         {program && (
-          <button
+          <Button
+            variant={showProgram ? 'tonal' : 'secondary'}
+            size="sm"
+            className="ml-1 uppercase tracking-wider gap-1"
             onClick={() => setShowProgram((v) => !v)}
-            className={cn(
-              'ml-1 px-2 py-1 rounded-lg text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer flex items-center gap-1',
-              showProgram
-                ? 'bg-primary/15 text-primary'
-                : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
-            )}
           >
             Prog
             <ChevronDown
               size={11}
               className={cn('transition-transform duration-200', showProgram && 'rotate-180')}
             />
-          </button>
+          </Button>
         )}
       </div>
       {mutation.isError && (
@@ -187,14 +194,9 @@ function OutletRow({ outlet, programsByDID }: { outlet: Outlet; programsByDID: M
           </div>
         </td>
         <td className="py-3 px-4">
-          <span
-            className={cn(
-              'text-xs font-semibold uppercase tracking-wider',
-              stateColors[outlet.state] ?? 'text-on-surface-dim',
-            )}
-          >
+          <Chip tone={stateTones[outlet.state] ?? 'neutral'}>
             {stateLabels[outlet.state] ?? outlet.state}
-          </span>
+          </Chip>
         </td>
         <td className="py-3 px-4">
           <span className="text-xs text-on-surface-dim uppercase tracking-wider">
@@ -209,14 +211,11 @@ function OutletRow({ outlet, programsByDID }: { outlet: Outlet; programsByDID: M
               isPending={mutation.isPending}
             />
             {program && (
-              <button
+              <Button
+                variant={showProgram ? 'tonal' : 'secondary'}
+                size="sm"
+                className="ml-1 uppercase tracking-wider gap-1"
                 onClick={() => setShowProgram((v) => !v)}
-                className={cn(
-                  'ml-1 px-2 py-1 rounded-lg text-xs font-medium uppercase tracking-wider transition-fluid cursor-pointer flex items-center gap-1',
-                  showProgram
-                    ? 'bg-primary/15 text-primary'
-                    : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
-                )}
                 title="View program"
               >
                 Prog
@@ -224,7 +223,7 @@ function OutletRow({ outlet, programsByDID }: { outlet: Outlet; programsByDID: M
                   size={11}
                   className={cn('transition-transform duration-200', showProgram && 'rotate-180')}
                 />
-              </button>
+              </Button>
             )}
           </div>
           {mutation.isError && (
@@ -278,7 +277,7 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
   const events = eventsData?.events ?? []
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageBody>
       {/* Header */}
       {!hideHeader && (
         <div>
@@ -300,42 +299,30 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
               ? <><span className="hidden sm:inline">Programs synced </span><span className="text-on-surface-dim">{relativeTime(programsData.synced_at)}</span></>
               : <span className="text-on-surface-faint/50">Programs not yet synced</span>}
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            className="uppercase tracking-wider"
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wider transition-fluid',
-              syncMutation.isPending
-                ? 'text-on-surface-faint cursor-not-allowed'
-                : 'text-primary/70 hover:text-primary hover:bg-primary/10 cursor-pointer',
-            )}
           >
-            <RefreshCw size={11} className={cn(syncMutation.isPending && 'animate-spin')} />
+            <RefreshCw size={12} className={cn(syncMutation.isPending && 'animate-spin')} />
             {syncMutation.isPending ? 'Syncing…' : syncMutation.data ? `${syncMutation.data.changed} changed` : 'Sync Programs'}
-          </button>
+          </Button>
         </div>
 
         {isLoading ? (
-          <div className="p-12 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
-              <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-                Loading outlets...
-              </span>
-            </div>
-          </div>
+          <LoadingState label="Loading outlets..." />
         ) : outlets.length === 0 ? (
-          <div className="p-12 text-center">
-            <span className="text-on-surface-faint text-sm">No outlets found</span>
-          </div>
+          <EmptyState message="No outlets found" />
         ) : (
           <>
             {/* Mobile: individual cards */}
             <div className="sm:hidden space-y-3">
               {outlets.map((outlet) => (
-                <div key={outlet.id} className="bg-surface-container rounded-2xl overflow-hidden">
+                <Card key={outlet.id} flush>
                   <OutletCard outlet={outlet} programsByDID={programsByDID} />
-                </div>
+                </Card>
               ))}
             </div>
 
@@ -344,16 +331,16 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
               <table className="w-full min-w-[580px]">
                 <thead>
                   <tr className="bg-surface-container-high/50">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Name
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       State
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Type
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Control / Program
                     </th>
                   </tr>
@@ -371,43 +358,45 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
 
       {/* Event Log */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-on-surface">Recent Events</h2>
-          <select
-            value={sourceFilter}
-            onChange={(e) => {
-              setSourceFilter(e.target.value)
-              setEventLimit(50)
-            }}
-            className="bg-surface-container-high text-on-surface text-xs rounded-lg px-3 py-1.5 uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50"
-          >
-            <option value="">All sources</option>
-            <option value="ui">UI</option>
-            <option value="cli">CLI</option>
-            <option value="mcp">MCP</option>
-            <option value="api">API</option>
-          </select>
-        </div>
-        <div className="bg-surface-container rounded-2xl overflow-hidden">
+        <SectionHeader
+          title="Recent Events"
+          className="mb-3"
+          action={
+            <Select
+              value={sourceFilter}
+              onChange={(e) => {
+                setSourceFilter(e.target.value)
+                setEventLimit(50)
+              }}
+              aria-label="Filter by source"
+              className="w-auto"
+            >
+              <option value="">All sources</option>
+              <option value="ui">UI</option>
+              <option value="cli">CLI</option>
+              <option value="mcp">MCP</option>
+              <option value="api">API</option>
+            </Select>
+          }
+        />
+        <Card flush>
           {events.length === 0 ? (
-            <div className="p-8 text-center">
-              <span className="text-on-surface-faint text-sm">No outlet events recorded yet</span>
-            </div>
+            <EmptyState message="No outlet events recorded yet" />
           ) : (
             <>
               <table className="w-full">
                 <thead>
                   <tr className="bg-surface-container-high/50">
-                    <th className="hidden sm:table-cell text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'hidden sm:table-cell text-left py-3 px-4')}>
                       Time
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Outlet
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Change
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn(labelClass, 'text-left py-3 px-4')}>
                       Source
                     </th>
                   </tr>
@@ -449,14 +438,9 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
                           </span>
                         </td>
                         <td className="py-2.5 px-4">
-                          <span
-                            className={cn(
-                              'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                              initiatedByColors[initiatedBy] ?? 'bg-surface-container-high text-on-surface-dim',
-                            )}
-                          >
+                          <Chip tone={initiatedByTones[initiatedBy] ?? 'neutral'}>
                             {initiatedBy || '—'}
-                          </span>
+                          </Chip>
                         </td>
                       </tr>
                     )
@@ -465,18 +449,15 @@ export default function Control({ hideHeader = false }: { hideHeader?: boolean }
               </table>
               {events.length >= eventLimit && (
                 <div className="p-3 flex justify-center">
-                  <button
-                    onClick={() => setEventLimit((l) => l + 50)}
-                    className="text-xs text-primary hover:text-primary/80 uppercase tracking-wider font-medium transition-fluid"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setEventLimit((l) => l + 50)}>
                     Show more
-                  </button>
+                  </Button>
                 </div>
               )}
             </>
           )}
-        </div>
+        </Card>
       </div>
-    </div>
+    </PageBody>
   )
 }

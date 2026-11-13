@@ -31,6 +31,11 @@
   --color-tertiary-container: #8c1d2e;
   --color-on-tertiary: #5c0015;
 
+  /* Warning — Amber. Out-of-range readings, overdue work, "needs attention".
+     Coral (tertiary) is reserved for critical and destructive. */
+  --color-warning: #fbbf24;
+  --color-on-warning: #3d2a00;
+
   /* Outline */
   --color-outline-variant: #41475b;
 

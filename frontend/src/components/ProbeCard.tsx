@@ -149,7 +149,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
         >
           <Icon
             size={14}
-            className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color)}
+            className={cn(isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-warning' : config.color)}
           />
         </CardIconBlob>
         <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
@@ -162,7 +162,7 @@ export function ProbeCard({ probe }: ProbeCardProps) {
           <span
             className={cn(
               'text-2xl font-bold tracking-tight',
-              isAlarmActive ? 'text-tertiary text-glow-tertiary' : isFluidWarn ? 'text-amber-400' : 'text-secondary',
+              isAlarmActive ? 'text-tertiary text-glow-tertiary' : isFluidWarn ? 'text-warning' : 'text-secondary',
             )}
           >
             {getBinaryLabel(probe)}

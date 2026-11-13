@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils'
 import { Plus,Trash2,Bell } from 'lucide-react'
 import { useNotificationTargets,useUpsertNotificationTarget,useDeleteNotificationTarget,useTestNotifications } from '@/hooks/useNotifications'
 import type { NotificationTarget } from '@/api/types'
-import { LoadingState,EmptyState } from './_shared'
+import { Button, Input, SectionHeader, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 
 // =============================================================================
 // Notifications Tab
@@ -33,7 +34,6 @@ export default function NotificationsTab() {
   const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
   const [url, setUrl] = useState('')
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const targets = data?.targets ?? []
 
@@ -57,71 +57,62 @@ export default function NotificationsTab() {
   }
 
   function handleDelete(id: number) {
-    deleteMutation.mutate(id, {
-      onSuccess: () => setDeleteConfirm(null),
-    })
+    deleteMutation.mutate(id)
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between px-4 pt-2">
-        <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-          ntfy.sh Targets
-        </span>
-        <div className="flex items-center gap-2">
-          {targets.some((t) => t.enabled) && (
-            <button
-              onClick={() => testMutation.mutate()}
-              disabled={testMutation.isPending}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer disabled:opacity-50"
-            >
-              <Bell size={14} />
-              Send Test
-            </button>
-          )}
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-            >
-              <Plus size={14} />
-              Add Target
-            </button>
-          )}
-        </div>
-      </div>
+      <SectionHeader
+        title="ntfy.sh Targets"
+        className="px-4 pt-2"
+        action={
+          <div className="flex items-center gap-2">
+            {targets.some((t) => t.enabled) && (
+              <Button
+                size="sm"
+                icon={Bell}
+                loading={testMutation.isPending}
+                onClick={() => testMutation.mutate()}
+              >
+                Send Test
+              </Button>
+            )}
+            {!showForm && (
+              <Button variant="tonal" size="sm" icon={Plus} onClick={() => setShowForm(true)}>
+                Add Target
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {showForm && (
         <form onSubmit={handleCreate} className="flex items-center gap-2 px-4 flex-wrap">
-          <input
+          <Input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Label (e.g. Phone)"
-            className="flex-1 min-w-32 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-1 min-w-32 w-auto"
             autoFocus
           />
-          <input
+          <Input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://ntfy.sh/your-topic"
-            className="flex-[3] min-w-48 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-[3] min-w-48 w-auto"
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={upsertMutation.isPending || !label.trim() || !url.trim()}
-            className="px-3 py-2 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer disabled:opacity-50"
           >
             Add
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowForm(false); setLabel(''); setUrl('') }}
-            className="px-3 py-2 rounded-xl text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-          >
+          </Button>
+          <Button onClick={() => { setShowForm(false); setLabel(''); setUrl('') }}>
             Cancel
-          </button>
+          </Button>
         </form>
       )}
 
@@ -178,29 +169,13 @@ export default function NotificationsTab() {
                 </div>
                 <p className="text-xs text-on-surface-dim font-mono break-all leading-relaxed">{maskTargetUrl(t.config)}</p>
                 <div className="flex items-center justify-end">
-                  {deleteConfirm === t.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleDelete(t.id)}
-                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(t.id)}
-                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                  <ConfirmButton
+                    onConfirm={() => handleDelete(t.id)}
+                    title="Delete target"
+                    className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                  >
+                    <Trash2 size={14} />
+                  </ConfirmButton>
                 </div>
               </div>
             ))}
@@ -210,13 +185,10 @@ export default function NotificationsTab() {
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-container-high/50">
-                  {['Label', 'URL', 'Status', ''].map((h) => (
+                  {['Label', 'URL', 'Status', ''].map((h, i) => (
                     <th
-                      key={h}
-                      className={cn(
-                        'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
-                        h === '' ? 'text-right' : 'text-left',
-                      )}
+                      key={i}
+                      className={cn('py-3 px-4', labelClass, h === '' ? 'text-right' : 'text-left')}
                     >
                       {h}
                     </th>
@@ -244,29 +216,13 @@ export default function NotificationsTab() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end">
-                        {deleteConfirm === t.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleDelete(t.id)}
-                              className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDeleteConfirm(t.id)}
-                            className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <ConfirmButton
+                    onConfirm={() => handleDelete(t.id)}
+                    title="Delete target"
+                    className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                  >
+                    <Trash2 size={14} />
+                  </ConfirmButton>
                       </div>
                     </td>
                   </tr>

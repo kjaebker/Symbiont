@@ -6,6 +6,8 @@ import { AlertRuleForm } from '@/components/AlertRuleForm'
 import { PageHeader } from '@/components/PageHeader'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
+import { Card, Chip, EmptyState, IconButton, LoadingState, PageBody, SectionHeader, Toggle, labelClass } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 
 const conditionLabels: Record<string, string> = {
   probe_range: 'Probe range',
@@ -50,7 +52,6 @@ export default function Alerts() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<AlertRule | undefined>()
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const rules = data?.rules ?? []
 
@@ -75,12 +76,6 @@ export default function Alerts() {
     })
   }
 
-  function handleDelete(id: number) {
-    deleteMutation.mutate(id, {
-      onSuccess: () => setDeleteConfirm(null),
-    })
-  }
-
   return (
     <div>
       <PageHeader
@@ -90,24 +85,17 @@ export default function Alerts() {
         maxWidth="max-w-7xl"
       />
 
-      <div className="px-6 md:px-8 pt-5 pb-8 max-w-7xl mx-auto space-y-6">
+      <PageBody>
       {/* Rules Table */}
       {isLoading ? (
-        <div className="bg-surface-container rounded-2xl p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
-            <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-              Loading alert rules...
-            </span>
-          </div>
-        </div>
+        <Card flush><LoadingState label="Loading alert rules..." /></Card>
       ) : rules.length === 0 ? (
-        <div className="bg-surface-container rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
-          <Bell size={32} className="text-on-surface-faint" />
-          <span className="text-on-surface-dim text-sm text-center max-w-sm">
-            No alert rules configured. Add one to get notified when parameters go out of range.
-          </span>
-        </div>
+        <Card flush>
+          <EmptyState
+            icon={<Bell size={32} />}
+            message="No alert rules yet. Add one to get notified when a probe leaves its range."
+          />
+        </Card>
       ) : (
         <>
           {/* Mobile: individual cards */}
@@ -123,89 +111,50 @@ export default function Alerts() {
                       <span className="text-xs text-on-surface-dim uppercase tracking-wider">
                         {conditionLabels[rule.condition] ?? rule.condition}
                       </span>
-                      <span className={cn('text-xs font-mono', isUnconfigured(rule) ? 'text-amber-400' : 'text-on-surface')}>{formatThreshold(rule)}</span>
-                      <span
-                        className={cn(
-                          'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                          rule.severity === 'critical'
-                            ? 'bg-tertiary/15 text-tertiary'
-                            : 'bg-amber-400/15 text-amber-400',
-                        )}
-                      >
-                        {rule.severity}
-                      </span>
+                      <span className={cn('text-xs font-mono', isUnconfigured(rule) ? 'text-warning' : 'text-on-surface')}>{formatThreshold(rule)}</span>
+                      <Chip tone={rule.severity === 'critical' ? 'critical' : 'warning'}>{rule.severity}</Chip>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleToggle(rule)}
-                      className={cn(
-                        'relative w-10 h-5 rounded-full transition-fluid cursor-pointer',
-                        rule.enabled ? 'bg-primary' : 'bg-surface-container-highest',
-                      )}
+                    <Toggle
+                      checked={rule.enabled}
+                      onChange={() => handleToggle(rule)}
+                      label={`${rule.enabled ? 'Disable' : 'Enable'} rule for ${rule.probe_display_name ?? rule.probe_name}`}
+                    />
+                    <IconButton icon={Pencil} label="Edit rule" onClick={() => setEditingRule(rule)} />
+                    <ConfirmButton
+                      onConfirm={() => deleteMutation.mutate(rule.id)}
+                      title="Delete rule"
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
                     >
-                      <span
-                        className={cn(
-                          'absolute top-0.5 h-4 w-4 rounded-full bg-on-surface transition-fluid',
-                          rule.enabled ? 'left-5.5' : 'left-0.5',
-                        )}
-                      />
-                    </button>
-                    <button
-                      onClick={() => setEditingRule(rule)}
-                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    {deleteConfirm === rule.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleDelete(rule.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(rule.id)}
-                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                      <Trash2 size={14} />
+                    </ConfirmButton>
                   </div>
                 </div>
               </div>
             ))}
           </div>
           {/* Desktop table */}
-          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
+          <Card flush className="hidden sm:block">
               <table className="w-full">
                 <thead>
                   <tr className="bg-surface-container-high/50">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Probe
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Condition
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Threshold
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Severity
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Status
                     </th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-right', labelClass)}>
                       Actions
                     </th>
                   </tr>
@@ -222,75 +171,36 @@ export default function Alerts() {
                       <td className={cn(!rule.enabled && 'opacity-50', "py-3 px-4 text-xs text-on-surface-dim uppercase tracking-wider")}>
                         {conditionLabels[rule.condition] ?? rule.condition}
                       </td>
-                      <td className={cn('py-3 px-4 text-sm font-mono', isUnconfigured(rule) ? 'text-amber-400' : 'text-on-surface')}>
+                      <td className={cn('py-3 px-4 text-sm font-mono', isUnconfigured(rule) ? 'text-warning' : 'text-on-surface')}>
                         {formatThreshold(rule)}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={cn(
-                            'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                            rule.severity === 'critical'
-                              ? 'bg-tertiary/15 text-tertiary'
-                              : 'bg-amber-400/15 text-amber-400',
-                          )}
-                        >
-                          {rule.severity}
-                        </span>
+                        <Chip tone={rule.severity === 'critical' ? 'critical' : 'warning'}>{rule.severity}</Chip>
                       </td>
                       <td className="py-3 px-4">
-                        <button
-                          onClick={() => handleToggle(rule)}
-                          className={cn(
-                            'relative w-10 h-5 rounded-full transition-fluid cursor-pointer',
-                            rule.enabled ? 'bg-primary' : 'bg-surface-container-highest',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'absolute top-0.5 h-4 w-4 rounded-full bg-on-surface transition-fluid',
-                              rule.enabled ? 'left-5.5' : 'left-0.5',
-                            )}
-                          />
-                        </button>
+                        <Toggle
+                      checked={rule.enabled}
+                      onChange={() => handleToggle(rule)}
+                      label={`${rule.enabled ? 'Disable' : 'Enable'} rule for ${rule.probe_display_name ?? rule.probe_name}`}
+                    />
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => setEditingRule(rule)}
-                            className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          {deleteConfirm === rule.id ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleDelete(rule.id)}
-                                className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                              >
-                                Delete
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeleteConfirm(rule.id)}
-                              className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          <IconButton icon={Pencil} label="Edit rule" onClick={() => setEditingRule(rule)} />
+                          <ConfirmButton
+                      onConfirm={() => deleteMutation.mutate(rule.id)}
+                      title="Delete rule"
+                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                    >
+                      <Trash2 size={14} />
+                    </ConfirmButton>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           </>
         )}
 
@@ -320,7 +230,7 @@ export default function Alerts() {
           onClose={() => setEditingRule(undefined)}
         />
       )}
-      </div>
+      </PageBody>
     </div>
   )
 }
@@ -340,24 +250,12 @@ function AlertEventLog() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Activity size={16} className="text-primary" />
-        <h2 className="text-sm font-semibold text-on-surface uppercase tracking-widest">
-          Recent Events
-        </h2>
-      </div>
+      <SectionHeader title="Recent Events" icon={Activity} />
 
       {isLoading ? (
-        <div className="bg-surface-container rounded-2xl p-8 flex items-center justify-center">
-          <div className="h-6 w-6 rounded-full bg-primary/20 animate-bio-pulse" />
-        </div>
+        <Card flush><LoadingState label="Loading events..." /></Card>
       ) : events.length === 0 ? (
-        <div className="bg-surface-container rounded-2xl p-8 flex flex-col items-center justify-center gap-2">
-          <Activity size={24} className="text-on-surface-faint" />
-          <span className="text-on-surface-dim text-sm">
-            No alert events yet.
-          </span>
-        </div>
+        <Card flush><EmptyState icon={<Activity size={24} />} message="No alert events yet." /></Card>
       ) : (
         <>
           {/* Mobile: individual cards */}
@@ -369,24 +267,11 @@ function AlertEventLog() {
                     {event.probe_display_name ?? event.probe_name ?? '--'}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span
-                      className={cn(
-                        'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                        event.severity === 'critical'
-                          ? 'bg-tertiary/15 text-tertiary'
-                          : 'bg-amber-400/15 text-amber-400',
-                      )}
-                    >
-                      {event.severity ?? '--'}
-                    </span>
+                    <Chip tone={event.severity === 'critical' ? 'critical' : 'warning'}>{event.severity ?? '--'}</Chip>
                     {event.cleared_at ? (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-secondary/15 text-secondary">
-                        Cleared
-                      </span>
+                      <Chip tone="secondary">Cleared</Chip>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-tertiary/15 text-tertiary animate-bio-pulse">
-                        Active
-                      </span>
+                      <Chip tone="critical" pulse>Active</Chip>
                     )}
                   </div>
                 </div>
@@ -399,26 +284,26 @@ function AlertEventLog() {
             ))}
           </div>
           {/* Desktop table */}
-          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
+          <Card flush className="hidden sm:block">
               <table className="w-full">
                 <thead>
                   <tr className="bg-surface-container-high/50">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Probe
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Severity
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Peak
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Fired
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Cleared
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                    <th className={cn('py-3 px-4 text-left', labelClass)}>
                       Status
                     </th>
                   </tr>
@@ -433,16 +318,7 @@ function AlertEventLog() {
                         {event.probe_display_name ?? event.probe_name ?? '--'}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={cn(
-                            'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-                            event.severity === 'critical'
-                              ? 'bg-tertiary/15 text-tertiary'
-                              : 'bg-amber-400/15 text-amber-400',
-                          )}
-                        >
-                          {event.severity ?? '--'}
-                        </span>
+                        <Chip tone={event.severity === 'critical' ? 'critical' : 'warning'}>{event.severity ?? '--'}</Chip>
                       </td>
                       <td className="py-3 px-4 text-sm text-on-surface font-mono">
                         {event.peak_value.toFixed(2)}
@@ -455,20 +331,16 @@ function AlertEventLog() {
                       </td>
                       <td className="py-3 px-4">
                         {event.cleared_at ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-secondary/15 text-secondary">
-                            Cleared
-                          </span>
+                          <Chip tone="secondary">Cleared</Chip>
                         ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-tertiary/15 text-tertiary animate-bio-pulse">
-                            Active
-                          </span>
+                          <Chip tone="critical" pulse>Active</Chip>
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           </>
         )}
       </div>

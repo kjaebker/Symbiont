@@ -9,6 +9,7 @@ import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { ProbeSelector, MeasurementSelector, SERIES_COLORS } from '@/components/ProbeSelector'
 import { getToken } from '@/api/client'
 import { FilterDropdown } from '@/components/FilterDropdown'
+import { PageBody, Card, EmptyState, labelClass } from '@/components/ui'
 
 export const INTERVALS = [
   { label: 'Auto', value: '' },
@@ -196,7 +197,7 @@ export default function History({
     selectedMeas.some((_, i) => measQueries[i]?.isLoading)
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageBody>
       {/* Header */}
       {!hideHeader && (
         <div>
@@ -239,11 +240,9 @@ export default function History({
 
       {/* Chart */}
       {selectedProbes.length === 0 && selectedMeas.length === 0 ? (
-        <div className="bg-surface-container rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
-          <span className="text-on-surface-faint text-sm">
-            Select a probe or test parameter to view history
-          </span>
-        </div>
+        <Card flush>
+          <EmptyState message="Select a probe or test parameter to view history" />
+        </Card>
       ) : (
         <ProbeChart series={isLoading ? [] : chartSeries} />
       )}
@@ -279,22 +278,19 @@ export default function History({
       {stats.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
-            <div
-              key={s.name}
-              className="bg-surface-container rounded-2xl p-4"
-            >
+            <Card key={s.name} className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <span
                   className="h-2.5 w-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: s.color }}
                 />
-                <span className="text-xs text-on-surface-dim uppercase tracking-widest font-medium">
+                <span className={labelClass}>
                   {s.name}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <span className="text-xs text-on-surface-faint uppercase tracking-wider block mb-1">
+                  <span className={`${labelClass} block mb-1`}>
                     Min
                   </span>
                   <span className="text-lg font-bold text-on-surface">
@@ -303,7 +299,7 @@ export default function History({
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-on-surface-faint uppercase tracking-wider block mb-1">
+                  <span className={`${labelClass} block mb-1`}>
                     Avg
                   </span>
                   <span className="text-lg font-bold text-on-surface">
@@ -312,7 +308,7 @@ export default function History({
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-on-surface-faint uppercase tracking-wider block mb-1">
+                  <span className={`${labelClass} block mb-1`}>
                     Max
                   </span>
                   <span className="text-lg font-bold text-on-surface">
@@ -321,11 +317,11 @@ export default function History({
                   </span>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </PageBody>
   )
 }
 

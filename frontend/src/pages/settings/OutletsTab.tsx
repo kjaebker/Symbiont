@@ -2,7 +2,8 @@ import { Settings as SettingsIcon } from 'lucide-react'
 import { useOutletConfigs,useUpdateOutletConfig } from '@/hooks/useSettings'
 import { useOutlets } from '@/hooks/useOutlets'
 import type { OutletConfig } from '@/api/types'
-import { EditableCell,LoadingState,EmptyState } from './_shared'
+import { LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { EditableCell } from './_shared'
 
 // =============================================================================
 // Outlets Tab — table for configuration (no drag-and-drop)
@@ -62,7 +63,7 @@ export default function OutletsTab() {
               <span className="text-xs text-on-surface-faint font-mono">{item.outlet_id}</span>
             </div>
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-wider mb-1">Display Name</p>
+              <p className={`${labelClass} mb-1`}>Display Name</p>
               <EditableCell value={item.display_name} onSave={(v) => handleUpdate(item.outlet_id, 'display_name', v)} />
             </div>
           </div>
@@ -74,7 +75,7 @@ export default function OutletsTab() {
           <thead>
             <tr className="bg-surface-container-high/50">
               {['Outlet', 'Display Name', 'ID'].map((h) => (
-                <th key={h} className="text-left py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest">
+                <th key={h} className={`text-left py-3 px-4 ${labelClass}`}>
                   {h}
                 </th>
               ))}

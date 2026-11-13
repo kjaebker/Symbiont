@@ -1,6 +1,7 @@
 import { useState,useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Check,Waves } from 'lucide-react'
+import { Button, Field, Input, Select, Textarea, labelClass } from '@/components/ui'
 import { useTankProfile,useUpsertTankProfile } from '@/hooks/useTankProfile'
 import type { TankSection,TankType,TankProfileInput } from '@/api/client'
 
@@ -95,100 +96,76 @@ function TankProfileForm({
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-surface-container-highest/30">
+        <div className="px-4 pb-4 pt-1 space-y-3">
           <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Display name */}
-            <div className="sm:col-span-2">
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Display Name</label>
-              <input
+            <Field label="Display Name" className="sm:col-span-2">
+              <Input
                 type="text"
                 value={form.display_name ?? ''}
                 onChange={field('display_name')}
                 placeholder={title}
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
               />
-            </div>
+            </Field>
 
-            {/* Tank type */}
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Type</label>
-              <select
-                value={form.tank_type ?? ''}
-                onChange={field('tank_type')}
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
-              >
+            <Field label="Type">
+              <Select value={form.tank_type ?? ''} onChange={field('tank_type')}>
                 <option value="">Select type...</option>
                 {(Object.keys(TANK_TYPE_LABELS) as TankType[]).map(t => (
                   <option key={t} value={t}>{TANK_TYPE_LABELS[t]}</option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            {/* Volume */}
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Volume (gallons)</label>
-              <input
+            <Field label="Volume (gallons)">
+              <Input
                 type="number"
                 min="0"
                 step="0.1"
                 value={form.volume_gallons ?? ''}
                 onChange={numericField('volume_gallons')}
                 placeholder="e.g. 75"
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
               />
-            </div>
+            </Field>
 
-            {/* Dimensions */}
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Length (in)</label>
-              <input type="number" min="0" step="0.5" value={form.length_in ?? ''} onChange={numericField('length_in')} placeholder="48" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Width (in)</label>
-              <input type="number" min="0" step="0.5" value={form.width_in ?? ''} onChange={numericField('width_in')} placeholder="18" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Height (in)</label>
-              <input type="number" min="0" step="0.5" value={form.height_in ?? ''} onChange={numericField('height_in')} placeholder="20" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
+            <Field label="Length (in)">
+              <Input type="number" min="0" step="0.5" value={form.length_in ?? ''} onChange={numericField('length_in')} placeholder="48" />
+            </Field>
+            <Field label="Width (in)">
+              <Input type="number" min="0" step="0.5" value={form.width_in ?? ''} onChange={numericField('width_in')} placeholder="18" />
+            </Field>
+            <Field label="Height (in)">
+              <Input type="number" min="0" step="0.5" value={form.height_in ?? ''} onChange={numericField('height_in')} placeholder="20" />
+            </Field>
 
-            {/* Manufacturer & model */}
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Manufacturer</label>
-              <input type="text" value={form.manufacturer ?? ''} onChange={field('manufacturer')} placeholder="e.g. Red Sea" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Model</label>
-              <input type="text" value={form.model ?? ''} onChange={field('model')} placeholder="e.g. Reefer 350" className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
+            <Field label="Manufacturer">
+              <Input type="text" value={form.manufacturer ?? ''} onChange={field('manufacturer')} placeholder="e.g. Red Sea" />
+            </Field>
+            <Field label="Model">
+              <Input type="text" value={form.model ?? ''} onChange={field('model')} placeholder="e.g. Reefer 350" />
+            </Field>
 
-            {/* Setup date */}
-            <div>
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Setup Date</label>
-              <input type="date" value={form.setup_date ?? ''} onChange={field('setup_date')} className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid" />
-            </div>
+            <Field label="Setup Date">
+              <Input type="date" value={form.setup_date ?? ''} onChange={field('setup_date')} />
+            </Field>
 
-            {/* Notes */}
-            <div className="sm:col-span-2">
-              <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Notes</label>
-              <textarea
+            <Field label="Notes" className="sm:col-span-2">
+              <Textarea
                 rows={2}
                 value={form.notes ?? ''}
                 onChange={field('notes')}
                 placeholder="Any additional notes..."
-                className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
               />
-            </div>
+            </Field>
           </div>
 
           <div className="flex justify-end">
-            <button
+            <Button
+              variant="primary"
               onClick={handleSave}
               disabled={upsert.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-fluid disabled:opacity-50"
             >
               {saved ? <><Check size={14} /> Saved</> : upsert.isPending ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -199,7 +176,7 @@ function TankProfileForm({
 export default function TankTab() {
   return (
     <div className="space-y-4 p-4">
-      <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-1">Tank Profile</p>
+      <p className={`${labelClass} px-1`}>Tank Profile</p>
       <TankProfileForm section="display" title="Display Tank" />
       <TankProfileForm section="sump" title="Sump" />
     </div>

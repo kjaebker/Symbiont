@@ -6,6 +6,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, relativeTime } from '@/lib/utils'
 import Measurements from '@/pages/Measurements'
 import { PageHeader } from '@/components/PageHeader'
+import { Button, Card, EmptyState, Field, IconButton, Input, PageBody, SectionHeader, Select } from '@/components/ui'
 import { FilterDropdown } from '@/components/FilterDropdown'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import {
@@ -73,44 +74,36 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
   const [notes, setNotes] = useState(initial?.notes ?? '')
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 space-y-4">
+    <Card className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Brand</label>
-          <input
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        <Field label="Brand">
+          <Input
             value={brand}
             onChange={e => setBrand(e.target.value)}
             placeholder="e.g. BRS"
           />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Product name</label>
-          <input
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        </Field>
+        <Field label="Product name">
+          <Input
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g. 2-Part Alkalinity"
           />
-        </div>
+        </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Type</label>
-          <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        <Field label="Type">
+          <Select
             value={type}
             onChange={e => setType(e.target.value as DosingProductType)}
           >
             {(Object.entries(PRODUCT_TYPE_LABELS) as [DosingProductType, string][]).map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Unit</label>
-          <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          </Select>
+        </Field>
+        <Field label="Unit">
+          <Select
             value={unit}
             onChange={e => setUnit(e.target.value)}
           >
@@ -120,34 +113,27 @@ function ProductForm({ initial, onSubmit, onCancel, loading }: ProductFormProps)
             <option value="tsp">tsp</option>
             <option value="tbsp">tbsp</option>
             <option value="fl oz">fl oz</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-on-surface-dim">Notes (optional)</label>
-        <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+      <Field label="Notes (optional)">
+        <Input
           value={notes}
           onChange={e => setNotes(e.target.value)}
           placeholder="Optional notes"
         />
-      </div>
+      </Field>
       <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl text-sm text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-        >
-          Cancel
-        </button>
-        <button
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="primary"
           disabled={loading || !brand || !name}
           onClick={() => onSubmit({ brand, name, type, unit, notes: notes || undefined })}
-          className="px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
         >
           {loading ? 'Saving…' : initial ? 'Update' : 'Add Product'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -179,91 +165,73 @@ function ScheduleForm({
   const product = products.find(p => p.id === productId)
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 space-y-4">
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-on-surface-dim">Product</label>
-        <select
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+    <Card className="space-y-4">
+      <Field label="Product">
+        <Select
           value={productId}
           onChange={e => setProductId(Number(e.target.value))}
         >
           {products.map(p => (
             <option key={p.id} value={p.id}>{p.brand} {p.name}</option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">
-            Amount ({product?.unit ?? 'mL'})
-          </label>
-          <input
+        <Field label={`Amount (${product?.unit ?? 'mL'})`}>
+          <Input
             type="number"
             min="0"
             step="0.5"
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={amount}
             onChange={e => setAmount(e.target.value)}
             placeholder="5"
           />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Frequency</label>
-          <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        </Field>
+        <Field label="Frequency">
+          <Select
             value={frequency}
             onChange={e => setFrequency(e.target.value as DosingFrequency)}
           >
             {(Object.entries(FREQUENCY_LABELS) as [DosingFrequency, string][]).map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
       {frequency === 'every_n_days' && (
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Every how many days</label>
-          <input
+        <Field label="Every how many days">
+          <Input
             type="number"
             min="1"
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={intervalDays}
             onChange={e => setIntervalDays(e.target.value)}
             placeholder="3"
           />
-        </div>
+        </Field>
       )}
       {frequency === 'weekly' && (
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
-          <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        <Field label="Day of week">
+          <Select
             value={dayOfWeek}
             onChange={e => setDayOfWeek(Number(e.target.value))}
           >
             {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
               <option key={i} value={i}>{d}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       )}
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-on-surface-dim">Notes (optional)</label>
-        <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+      <Field label="Notes (optional)">
+        <Input
           value={notes}
           onChange={e => setNotes(e.target.value)}
           placeholder="Optional notes"
         />
-      </div>
+      </Field>
       <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl text-sm text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-        >
-          Cancel
-        </button>
-        <button
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="primary"
           disabled={loading || !productId || !amount}
           onClick={() => onSubmit({
             product_id: productId,
@@ -274,12 +242,11 @@ function ScheduleForm({
             notes: notes || undefined,
             enabled: true,
           })}
-          className="px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
         >
           {loading ? 'Saving…' : 'Add Schedule'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -330,8 +297,8 @@ function DosingTab() {
     <div className="space-y-6">
       {/* Due / Overdue */}
       {overdue.length > 0 && (
-        <div className="bg-surface-container rounded-2xl p-5">
-          <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold mb-4">Due Now</h2>
+        <Card className="space-y-4">
+          <SectionHeader title="Due Now" />
           <div className="space-y-2">
             {overdue.map(s => {
               const isOverdue = s.next_due_at ? new Date(s.next_due_at) < new Date() : false
@@ -351,61 +318,58 @@ function DosingTab() {
                       {s.amount} {s.product_unit}
                     </div>
                   </div>
-                  <button
+                  <Button
+                    variant="tonal"
+                    size="sm"
+                    icon={CheckCircle2}
                     onClick={() => handleLogDose(s.id)}
                     disabled={loggingId === s.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
                   >
-                    <CheckCircle2 size={14} />
                     {loggingId === s.id ? 'Logging…' : 'Log Dose'}
-                  </button>
+                  </Button>
                 </div>
               )
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* All schedules */}
-      <div className="bg-surface-container rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold">Dosing Schedules</h2>
-          <button
-            onClick={() => setShowScheduleForm(v => !v)}
-            disabled={noProducts}
-            title={noProducts ? 'Add products to your catalog first' : undefined}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-fluid"
-          >
-            <Plus size={14} />
-            Add Schedule
-          </button>
-        </div>
+      <Card className="space-y-4">
+        <SectionHeader
+          title="Dosing Schedules"
+          action={
+            <Button
+              variant="tonal"
+              size="sm"
+              icon={Plus}
+              onClick={() => setShowScheduleForm(v => !v)}
+              disabled={noProducts}
+              title={noProducts ? 'Add products to your catalog first' : undefined}
+            >
+              Add Schedule
+            </Button>
+          }
+        />
 
         {showScheduleForm && (
-          <div className="mb-4">
-            <ScheduleForm
-              products={products}
-              onSubmit={async data => {
-                await createSchedule.mutateAsync(data)
-                setShowScheduleForm(false)
-              }}
-              onCancel={() => setShowScheduleForm(false)}
-              loading={createSchedule.isPending}
-            />
-          </div>
+          <ScheduleForm
+            products={products}
+            onSubmit={async data => {
+              await createSchedule.mutateAsync(data)
+              setShowScheduleForm(false)
+            }}
+            onCancel={() => setShowScheduleForm(false)}
+            loading={createSchedule.isPending}
+          />
         )}
 
         {schedules.length === 0 ? (
-          <div className="text-center py-6 space-y-1">
-            {noProducts ? (
-              <>
-                <p className="text-sm text-on-surface-dim">No products in your catalog yet.</p>
-                <p className="text-xs text-on-surface-faint">Add products below, then come back to create a schedule.</p>
-              </>
-            ) : (
-              <p className="text-sm text-on-surface-dim">No dosing schedules. Add one above.</p>
-            )}
-          </div>
+          <EmptyState
+            message={noProducts
+              ? 'No products in your catalog yet. Add products below, then come back to create a schedule.'
+              : 'No dosing schedules. Add one above.'}
+          />
         ) : (
           <div className="space-y-2">
             {schedules.map(s => (
@@ -430,14 +394,15 @@ function DosingTab() {
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <button
+                  <IconButton
+                    icon={CheckCircle2}
+                    label="Log dose now"
+                    tone="primary"
+                    size={15}
+                    className="text-primary"
                     onClick={() => handleLogDose(s.id)}
                     disabled={loggingId === s.id}
-                    className="p-1.5 rounded-lg text-primary hover:bg-primary/10 disabled:opacity-50 transition-fluid"
-                    title="Log dose now"
-                  >
-                    <CheckCircle2 size={15} />
-                  </button>
+                  />
                   <ConfirmButton
                     onConfirm={() => deleteSchedule.mutate(s.id)}
                     className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
@@ -451,12 +416,12 @@ function DosingTab() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Recent dose history */}
       {logs.length > 0 && (
-        <div className="bg-surface-container rounded-2xl p-5">
-          <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold mb-4">Recent Doses</h2>
+        <Card className="space-y-4">
+          <SectionHeader title="Recent Doses" />
           <div className="space-y-1.5">
             {logs.slice(0, 20).map(l => (
               <div key={l.id} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-surface-container-high/50 transition-fluid">
@@ -468,29 +433,25 @@ function DosingTab() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Product catalog */}
-      <div className="bg-surface-container rounded-2xl overflow-hidden">
+      <Card flush>
         <button
           onClick={() => setCatalogOpen(v => !v)}
           className="w-full flex items-center justify-between p-5 text-left hover:bg-surface-container-high/30 transition-fluid"
         >
-          <span className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold">Product Catalog</span>
+          <span className="text-sm uppercase tracking-widest text-on-surface font-semibold">Product Catalog</span>
           {catalogOpen ? <ChevronUp size={16} className="text-on-surface-dim" /> : <ChevronDown size={16} className="text-on-surface-dim" />}
         </button>
 
         {catalogOpen && (
-          <div className="px-5 pb-5 space-y-4 border-t border-surface-container-high/30">
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={() => setShowProductForm(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-fluid"
-              >
-                <Plus size={14} />
+          <div className="px-5 pb-5 space-y-4">
+            <div className="flex justify-end">
+              <Button variant="tonal" size="sm" icon={Plus} onClick={() => setShowProductForm(v => !v)}>
                 Add Product
-              </button>
+              </Button>
             </div>
 
             {showProductForm && !editingProduct && (
@@ -517,7 +478,7 @@ function DosingTab() {
             )}
 
             {products.length === 0 ? (
-              <p className="text-sm text-on-surface-dim text-center py-4">No products yet.</p>
+              <EmptyState message="No products yet." />
             ) : (
               <div className="space-y-2">
                 {products.map(p => (
@@ -527,12 +488,7 @@ function DosingTab() {
                       <span className="ml-2 text-xs text-on-surface-dim">{PRODUCT_TYPE_LABELS[p.type]} · {p.unit}</span>
                     </div>
                     <div className="flex gap-1">
-                      <button
-                        onClick={() => setEditingProduct(p)}
-                        className="p-1.5 rounded-lg text-on-surface-faint hover:text-primary hover:bg-primary/10 transition-fluid"
-                      >
-                        <Pencil size={14} />
-                      </button>
+                      <IconButton icon={Pencil} label="Edit product" tone="primary" onClick={() => setEditingProduct(p)} />
                       <ConfirmButton
                         onConfirm={() => deleteProduct.mutate(p.id)}
                         className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
@@ -547,7 +503,7 @@ function DosingTab() {
             )}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
@@ -600,7 +556,6 @@ export default function Chemistry() {
         filterCount={1}
         filterActive={!!selectedParam}
         onClearFilters={() => setSelectedParam(null)}
-        maxWidth="max-w-6xl"
       />
 
       {tab === 'water-tests' ? (
@@ -612,9 +567,9 @@ export default function Chemistry() {
           onShowFormChange={setShowMeasurementForm}
         />
       ) : (
-        <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <PageBody>
           <DosingTab />
-        </div>
+        </PageBody>
       )}
     </div>
   )

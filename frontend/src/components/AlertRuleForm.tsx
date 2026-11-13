@@ -4,6 +4,7 @@ import { useProbes } from '@/hooks/useProbes'
 import { useProbeConfigs } from '@/hooks/useSettings'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
+import { Button, IconButton, Toggle, controlClass, labelClass as baseLabelClass } from '@/components/ui'
 
 interface AlertRuleFormProps {
   rule?: AlertRule
@@ -116,9 +117,8 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
     })
   }
 
-  const inputClass =
-    'w-full bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
-  const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1.5 block'
+  const inputClass = controlClass
+  const labelClass = cn(baseLabelClass, 'mb-1.5 block')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -127,12 +127,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
           <h2 className="text-lg font-semibold text-on-surface">
             {rule ? 'Edit Alert Rule' : 'New Alert Rule'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-on-surface-faint hover:text-on-surface transition-fluid cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <IconButton icon={X} label="Close" size={18} onClick={onClose} />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,7 +173,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
           {condition === 'probe_range' && (
             <p className={cn(
               'rounded-xl px-3 py-2.5 text-sm',
-              rangeText ? 'bg-surface-container-high text-on-surface-dim' : 'bg-amber-400/10 text-amber-400',
+              rangeText ? 'bg-surface-container-high text-on-surface-dim' : 'bg-warning/10 text-warning',
             )}>
               {rangeText
                 ? `${rangeText} The range is set in Settings › Probes and also drives the status colors.`
@@ -236,7 +231,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
                     severity === s.value
                       ? s.value === 'critical'
                         ? 'bg-tertiary/20 text-tertiary'
-                        : 'bg-amber-400/20 text-amber-400'
+                        : 'bg-warning/20 text-warning'
                       : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
                   )}
                 >
@@ -261,21 +256,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
           {/* Enabled */}
           <div className="flex items-center justify-between">
             <label className={labelClass + ' !mb-0'}>Enabled</label>
-            <button
-              type="button"
-              onClick={() => setEnabled(!enabled)}
-              className={cn(
-                'relative w-10 h-5 rounded-full transition-fluid cursor-pointer',
-                enabled ? 'bg-primary' : 'bg-surface-container-highest',
-              )}
-            >
-              <span
-                className={cn(
-                  'absolute top-0.5 h-4 w-4 rounded-full bg-on-surface transition-fluid',
-                  enabled ? 'left-5.5' : 'left-0.5',
-                )}
-              />
-            </button>
+            <Toggle checked={enabled} onChange={setEnabled} label="Rule enabled" />
           </div>
 
           {error && (
@@ -283,19 +264,10 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 rounded-xl text-sm font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 rounded-xl text-sm font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-            >
+            <Button className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button className="flex-1" variant="primary" type="submit">
               {rule ? 'Save Changes' : 'Create Rule'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

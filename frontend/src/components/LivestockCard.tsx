@@ -28,7 +28,7 @@ const typeIconClass: Record<LivestockType, string> = {
 
 const statusDotClass: Record<LivestockStatus, string> = {
   healthy:    'bg-secondary animate-bio-pulse',
-  sick:       'bg-amber-400',
+  sick:       'bg-warning',
   quarantine: 'bg-primary',
   deceased:   'bg-on-surface-faint',
 }

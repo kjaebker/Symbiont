@@ -83,22 +83,24 @@ export function PageHeader({
           )}
         </div>
 
-        {/* ── Desktop: underline tabs ── */}
+        {/* ── Desktop: pill tabs (no underline rule: the active tab is a tinted pill) ── */}
         {hasTabs && (
           <div className="hidden md:block mt-5">
-            <div className="flex gap-0 border-b border-outline-variant/20">
+            <div className="flex flex-wrap gap-1" role="tablist">
               {tabs.map((tab) => {
                 const isActive = tab.key === activeTab
                 const Icon = tab.icon
                 return (
                   <button
                     key={tab.key}
+                    role="tab"
+                    aria-selected={isActive}
                     onClick={() => onTabChange?.(tab.key)}
                     className={cn(
-                      'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-fluid',
+                      'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-fluid',
                       isActive
-                        ? 'text-primary border-primary'
-                        : 'text-on-surface-dim border-transparent hover:text-on-surface hover:border-outline-variant/40',
+                        ? 'text-primary bg-primary/15'
+                        : 'text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high',
                     )}
                   >
                     {Icon && <Icon size={13} strokeWidth={2} />}
@@ -200,13 +202,8 @@ export function PageHeader({
       {/* ── Desktop filter bar (full-width darker strip) ── */}
       {filterBar && (
         <>
-          {/* Divider — only when no tabs (tabs already have border-b) */}
-          {!hasTabs && (
-            <div className={cn('mx-auto px-6 md:px-8 mt-4', maxWidth)}>
-              <div className="border-b border-outline-variant/20" />
-            </div>
-          )}
-          <div className="hidden md:block bg-surface-container mt-0">
+          {/* The strip's darker surface separates it from the title; no rule needed */}
+          <div className="hidden md:block bg-surface-container mt-4">
             <div className={cn('px-6 md:px-8 mx-auto py-2.5', maxWidth)}>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-xs text-on-surface-faint shrink-0">

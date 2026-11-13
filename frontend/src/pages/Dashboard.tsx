@@ -39,7 +39,7 @@ const statusConfig = {
   },
   warning: {
     glow: 'rgba(251, 191, 36, 0.12)',
-    dotClass: 'bg-amber-400',
+    dotClass: 'bg-warning',
     headline: 'Something\'s off.',
     detail: (active: number, _critical: number) =>
       `${active} outlet${active !== 1 ? 's' : ''} running · outside normal range:`,
@@ -148,7 +148,7 @@ function TankStatusHeader({
                       'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-fluid',
                       p.status === 'critical'
                         ? 'bg-tertiary/15 text-tertiary hover:bg-tertiary/25'
-                        : 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25',
+                        : 'bg-warning/15 text-warning hover:bg-warning/25',
                     )}
                   >
                     {p.display_name}
@@ -166,7 +166,7 @@ function TankStatusHeader({
                 {dueTaskCount > 0 && (
                   <Link
                     to="/maintenance"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/15 text-warning hover:bg-warning/25 transition-fluid"
                   >
                     <ClipboardList size={11} />
                     {dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
@@ -175,7 +175,7 @@ function TankStatusHeader({
                 {dueDoseCount > 0 && (
                   <Link
                     to="/chemistry?tab=dosing"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/15 text-warning hover:bg-warning/25 transition-fluid"
                   >
                     <Droplets size={11} />
                     {dueDoseCount} dose{dueDoseCount !== 1 ? 's' : ''} due

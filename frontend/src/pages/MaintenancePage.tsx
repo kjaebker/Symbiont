@@ -6,6 +6,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, relativeTime } from '@/lib/utils'
 import Control from '@/pages/Control'
 import { PageHeader } from '@/components/PageHeader'
+import { Button, Card, EmptyState, Field, Input, PageBody, Select, SectionHeader } from '@/components/ui'
 import {
   useMaintenanceTasks,
   useCreateMaintenanceTask,
@@ -67,74 +68,60 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
   const [enabled] = useState(initial?.enabled ?? true)
 
   return (
-    <div className="bg-surface-container rounded-2xl p-5 space-y-4">
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-on-surface-dim">Task name</label>
-        <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+    <Card className="space-y-4">
+      <Field label="Task name">
+        <Input
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="e.g. Water Change"
         />
-      </div>
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wider text-on-surface-dim">Description (optional)</label>
-        <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+      </Field>
+      <Field label="Description (optional)">
+        <Input
           value={description}
           onChange={e => setDescription(e.target.value)}
           placeholder="Optional details"
         />
-      </div>
+      </Field>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wider text-on-surface-dim">Frequency</label>
-          <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+        <Field label="Frequency">
+          <Select
             value={frequency}
             onChange={e => setFrequency(e.target.value as MaintenanceFrequency)}
           >
             {(Object.entries(FREQUENCY_LABELS) as [MaintenanceFrequency, string][]).map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
         {frequency === 'every_n_days' && (
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-wider text-on-surface-dim">Every N days</label>
-            <input
+          <Field label="Every N days">
+            <Input
               type="number"
               min="1"
-              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
               value={intervalDays}
               onChange={e => setIntervalDays(e.target.value)}
               placeholder="7"
             />
-          </div>
+          </Field>
         )}
         {frequency === 'weekly' && (
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
-            <select
-              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          <Field label="Day of week">
+            <Select
               value={dayOfWeek}
               onChange={e => setDayOfWeek(Number(e.target.value))}
             >
               {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => (
                 <option key={i} value={i}>{d}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         )}
       </div>
       <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl text-sm text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-        >
-          Cancel
-        </button>
-        <button
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="primary"
           disabled={loading || !name}
           onClick={() => onSubmit({
             name,
@@ -144,12 +131,11 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
             day_of_week: frequency === 'weekly' ? dayOfWeek : undefined,
             enabled,
           })}
-          className="px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
         >
           {loading ? 'Saving…' : initial ? 'Update' : 'Add Task'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -199,8 +185,8 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
     <div className="space-y-6">
       {/* Due now */}
       {dueTasks.length > 0 && (
-        <div className="bg-surface-container rounded-2xl p-5">
-          <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold mb-4">Due Now</h2>
+        <Card className="space-y-4">
+          <SectionHeader title="Due Now" />
           <div className="space-y-2">
             {dueTasks.map(t => {
               const overdue = dueById.get(t.id)?.is_overdue ?? false
@@ -221,19 +207,20 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
                         </span>
                       )}
                     </div>
-                    <button
+                    <Button
+                      variant="tonal"
+                      size="sm"
+                      icon={CheckCircle2}
+                      className="shrink-0"
                       onClick={() => noteInputId === t.id ? handleComplete(t.id) : setNoteInputId(t.id)}
                       disabled={completingId === t.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
                     >
-                      <CheckCircle2 size={14} />
                       {completingId === t.id ? 'Logging…' : noteInputId === t.id ? 'Confirm Done' : 'Mark Done'}
-                    </button>
+                    </Button>
                   </div>
                   {noteInputId === t.id && (
-                    <input
+                    <Input
                       autoFocus
-                      className="w-full bg-surface-container-high/70 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
                       value={noteText}
                       onChange={e => setNoteText(e.target.value)}
                       placeholder="Optional note (e.g. changed 15 gallons)"
@@ -244,17 +231,15 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
               )
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* All tasks */}
-      <div className="bg-surface-container rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold">Recurring Tasks</h2>
-        </div>
+      <Card className="space-y-4">
+        <SectionHeader title="Recurring Tasks" />
 
         {showForm && !editingTask && (
-          <div className="mb-4">
+          <div>
             <TaskForm
               onSubmit={async data => {
                 await createTask.mutateAsync(data)
@@ -267,7 +252,7 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
         )}
 
         {editingTask && (
-          <div className="mb-4">
+          <div>
             <TaskForm
               initial={editingTask}
               onSubmit={async data => {
@@ -281,9 +266,7 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
         )}
 
         {tasks.length === 0 ? (
-          <p className="text-sm text-on-surface-dim text-center py-6">
-            No tasks yet. Add one above.
-          </p>
+          <EmptyState message="No tasks yet. Add one above." />
         ) : (
           <div className="space-y-2">
             {tasks.map(t => {
@@ -308,24 +291,21 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
                   </div>
                   {/* Action pills */}
                   <div className="flex gap-1.5 pt-0.5 flex-wrap justify-end">
-                    <button
+                    <Button
+                      variant="tonal"
+                      size="sm"
+                      icon={CheckCircle2}
                       onClick={() => handleComplete(t.id)}
                       disabled={completingId === t.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
                     >
-                      <CheckCircle2 size={13} />
                       {completingId === t.id ? 'Logging…' : 'Done'}
-                    </button>
-                    <button
-                      onClick={() => setEditingTask(t)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-                    >
-                      <Pencil size={13} />
+                    </Button>
+                    <Button variant="secondary" size="sm" icon={Pencil} onClick={() => setEditingTask(t)}>
                       Edit
-                    </button>
+                    </Button>
                     <ConfirmButton
                       onConfirm={() => deleteTask.mutate(t.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface-container-high text-on-surface-dim hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
                     >
                       <Trash2 size={13} />
                       Delete
@@ -336,7 +316,7 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
@@ -370,13 +350,12 @@ export default function MaintenancePage() {
           ? { label: 'Add Task', icon: Plus, onClick: () => setShowTaskForm((v) => !v), active: showTaskForm }
           : null
         }
-        maxWidth="max-w-6xl"
       />
 
       {tab === 'tasks' ? (
-        <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <PageBody>
           <TasksTab showForm={showTaskForm} setShowForm={setShowTaskForm} />
-        </div>
+        </PageBody>
       ) : (
         <Control hideHeader />
       )}
