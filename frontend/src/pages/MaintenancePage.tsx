@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { useSearchParams } from 'react-router-dom'
 import { Wrench, Power, Plus, Trash2, CheckCircle2, Pencil } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -11,6 +12,7 @@ import {
   useUpdateMaintenanceTask,
   useDeleteMaintenanceTask,
   useCompleteMaintenanceTask,
+  useDueItems,
 } from '@/hooks/useDosing'
 import type { MaintenanceTask, MaintenanceFrequency } from '@/api/client'
 
@@ -22,12 +24,24 @@ const FREQUENCY_LABELS: Record<MaintenanceFrequency, string> = {
   as_needed: 'As needed',
 }
 
+/** "3 days", "2 weeks", "5 months": how long ago a due date passed. */
+function overdueBy(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400_000)
+  if (days < 1) return ''
+  if (days < 14) return `${days} day${days === 1 ? '' : 's'}`
+  if (days < 60) return `${Math.floor(days / 7)} weeks`
+  return `${Math.floor(days / 30)} months`
+}
+
 function formatNextDue(iso: string | null): { label: string; overdue: boolean } {
   if (!iso) return { label: 'Not scheduled', overdue: false }
   const d = new Date(iso)
   const now = new Date()
   const diff = d.getTime() - now.getTime()
-  if (diff < 0) return { label: 'Overdue', overdue: true }
+  if (diff < 0) {
+    const late = overdueBy(iso)
+    return { label: late ? `Overdue ${late}` : 'Overdue', overdue: true }
+  }
   if (diff < 86400_000) return { label: 'Due today', overdue: false }
   return { label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), overdue: false }
 }
@@ -57,7 +71,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Task name</label>
         <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="e.g. Water Change"
@@ -66,7 +80,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-wider text-on-surface-dim">Description (optional)</label>
         <input
-          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
           value={description}
           onChange={e => setDescription(e.target.value)}
           placeholder="Optional details"
@@ -76,7 +90,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-wider text-on-surface-dim">Frequency</label>
           <select
-            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
             value={frequency}
             onChange={e => setFrequency(e.target.value as MaintenanceFrequency)}
           >
@@ -91,7 +105,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
             <input
               type="number"
               min="1"
-              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
               value={intervalDays}
               onChange={e => setIntervalDays(e.target.value)}
               placeholder="7"
@@ -102,7 +116,7 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-wider text-on-surface-dim">Day of week</label>
             <select
-              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full bg-surface-container-high rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
               value={dayOfWeek}
               onChange={e => setDayOfWeek(Number(e.target.value))}
             >
@@ -160,25 +174,15 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
   const [noteInputId, setNoteInputId] = useState<number | null>(null)
   const [noteText, setNoteText] = useState('')
 
-  const startOfToday = new Date()
-  startOfToday.setHours(0, 0, 0, 0)
-  const endOfToday = new Date(startOfToday.getTime() + 86400_000)
-
-  function alreadyDoneThisCycle(t: MaintenanceTask): boolean {
-    return !!t.last_completed_at && new Date(t.last_completed_at) >= new Date(t.next_due_at!)
-  }
-
-  const overdueTasks = tasks.filter(t => {
-    if (!t.enabled || t.frequency === 'as_needed' || !t.next_due_at) return false
-    if (alreadyDoneThisCycle(t)) return false
-    return new Date(t.next_due_at) < startOfToday
-  })
-  const upcomingTasks = tasks.filter(t => {
-    if (!t.enabled || t.frequency === 'as_needed' || !t.next_due_at) return false
-    if (alreadyDoneThisCycle(t)) return false
-    const d = new Date(t.next_due_at)
-    return d >= startOfToday && d < endOfToday
-  })
+  // What counts as "due" is decided by the server (/api/tasks/due), the same
+  // list the Dashboard counts, so the two pages can't disagree.
+  const { data: dueData } = useDueItems()
+  const dueById = new Map(
+    (dueData?.items ?? []).filter(i => i.kind === 'task').map(i => [i.id, i]),
+  )
+  const dueTasks = tasks
+    .filter(t => dueById.has(t.id))
+    .sort((a, b) => (a.next_due_at ?? '').localeCompare(b.next_due_at ?? ''))
 
   async function handleComplete(taskId: number) {
     setCompletingId(taskId)
@@ -194,30 +198,33 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
   return (
     <div className="space-y-6">
       {/* Due now */}
-      {(overdueTasks.length > 0 || upcomingTasks.length > 0) && (
+      {dueTasks.length > 0 && (
         <div className="bg-surface-container rounded-2xl p-5">
           <h2 className="text-sm uppercase tracking-wider text-on-surface-dim font-semibold mb-4">Due Now</h2>
           <div className="space-y-2">
-            {[...overdueTasks, ...upcomingTasks].map(t => {
-              const { overdue } = formatNextDue(t.next_due_at)
+            {dueTasks.map(t => {
+              const overdue = dueById.get(t.id)?.is_overdue ?? false
+              const late = overdue && t.next_due_at ? overdueBy(t.next_due_at) : ''
               return (
                 <div key={t.id} className={cn(
                   'p-3 rounded-xl space-y-2',
                   overdue ? 'bg-tertiary/10' : 'bg-surface-container-high',
                 )}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className={cn('text-sm font-medium', overdue ? 'text-tertiary' : 'text-on-surface')}>
                         {t.name}
                       </span>
                       {overdue && (
-                        <span className="ml-2 text-xs uppercase tracking-wider text-tertiary font-semibold">Overdue</span>
+                        <span className="ml-2 text-xs uppercase tracking-wider text-tertiary font-semibold">
+                          Overdue{late && ` ${late}`}
+                        </span>
                       )}
                     </div>
                     <button
                       onClick={() => noteInputId === t.id ? handleComplete(t.id) : setNoteInputId(t.id)}
                       disabled={completingId === t.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-fluid"
                     >
                       <CheckCircle2 size={14} />
                       {completingId === t.id ? 'Logging…' : noteInputId === t.id ? 'Confirm Done' : 'Mark Done'}
@@ -226,7 +233,7 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
                   {noteInputId === t.id && (
                     <input
                       autoFocus
-                      className="w-full bg-surface-container-high/70 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
+                      className="w-full bg-surface-container-high/70 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/50"
                       value={noteText}
                       onChange={e => setNoteText(e.target.value)}
                       placeholder="Optional note (e.g. changed 15 gallons)"
@@ -316,13 +323,13 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
                       <Pencil size={13} />
                       Edit
                     </button>
-                    <button
-                      onClick={() => deleteTask.mutate(t.id)}
+                    <ConfirmButton
+                      onConfirm={() => deleteTask.mutate(t.id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
                     >
                       <Trash2 size={13} />
                       Delete
-                    </button>
+                    </ConfirmButton>
                   </div>
                 </div>
               )

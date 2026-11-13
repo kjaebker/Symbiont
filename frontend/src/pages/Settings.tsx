@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { PageHeader } from '@/components/PageHeader'
 import { tabs, type Tab } from './settings/_shared'
@@ -19,7 +19,10 @@ const noContainerTabs: Tab[] = ['tank', 'system']
 
 export default function Settings() {
   usePageTitle('Settings')
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const activeTab: Tab = tabs.some((t) => t.key === tabParam) ? (tabParam as Tab) : 'dashboard'
+  const setActiveTab = (t: Tab) => setSearchParams({ tab: t }, { replace: true })
 
   const tabContainerClass = noContainerTabs.includes(activeTab)
     ? undefined

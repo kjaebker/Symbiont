@@ -14,6 +14,7 @@ type ContextInput struct {
 	Sump             *db.TankProfile // may be nil
 	Livestock        []db.LivestockItem
 	AlertRules       []db.AlertRule
+	ProbeConfigs     []db.ProbeConfig // probe ranges: the source of target parameters
 	Skills           []Skill // enabled skills to list under Available Workflows
 	DosingSchedules  []db.DosingSchedule
 	DueItems         []db.DueItem
@@ -60,29 +61,43 @@ func BuildContext(in ContextInput) string {
 		b.WriteString("\n")
 	}
 
-	// --- Target parameters derived from range alert rules ---
+	// --- Target parameters ---
+	// Probe ranges (Settings > Probes) are the source of truth; custom
+	// outside_range alert rules fill in for probes without a normal range.
 	b.WriteString("## Target Parameters\n\n")
-	rangeRules := make([]db.AlertRule, 0)
-	for _, r := range in.AlertRules {
-		if r.Enabled && r.Condition == "outside_range" {
-			rangeRules = append(rangeRules, r)
+	fmtBound := func(v *float64) string {
+		if v == nil {
+			return "--"
 		}
+		return fmt.Sprintf("%.4g", *v)
 	}
-	if len(rangeRules) == 0 {
-		b.WriteString("No range alert rules configured (targets unknown).\n\n")
-	} else {
-		for _, r := range rangeRules {
-			lo, hi := "--", "--"
-			if r.ThresholdLow != nil {
-				lo = fmt.Sprintf("%.4g", *r.ThresholdLow)
-			}
-			if r.ThresholdHigh != nil {
-				hi = fmt.Sprintf("%.4g", *r.ThresholdHigh)
-			}
-			fmt.Fprintf(&b, "- **%s:** %s – %s\n", r.ProbeName, lo, hi)
+	listed := make(map[string]bool)
+	for _, c := range in.ProbeConfigs {
+		if c.IsBinary || (c.MinNormal == nil && c.MaxNormal == nil) {
+			continue
+		}
+		listed[c.ProbeName] = true
+		name := c.ProbeName
+		if c.DisplayName != nil && *c.DisplayName != "" {
+			name = fmt.Sprintf("%s (%s)", *c.DisplayName, c.ProbeName)
+		}
+		fmt.Fprintf(&b, "- **%s:** %s – %s", name, fmtBound(c.MinNormal), fmtBound(c.MaxNormal))
+		if c.MinWarning != nil || c.MaxWarning != nil {
+			fmt.Fprintf(&b, " (critical outside %s – %s)", fmtBound(c.MinWarning), fmtBound(c.MaxWarning))
 		}
 		b.WriteString("\n")
 	}
+	for _, r := range in.AlertRules {
+		if !r.Enabled || r.Condition != "outside_range" || listed[r.ProbeName] {
+			continue
+		}
+		listed[r.ProbeName] = true
+		fmt.Fprintf(&b, "- **%s:** %s – %s\n", r.ProbeName, fmtBound(r.ThresholdLow), fmtBound(r.ThresholdHigh))
+	}
+	if len(listed) == 0 {
+		b.WriteString("No probe ranges or range alert rules configured (targets unknown).\n")
+	}
+	b.WriteString("\n")
 
 	// --- Dosing schedule ---
 	b.WriteString("## Dosing\n\n")

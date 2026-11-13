@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useProbes } from '@/hooks/useProbes'
+import { useProbeConfigs } from '@/hooks/useSettings'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
 
@@ -11,10 +12,18 @@ interface AlertRuleFormProps {
 }
 
 const conditions = [
+  { value: 'probe_range', label: 'Probe range' },
   { value: 'above', label: 'Above' },
   { value: 'below', label: 'Below' },
-  { value: 'outside_range', label: 'Outside Range' },
+  { value: 'outside_range', label: 'Outside' },
 ] as const
+
+function formatBounds(low: number | null, high: number | null): string {
+  if (low != null && high != null) return `${low} – ${high}`
+  if (low != null) return `minimum ${low}`
+  if (high != null) return `maximum ${high}`
+  return ''
+}
 
 const severities = [
   { value: 'warning', label: 'Warning' },
@@ -24,9 +33,10 @@ const severities = [
 export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
   const { data } = useProbes()
   const probes = data?.probes ?? []
+  const { data: configData } = useProbeConfigs()
 
   const [probeName, setProbeName] = useState(rule?.probe_name ?? '')
-  const [condition, setCondition] = useState<AlertRule['condition']>(rule?.condition ?? 'above')
+  const [condition, setCondition] = useState<AlertRule['condition']>(rule?.condition ?? 'probe_range')
   const [thresholdLow, setThresholdLow] = useState(rule?.threshold_low?.toString() ?? '')
   const [thresholdHigh, setThresholdHigh] = useState(rule?.threshold_high?.toString() ?? '')
   const [severity, setSeverity] = useState<AlertRule['severity']>(rule?.severity ?? 'warning')
@@ -41,6 +51,27 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
     }
   }, [probeName, probes])
 
+  // What a probe_range rule would follow for the selected probe and severity.
+  const probeConfig = configData?.configs.find((c) => c.probe_name === probeName)
+  const probeLabel = probes.find((p) => p.name === probeName)?.display_name ?? probeName
+  let rangeText = ''
+  if (probeConfig?.is_binary && probeConfig.ok_value != null) {
+    const reachable = probeConfig.input_category === 'alarm'
+      || (probeConfig.input_category === 'fluid' && severity === 'warning')
+    if (reachable) rangeText = `Notifies when ${probeLabel} leaves its OK state.`
+  } else if (probeConfig) {
+    const hasNormal = probeConfig.min_normal != null || probeConfig.max_normal != null
+    if (severity === 'critical') {
+      const bounds = formatBounds(probeConfig.min_warning, probeConfig.max_warning)
+      if (bounds) rangeText = `Notifies when ${probeLabel} passes its critical limits (${bounds}).`
+    } else {
+      const bounds = hasNormal
+        ? formatBounds(probeConfig.min_normal, probeConfig.max_normal)
+        : formatBounds(probeConfig.min_warning, probeConfig.max_warning)
+      if (bounds) rangeText = `Notifies when ${probeLabel} leaves its normal range (${bounds}).`
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -50,8 +81,16 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
       return
     }
 
-    const low = thresholdLow ? parseFloat(thresholdLow) : null
-    const high = thresholdHigh ? parseFloat(thresholdHigh) : null
+    const followsProbe = condition === 'probe_range'
+    const low = !followsProbe && thresholdLow ? parseFloat(thresholdLow) : null
+    const high = !followsProbe && thresholdHigh ? parseFloat(thresholdHigh) : null
+
+    if (followsProbe && configData && !rangeText) {
+      setError(severity === 'critical'
+        ? 'This probe has no critical limits. Set them in Settings › Probes or use a custom threshold.'
+        : 'This probe has no normal range. Set one in Settings › Probes or use a custom threshold.')
+      return
+    }
 
     if (condition === 'above' && high == null) {
       setError('Threshold is required for "above" condition')
@@ -116,7 +155,7 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
           {/* Condition */}
           <div>
             <label className={labelClass}>Condition</label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {conditions.map((c) => (
                 <button
                   key={c.value}
@@ -135,8 +174,22 @@ export function AlertRuleForm({ rule, onSubmit, onClose }: AlertRuleFormProps) {
             </div>
           </div>
 
+          {/* Probe range: thresholds come from the probe's own config */}
+          {condition === 'probe_range' && (
+            <p className={cn(
+              'rounded-xl px-3 py-2.5 text-sm',
+              rangeText ? 'bg-surface-container-high text-on-surface-dim' : 'bg-amber-400/10 text-amber-400',
+            )}>
+              {rangeText
+                ? `${rangeText} The range is set in Settings › Probes and also drives the status colors.`
+                : severity === 'critical'
+                  ? 'This probe has no critical limits yet. Set them in Settings › Probes, or pick a custom threshold.'
+                  : 'This probe has no normal range yet. Set one in Settings › Probes, or pick a custom threshold.'}
+            </p>
+          )}
+
           {/* Thresholds */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn('grid grid-cols-2 gap-3', condition === 'probe_range' && 'hidden')}>
             {(condition === 'below' || condition === 'outside_range') && (
               <div>
                 <label className={labelClass}>

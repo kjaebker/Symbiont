@@ -64,13 +64,19 @@ export interface AlertRule {
   id: number
   probe_name: string
   probe_display_name?: string
-  condition: 'above' | 'below' | 'outside_range'
+  /** probe_range follows the probe's configured ranges (Settings › Probes) and carries no thresholds. */
+  condition: 'probe_range' | 'above' | 'below' | 'outside_range'
   threshold_low: number | null
   threshold_high: number | null
   severity: 'warning' | 'critical'
   cooldown_minutes: number
   enabled: boolean
   created_at: string
+  /** probe_range rules only: the probe bounds currently in effect for this severity. */
+  range_low?: number | null
+  range_high?: number | null
+  /** probe_range rules only: false when the probe has no range that could trigger the rule. */
+  range_configured?: boolean
 }
 
 export interface SystemStatus {

@@ -56,6 +56,9 @@ func newAlertsListCmd(client *APIClient) *cobra.Command {
 			rows := make([][]string, 0, len(resp.Rules))
 			for _, a := range resp.Rules {
 				threshold := formatThreshold(a.Low, a.High)
+				if a.Condition == "probe_range" {
+					threshold = "probe range"
+				}
 				enabled := "yes"
 				if !a.Enabled {
 					enabled = "no"
@@ -117,7 +120,7 @@ func newAlertsCreateCmd(client *APIClient) *cobra.Command {
 		},
 	}
 	cmd.Flags().String("probe", "", "probe name (required)")
-	cmd.Flags().String("condition", "", "condition: above, below, outside_range (required)")
+	cmd.Flags().String("condition", "", "condition: probe_range (follow the probe's configured ranges), above, below, outside_range (required)")
 	cmd.Flags().Float64("low", 0, "low threshold")
 	cmd.Flags().Float64("high", 0, "high threshold")
 	cmd.Flags().String("severity", "warning", "severity: warning, critical")
@@ -179,7 +182,7 @@ func newAlertsUpdateCmd(client *APIClient) *cobra.Command {
 		},
 	}
 	cmd.Flags().String("probe", "", "probe name")
-	cmd.Flags().String("condition", "", "condition: above, below, outside_range")
+	cmd.Flags().String("condition", "", "condition: probe_range, above, below, outside_range")
 	cmd.Flags().Float64("low", 0, "low threshold")
 	cmd.Flags().Float64("high", 0, "high threshold")
 	cmd.Flags().String("severity", "", "severity: warning, critical")

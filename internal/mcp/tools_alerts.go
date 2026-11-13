@@ -15,7 +15,7 @@ import (
 
 func getAlertRulesTool() mcp.Tool {
 	return mcp.NewTool("get_alert_rules",
-		mcp.WithDescription("Get all configured alert rules — the thresholds set for each probe that trigger notifications when breached. Useful for understanding what parameter ranges are considered normal or concerning."),
+		mcp.WithDescription("Get all configured alert rules — what triggers a notification for each probe. Rules with condition 'probe_range' follow the probe's configured ranges (range_low/range_high show the bounds in effect); other rules carry their own thresholds. Useful for understanding what parameter ranges are considered normal or concerning."),
 	)
 }
 
@@ -64,15 +64,15 @@ func getAlertEventsHandler(client *cli.APIClient) server.ToolHandlerFunc {
 
 func createAlertRuleTool() mcp.Tool {
 	return mcp.NewTool("create_alert_rule",
-		mcp.WithDescription("Create an alert threshold rule for a probe. The rule fires when the condition is met and sends a notification. Use get_current_parameters to find valid probe names. Conditions: 'above' requires threshold_high; 'below' requires threshold_low; 'outside_range' requires both."),
+		mcp.WithDescription("Create an alert rule for a probe. The rule fires when the condition is met and sends a notification. Use get_current_parameters to find valid probe names. Prefer condition 'probe_range': it follows the probe's configured ranges (the same ones that drive its status), firing when the probe's status reaches the rule's severity, and takes no thresholds. Custom thresholds: 'above' requires threshold_high; 'below' requires threshold_low; 'outside_range' requires both."),
 		mcp.WithString("probe_name",
 			mcp.Required(),
 			mcp.Description("Probe name exactly as returned by get_current_parameters"),
 		),
 		mcp.WithString("condition",
 			mcp.Required(),
-			mcp.Description("Trigger condition: above/below fires when value crosses a threshold; outside_range fires when value leaves the band"),
-			mcp.Enum("above", "below", "outside_range"),
+			mcp.Description("Trigger condition: probe_range follows the probe's configured ranges (no thresholds); above/below fires when value crosses a threshold; outside_range fires when value leaves the band"),
+			mcp.Enum("probe_range", "above", "below", "outside_range"),
 		),
 		mcp.WithNumber("threshold_low",
 			mcp.Description("Low threshold — required for 'below' and 'outside_range' conditions"),
@@ -153,7 +153,7 @@ func updateAlertRuleTool() mcp.Tool {
 		),
 		mcp.WithString("condition",
 			mcp.Description("Trigger condition"),
-			mcp.Enum("above", "below", "outside_range"),
+			mcp.Enum("probe_range", "above", "below", "outside_range"),
 		),
 		mcp.WithNumber("threshold_low",
 			mcp.Description("Low threshold"),

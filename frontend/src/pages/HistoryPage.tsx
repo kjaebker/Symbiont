@@ -38,8 +38,14 @@ export default function HistoryPage() {
   const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>('')
 
   // Telemetry state
-  const [selectedProbes, setSelectedProbes] = useState<string[]>([])
-  const [selectedMeas, setSelectedMeas] = useState<string[]>([])
+  // Seeded from the URL so links like /history?tab=telemetry&probe=Tmp
+  // (every Dashboard card value) open with that probe already charted.
+  const [selectedProbes, setSelectedProbes] = useState<string[]>(
+    () => (searchParams.get('probe') ?? '').split(',').filter(Boolean),
+  )
+  const [selectedMeas, setSelectedMeas] = useState<string[]>(
+    () => (searchParams.get('meas') ?? '').split(',').filter(Boolean),
+  )
   const [range, setRange] = useState<HistoryRange>(() => {
     const now = new Date()
     return { from: new Date(now.getTime() - 86400000), to: now }

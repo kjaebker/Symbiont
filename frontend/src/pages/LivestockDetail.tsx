@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   Fish, Flower2, Shell, Box,
@@ -632,14 +633,16 @@ export default function LivestockDetail() {
               </button>
             )}
             {item.image_path && (
-              <button
-                onClick={() => deleteItemImage.mutate(numericId)}
+              <ConfirmButton
+                onConfirm={() => deleteItemImage.mutate(numericId)}
                 disabled={deleteItemImage.isPending}
                 title="Remove photo"
+                confirmLabel="Remove photo"
+                floating
                 className="p-2 rounded-xl glass text-on-surface-dim hover:text-tertiary transition-fluid"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </ConfirmButton>
             )}
           </div>
           <input
@@ -791,14 +794,15 @@ export default function LivestockDetail() {
                         >
                           <History className="h-3.5 w-3.5" />
                         </button>
-                        <button
-                          onClick={() => deleteObsImage.mutate({ livestockId: numericId, obsId: obs.id })}
+                        <ConfirmButton
+                          onConfirm={() => deleteObsImage.mutate({ livestockId: numericId, obsId: obs.id })}
                           disabled={deleteObsImage.isPending}
                           className="p-1 rounded-lg text-on-surface-faint hover:text-tertiary transition-fluid"
                           title="Remove photo"
+                          confirmLabel="Remove photo"
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </ConfirmButton>
                       </div>
                     )}
                   </div>

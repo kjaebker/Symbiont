@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { cn,relativeTime } from '@/lib/utils'
 import { Settings as SettingsIcon,Plus,Trash2,Copy,Check } from 'lucide-react'
 import { useTokens,useCreateToken,useUpdateTokenScope,useRevokeToken } from '@/hooks/useSettings'
+import { APIRequestError } from '@/api/_fetch'
 import { LoadingState,EmptyState } from './_shared'
 
 // =============================================================================
@@ -9,7 +10,7 @@ import { LoadingState,EmptyState } from './_shared'
 // =============================================================================
 
 export default function TokensTab() {
-  const { data, isLoading } = useTokens()
+  const { data, isLoading, isError, error } = useTokens()
   const createMutation = useCreateToken()
   const updateScopeMutation = useUpdateTokenScope()
   const revokeMutation = useRevokeToken()
@@ -136,6 +137,13 @@ export default function TokensTab() {
 
       {isLoading ? (
         <LoadingState label="Loading tokens..." />
+      ) : isError ? (
+        <EmptyState
+          icon={<SettingsIcon size={32} />}
+          message={error instanceof APIRequestError && error.status === 403
+            ? 'This token is not allowed to manage API tokens. Sign in with an admin token to see them.'
+            : `Couldn't load API tokens: ${error.message}`}
+        />
       ) : tokens.length === 0 ? (
         <EmptyState
           icon={<SettingsIcon size={32} />}

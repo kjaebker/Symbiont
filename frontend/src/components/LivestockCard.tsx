@@ -58,7 +58,10 @@ export function LivestockCard({ item }: LivestockCardProps) {
           <img
             src={thumbUrl(item.image_path)}
             alt={item.name}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className={cn(
+              'absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105',
+              item.status === 'deceased' && 'grayscale opacity-60',
+            )}
           />
         ) : (
           <div className={cn('absolute inset-0 flex items-center justify-center', typePlaceholderClass[item.type])}>

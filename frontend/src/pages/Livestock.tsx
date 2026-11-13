@@ -11,6 +11,7 @@ import { LivestockCard } from '@/components/LivestockCard'
 import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/components/LivestockForm'
 import { PageHeader } from '@/components/PageHeader'
 import { FilterDropdown } from '@/components/FilterDropdown'
+import { cn } from '@/lib/utils'
 import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
@@ -27,16 +28,21 @@ export default function Livestock() {
   const allItems = data?.livestock ?? []
   const speciesSuggestions = speciesData?.species ?? []
 
-  const filtered = allItems.filter((item) => {
+  // Deceased entries are kept as a record but are not part of the tank: they
+  // are left out of the counts and only listed when asked for by status.
+  const living = allItems.filter((i) => i.status !== 'deceased')
+  const deceasedCount = allItems.length - living.length
+
+  const filtered = (statusFilter === 'deceased' ? allItems : living).filter((item) => {
     if (typeFilter && item.type !== typeFilter) return false
     if (statusFilter && item.status !== statusFilter) return false
     return true
   })
 
   function countType(type: LivestockType) {
-    return allItems.filter((i) => i.type === type).reduce((sum, i) => sum + i.quantity, 0)
+    return living.filter((i) => i.type === type).reduce((sum, i) => sum + i.quantity, 0)
   }
-  const nonHealthyCount = allItems.filter((i) => i.status !== 'healthy').length
+  const needAttentionCount = living.filter((i) => i.status !== 'healthy').length
 
   async function handleCreate(form: LivestockFormData): Promise<number> {
     const item = await createItem.mutateAsync({
@@ -62,7 +68,7 @@ export default function Livestock() {
       <FilterDropdown
         label="Status"
         value={statusFilter}
-        options={[{ value: '', label: 'All status' }, ...STATUS_OPTIONS]}
+        options={[{ value: '', label: 'All living' }, ...STATUS_OPTIONS]}
         onChange={(v) => setStatusFilter(v as LivestockStatus | '')}
       />
     </>
@@ -90,10 +96,23 @@ export default function Livestock() {
           {countType('other')} Other
         </span>
       )}
-      {nonHealthyCount > 0 && (
+      {needAttentionCount > 0 && (
         <span className="px-3 py-1.5 rounded-full bg-amber-400/10 text-amber-400 text-xs font-medium">
-          {nonHealthyCount} Need attention
+          {needAttentionCount} Need attention
         </span>
+      )}
+      {deceasedCount > 0 && (
+        <button
+          onClick={() => setStatusFilter(statusFilter === 'deceased' ? '' : 'deceased')}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid cursor-pointer',
+            statusFilter === 'deceased'
+              ? 'bg-surface-container-highest text-on-surface'
+              : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
+          )}
+        >
+          {deceasedCount} Deceased
+        </button>
       )}
     </>
   ) : null

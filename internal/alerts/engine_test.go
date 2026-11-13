@@ -105,7 +105,7 @@ func TestIsBreached(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isBreached(tt.rule, tt.value)
+			got := isBreached(tt.rule, tt.value, nil)
 			if got != tt.expected {
 				t.Errorf("isBreached() = %v, want %v", got, tt.expected)
 			}
@@ -364,7 +364,7 @@ func TestFormatAlertTitleUsesDisplayName(t *testing.T) {
 		t.Errorf("unexpected title: %s", got)
 	}
 
-	got = formatAlertBody(rule, 82.0, "Tank Temperature")
+	got = formatAlertBody(rule, 82.0, "Tank Temperature", nil)
 	if got != "Tank Temperature is 82.00 (threshold: above 80.00). Check your tank." {
 		t.Errorf("unexpected body: %s", got)
 	}
@@ -417,4 +417,184 @@ type slowNotifier struct {
 func (s *slowNotifier) Send(ctx context.Context, n notify.Notification) error {
 	time.Sleep(s.delay)
 	return s.inner.Send(ctx, n)
+}
+
+// probeRangeRule inserts a probe_range rule for "Temp" and a probe config with
+// a normal range of 76–80 and critical limits of 74–82.
+func probeRangeRule(t *testing.T, sqlite *db.SQLiteDB, severity string) int64 {
+	t.Helper()
+	ctx := context.Background()
+	if err := sqlite.UpsertProbeConfig(ctx, db.ProbeConfig{
+		ProbeName:     "Temp",
+		InputCategory: "probe",
+		MinNormal:     ptr(76.0),
+		MaxNormal:     ptr(80.0),
+		MinWarning:    ptr(74.0),
+		MaxWarning:    ptr(82.0),
+	}); err != nil {
+		t.Fatalf("upserting probe config: %v", err)
+	}
+	id, err := sqlite.InsertAlertRule(ctx, db.AlertRule{
+		ProbeName:       "Temp",
+		Condition:       db.AlertConditionProbeRange,
+		Severity:        severity,
+		CooldownMinutes: 15,
+		Enabled:         true,
+	})
+	if err != nil {
+		t.Fatalf("inserting rule: %v", err)
+	}
+	return id
+}
+
+func TestProbeRangeRuleFollowsProbeConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		severity string
+		value    float64
+		fires    bool
+	}{
+		{"warning rule, normal value", "warning", 78.0, false},
+		{"warning rule, warning value", "warning", 81.0, true},
+		{"warning rule, critical value", "warning", 83.0, true},
+		{"critical rule, warning value", "critical", 81.0, false},
+		{"critical rule, critical value", "critical", 73.0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			engine, sqlite, duck, recorder := setupTestEngine(t)
+			probeRangeRule(t, sqlite, tt.severity)
+			seedProbeReading(t, duck, "Temp", tt.value)
+
+			engine.Evaluate(context.Background())
+
+			if got := recorder.count() == 1; got != tt.fires {
+				t.Errorf("fired = %v, want %v", got, tt.fires)
+			}
+		})
+	}
+}
+
+func TestProbeRangeRuleTracksConfigChanges(t *testing.T) {
+	engine, sqlite, duck, recorder := setupTestEngine(t)
+	ctx := context.Background()
+	ruleID := probeRangeRule(t, sqlite, "warning")
+	seedProbeReading(t, duck, "Temp", 81.0)
+
+	engine.Evaluate(ctx)
+	if recorder.count() != 1 {
+		t.Fatalf("expected alert to fire, got %d notifications", recorder.count())
+	}
+	body := recorder.sent[0].Body
+	if body != "Temp is 81.00, outside its normal range (76.00–80.00). Check your tank." {
+		t.Errorf("unexpected body: %s", body)
+	}
+
+	// Widening the probe's normal range resolves the alert without touching the rule.
+	if err := sqlite.UpsertProbeConfig(ctx, db.ProbeConfig{
+		ProbeName:     "Temp",
+		InputCategory: "probe",
+		MinNormal:     ptr(76.0),
+		MaxNormal:     ptr(82.0),
+	}); err != nil {
+		t.Fatalf("upserting probe config: %v", err)
+	}
+	engine.Evaluate(ctx)
+	if st := engine.state[ruleID]; st == nil || st.Active {
+		t.Fatal("expected alert to clear after the range was widened")
+	}
+}
+
+func openEventCount(t *testing.T, sqlite *db.SQLiteDB) int {
+	t.Helper()
+	events, err := sqlite.ListAlertEvents(context.Background(), nil, true, 100)
+	if err != nil {
+		t.Fatalf("listing events: %v", err)
+	}
+	return len(events)
+}
+
+func TestDisablingRuleClearsActiveAlert(t *testing.T) {
+	engine, sqlite, duck, _ := setupTestEngine(t)
+	ctx := context.Background()
+
+	rule := db.AlertRule{
+		ProbeName:       "Temp",
+		Condition:       "above",
+		ThresholdHigh:   ptr(80.0),
+		Severity:        "warning",
+		CooldownMinutes: 15,
+		Enabled:         true,
+	}
+	ruleID, err := sqlite.InsertAlertRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("inserting rule: %v", err)
+	}
+	seedProbeReading(t, duck, "Temp", 82.0)
+	engine.Evaluate(ctx)
+	if n := openEventCount(t, sqlite); n != 1 {
+		t.Fatalf("expected 1 open event, got %d", n)
+	}
+
+	rule.Enabled = false
+	if err := sqlite.UpdateAlertRule(ctx, ruleID, rule); err != nil {
+		t.Fatalf("disabling rule: %v", err)
+	}
+	engine.Evaluate(ctx)
+
+	if n := openEventCount(t, sqlite); n != 0 {
+		t.Errorf("expected the event to clear when its rule is disabled, %d still open", n)
+	}
+}
+
+func TestStartupReconcilesOpenEvents(t *testing.T) {
+	engine, sqlite, duck, recorder := setupTestEngine(t)
+	ctx := context.Background()
+
+	insert := func(enabled bool) int64 {
+		id, err := sqlite.InsertAlertRule(ctx, db.AlertRule{
+			ProbeName:       "Temp",
+			Condition:       "above",
+			ThresholdHigh:   ptr(80.0),
+			Severity:        "warning",
+			CooldownMinutes: 15,
+			Enabled:         enabled,
+		})
+		if err != nil {
+			t.Fatalf("inserting rule: %v", err)
+		}
+		return id
+	}
+	breached := insert(true)
+	disabled := insert(false)
+
+	// Open events left behind by a previous process: two for the still
+	// breached rule (a duplicate) and one for a rule that is now disabled.
+	for _, ruleID := range []int64{breached, breached, disabled} {
+		if _, err := sqlite.InsertAlertEvent(ctx, ruleID, 82.0); err != nil {
+			t.Fatalf("inserting event: %v", err)
+		}
+	}
+	seedProbeReading(t, duck, "Temp", 82.0)
+
+	engine.Evaluate(ctx)
+
+	// The breached rule keeps exactly one open event and does not fire again.
+	if n := openEventCount(t, sqlite); n != 1 {
+		t.Errorf("expected 1 open event after reconcile, got %d", n)
+	}
+	if recorder.count() != 0 {
+		t.Errorf("expected no new notification for an adopted alert, got %d", recorder.count())
+	}
+	if st := engine.state[breached]; st == nil || !st.Active {
+		t.Error("expected the breached rule's open event to be adopted")
+	}
+
+	// Once the reading recovers, the adopted event clears.
+	_, _ = duck.DB().ExecContext(ctx, "DELETE FROM probe_readings WHERE probe_name = 'Temp'")
+	seedProbeReading(t, duck, "Temp", 78.0)
+	engine.Evaluate(ctx)
+	if n := openEventCount(t, sqlite); n != 0 {
+		t.Errorf("expected adopted event to clear, %d still open", n)
+	}
 }

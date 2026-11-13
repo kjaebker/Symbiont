@@ -22,7 +22,19 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function PageFallback() {
-  return <div className="flex-1" />
+  return (
+    <div className="flex-1 px-6 md:px-8 pt-8 max-w-7xl mx-auto w-full space-y-6" aria-busy="true">
+      <div className="space-y-3">
+        <div className="h-3 w-28 rounded-full bg-surface-container animate-pulse" />
+        <div className="h-9 w-64 rounded-xl bg-surface-container animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-40 rounded-2xl bg-surface-container animate-pulse" />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function App() {

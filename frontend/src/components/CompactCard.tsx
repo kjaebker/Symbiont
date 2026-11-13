@@ -206,7 +206,7 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
 
   return (
     <button
-      onClick={() => navigate('/measurements')}
+      onClick={() => navigate('/chemistry')}
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left relative overflow-hidden"
       style={{
         background: 'radial-gradient(ellipse 50% 50% at 100% 0%, rgba(109,254,156,0.18) 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.18))',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { useSearchParams } from 'react-router-dom'
 import { FlaskConical, Droplets, Plus, Pencil, Trash2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -437,13 +438,14 @@ function DosingTab() {
                   >
                     <CheckCircle2 size={15} />
                   </button>
-                  <button
-                    onClick={() => deleteSchedule.mutate(s.id)}
+                  <ConfirmButton
+                    onConfirm={() => deleteSchedule.mutate(s.id)}
                     className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
                     title="Remove schedule"
+                    confirmLabel="Remove"
                   >
                     <Trash2 size={15} />
-                  </button>
+                  </ConfirmButton>
                 </div>
               </div>
             ))}
@@ -531,12 +533,13 @@ function DosingTab() {
                       >
                         <Pencil size={14} />
                       </button>
-                      <button
-                        onClick={() => deleteProduct.mutate(p.id)}
+                      <ConfirmButton
+                        onConfirm={() => deleteProduct.mutate(p.id)}
                         className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                        title="Delete product"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </ConfirmButton>
                     </div>
                   </div>
                 ))}

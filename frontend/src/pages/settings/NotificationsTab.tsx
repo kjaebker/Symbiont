@@ -9,6 +9,21 @@ import { LoadingState,EmptyState } from './_shared'
 // Notifications Tab
 // =============================================================================
 
+/**
+ * An ntfy topic URL is a secret: anyone who knows the path can read and send
+ * to the topic. Show the host and only the last characters of the path.
+ */
+function maskTargetUrl(raw: string): string {
+  try {
+    const u = new URL(raw)
+    const secret = u.pathname.replace(/^\//, '') + u.search
+    if (!secret) return u.host
+    return `${u.host}/••••${secret.length > 6 ? secret.slice(-3) : ''}`
+  } catch {
+    return '••••'
+  }
+}
+
 export default function NotificationsTab() {
   const { data, isLoading } = useNotificationTargets()
   const upsertMutation = useUpsertNotificationTarget()
@@ -161,7 +176,7 @@ export default function NotificationsTab() {
                     {t.enabled ? 'Enabled' : 'Disabled'}
                   </button>
                 </div>
-                <p className="text-xs text-on-surface-dim font-mono break-all leading-relaxed">{t.config}</p>
+                <p className="text-xs text-on-surface-dim font-mono break-all leading-relaxed">{maskTargetUrl(t.config)}</p>
                 <div className="flex items-center justify-end">
                   {deleteConfirm === t.id ? (
                     <div className="flex items-center gap-1">
@@ -212,7 +227,7 @@ export default function NotificationsTab() {
                 {targets.map((t) => (
                   <tr key={t.id} className="transition-fluid hover:bg-surface-container-high/50">
                     <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
-                    <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">{t.config}</td>
+                    <td className="py-3 px-4 text-sm text-on-surface-dim font-mono truncate max-w-xs">{maskTargetUrl(t.config)}</td>
                     <td className="py-3 px-4">
                       <button
                         onClick={() => handleToggle(t)}

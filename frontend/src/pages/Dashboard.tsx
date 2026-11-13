@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
-import { Lock, Unlock, ClipboardList } from 'lucide-react'
+import { Lock, Unlock, ClipboardList, Droplets } from 'lucide-react'
 import { PageThemeContext } from '@/lib/pageTheme'
 import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
@@ -42,14 +42,14 @@ const statusConfig = {
     dotClass: 'bg-amber-400',
     headline: 'Something\'s off.',
     detail: (active: number, _critical: number) =>
-      `${active} outlet${active !== 1 ? 's' : ''} running · check probe readings`,
+      `${active} outlet${active !== 1 ? 's' : ''} running · outside normal range:`,
   },
   critical: {
     glow: 'rgba(255, 135, 150, 0.15)',
     dotClass: 'bg-tertiary animate-bio-pulse',
     headline: 'Check your tank.',
     detail: (_active: number, critical: number) =>
-      `${critical} critical alert${critical > 1 ? 's' : ''} — immediate attention needed`,
+      `${critical} reading${critical > 1 ? 's' : ''} past critical limits — immediate attention needed`,
   },
 } as const
 
@@ -77,6 +77,8 @@ function TankStatusHeader({
   sickCount,
   quarantineCount,
   dueTaskCount,
+  dueDoseCount,
+  problems,
 }: {
   worstStatus: string
   activeOutlets: number
@@ -89,6 +91,9 @@ function TankStatusHeader({
   sickCount: number
   quarantineCount: number
   dueTaskCount: number
+  dueDoseCount: number
+  /** Probes outside their configured range, worst first. */
+  problems: Probe[]
 }) {
   const cfg = statusConfig[worstStatus as keyof typeof statusConfig] ?? statusConfig.normal
 
@@ -132,14 +137,51 @@ function TankStatusHeader({
                 </span>
               )}
             </p>
-            {dueTaskCount > 0 && (
-              <Link
-                to="/maintenance"
-                className="mt-2 self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
-              >
-                <ClipboardList size={11} />
-                {dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
-              </Link>
+            {/* Name what is wrong: each out-of-range probe, linked to its chart */}
+            {problems.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {problems.map((p) => (
+                  <Link
+                    key={p.name}
+                    to={`/history?tab=telemetry&probe=${encodeURIComponent(p.name)}`}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-fluid',
+                      p.status === 'critical'
+                        ? 'bg-tertiary/15 text-tertiary hover:bg-tertiary/25'
+                        : 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25',
+                    )}
+                  >
+                    {p.display_name}
+                    <span className="font-mono font-medium">
+                      {p.is_binary
+                        ? (p.value === 0 ? p.off_label : p.on_label) ?? (p.status === 'critical' ? 'Alarm' : 'Check')
+                        : `${p.value}${p.unit ? ` ${p.unit}` : ''}`}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {(dueTaskCount > 0 || dueDoseCount > 0) && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {dueTaskCount > 0 && (
+                  <Link
+                    to="/maintenance"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
+                  >
+                    <ClipboardList size={11} />
+                    {dueTaskCount} task{dueTaskCount !== 1 ? 's' : ''} due
+                  </Link>
+                )}
+                {dueDoseCount > 0 && (
+                  <Link
+                    to="/chemistry?tab=dosing"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 transition-fluid"
+                  >
+                    <Droplets size={11} />
+                    {dueDoseCount} dose{dueDoseCount !== 1 ? 's' : ''} due
+                  </Link>
+                )}
+              </div>
             )}
             {lastPoll && (
               <p className="text-xs text-on-surface-faint mt-1">
@@ -369,6 +411,10 @@ export default function Dashboard() {
   const criticalCount = probes.filter((p) => p.status === 'critical').length
   const feedActive = (feedData?.active ?? 0) === 1
   const dueTaskCount = (dueData?.items ?? []).filter((i) => i.kind === 'task').length
+  const dueDoseCount = (dueData?.items ?? []).filter((i) => i.kind === 'dose').length
+  const problems = probes
+    .filter((p) => p.status === 'critical' || p.status === 'warning')
+    .sort((a, b) => Number(b.status === 'critical') - Number(a.status === 'critical'))
 
   const livestock = livestockData?.livestock ?? []
   const sickCount = livestock
@@ -394,6 +440,8 @@ export default function Dashboard() {
         sickCount={sickCount}
         quarantineCount={quarantineCount}
         dueTaskCount={dueTaskCount}
+        dueDoseCount={dueDoseCount}
+        problems={problems}
       />
 
       {/* Floating lock button — mobile only, fixed above bottom nav */}

@@ -131,6 +131,13 @@ func (s *Server) HandleAgentContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	probeConfigs, err := s.sqlite.ListProbeConfigs(ctx)
+	if err != nil {
+		s.logger.Error("failed to list probe configs", "err", err)
+		writeError(w, http.StatusInternalServerError, "failed to get probe configs", "db_error")
+		return
+	}
+
 	// Load enabled skills (all skills if none are explicitly listed).
 	allSkills, err := agent.LoadSkills()
 	if err != nil {
@@ -160,6 +167,7 @@ func (s *Server) HandleAgentContext(w http.ResponseWriter, r *http.Request) {
 		Sump:            sump,
 		Livestock:       livestock,
 		AlertRules:      alertRules,
+		ProbeConfigs:    probeConfigs,
 		Skills:          enabledSkills,
 		DosingSchedules: dosingSchedules,
 		DueItems:        dueItems,

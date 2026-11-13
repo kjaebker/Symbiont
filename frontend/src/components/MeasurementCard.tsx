@@ -21,7 +21,7 @@ export function MeasurementCard({ parameter }: MeasurementCardProps) {
 
   return (
     <button
-      onClick={() => navigate('/measurements')}
+      onClick={() => navigate('/chemistry')}
       className="rounded-2xl p-5 text-left transition-fluid hover:shadow-glow-secondary cursor-pointer w-full relative overflow-hidden"
       style={{ background: 'radial-gradient(ellipse 55% 50% at 100% 0%, rgba(109,254,156,0.22) 0%, transparent 100%), linear-gradient(145deg, var(--color-surface-container) 20%, rgba(109,254,156,0.22))' }}
     >

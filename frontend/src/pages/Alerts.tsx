@@ -8,12 +8,22 @@ import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
 
 const conditionLabels: Record<string, string> = {
+  probe_range: 'Probe range',
   above: 'Above',
   below: 'Below',
   outside_range: 'Outside',
 }
 
 function formatThreshold(rule: AlertRule): string {
+  if (rule.condition === 'probe_range') {
+    if (!rule.range_configured) return 'No range set'
+    const low = rule.range_low
+    const high = rule.range_high
+    if (low != null && high != null) return `${low} – ${high}`
+    if (low != null) return `< ${low}`
+    if (high != null) return `> ${high}`
+    return 'OK state'
+  }
   if (rule.condition === 'above' && rule.threshold_high != null) {
     return `> ${rule.threshold_high}`
   }
@@ -24,6 +34,11 @@ function formatThreshold(rule: AlertRule): string {
     return `${rule.threshold_low} – ${rule.threshold_high}`
   }
   return '--'
+}
+
+/** A probe_range rule whose probe has no range can never fire. */
+function isUnconfigured(rule: AlertRule): boolean {
+  return rule.condition === 'probe_range' && !rule.range_configured
 }
 
 export default function Alerts() {
@@ -100,7 +115,7 @@ export default function Alerts() {
             {rules.map((rule) => (
               <div key={rule.id} className="bg-surface-container rounded-2xl px-4 py-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className={cn('transition-fluid', !rule.enabled && 'opacity-50')}>
                     <span className="text-sm font-medium text-on-surface">
                       {rule.probe_display_name ?? rule.probe_name}
                     </span>
@@ -108,7 +123,7 @@ export default function Alerts() {
                       <span className="text-xs text-on-surface-dim uppercase tracking-wider">
                         {conditionLabels[rule.condition] ?? rule.condition}
                       </span>
-                      <span className="text-xs text-on-surface font-mono">{formatThreshold(rule)}</span>
+                      <span className={cn('text-xs font-mono', isUnconfigured(rule) ? 'text-amber-400' : 'text-on-surface')}>{formatThreshold(rule)}</span>
                       <span
                         className={cn(
                           'inline-block px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
@@ -201,13 +216,13 @@ export default function Alerts() {
                       key={rule.id}
                       className="transition-fluid hover:bg-surface-container-high/50"
                     >
-                      <td className="py-3 px-4 text-sm font-medium text-on-surface">
+                      <td className={cn(!rule.enabled && 'opacity-50', "py-3 px-4 text-sm font-medium text-on-surface")}>
                         {rule.probe_display_name ?? rule.probe_name}
                       </td>
-                      <td className="py-3 px-4 text-xs text-on-surface-dim uppercase tracking-wider">
+                      <td className={cn(!rule.enabled && 'opacity-50', "py-3 px-4 text-xs text-on-surface-dim uppercase tracking-wider")}>
                         {conditionLabels[rule.condition] ?? rule.condition}
                       </td>
-                      <td className="py-3 px-4 text-sm text-on-surface font-mono">
+                      <td className={cn('py-3 px-4 text-sm font-mono', isUnconfigured(rule) ? 'text-amber-400' : 'text-on-surface')}>
                         {formatThreshold(rule)}
                       </td>
                       <td className="py-3 px-4">
@@ -282,10 +297,9 @@ export default function Alerts() {
       {/* Mutation errors */}
       {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
         <div className="bg-tertiary/10 rounded-xl p-3 text-sm text-tertiary">
-          {createMutation.isError && 'Failed to create alert rule. '}
-          {updateMutation.isError && 'Failed to update alert rule. '}
-          {deleteMutation.isError && 'Failed to delete alert rule. '}
-          Please try again.
+          {createMutation.isError && `Couldn't create the alert rule: ${createMutation.error.message}. `}
+          {updateMutation.isError && `Couldn't update the alert rule: ${updateMutation.error.message}. `}
+          {deleteMutation.isError && `Couldn't delete the alert rule: ${deleteMutation.error.message}. `}
         </div>
       )}
 

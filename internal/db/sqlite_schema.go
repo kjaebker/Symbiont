@@ -53,6 +53,46 @@ var migrations = []Migration{
 			return nil
 		},
 	},
+	{
+		Version: 4,
+		Name:    "alert_rules: allow the probe_range condition",
+		Up: func(tx *sql.Tx) error {
+			// SQLite cannot alter a CHECK constraint, so rebuild the table.
+			// alert_events references alert_rules and foreign keys cannot be
+			// switched off inside a transaction, so the events are set aside
+			// while the table is swapped and restored afterwards (rule ids
+			// are preserved).
+			stmts := []string{
+				`CREATE TABLE alert_events_migrating AS
+					SELECT id, rule_id, fired_at, cleared_at, peak_value, notified FROM alert_events`,
+				`DELETE FROM alert_events`,
+				`CREATE TABLE alert_rules_new (
+					id              INTEGER  PRIMARY KEY AUTOINCREMENT,
+					probe_name      TEXT     NOT NULL,
+					condition       TEXT     NOT NULL CHECK(condition IN ('above','below','outside_range','probe_range')),
+					threshold_low   REAL,
+					threshold_high  REAL,
+					severity        TEXT     NOT NULL CHECK(severity IN ('warning','critical')),
+					cooldown_minutes INTEGER NOT NULL DEFAULT 30,
+					enabled         INTEGER  NOT NULL DEFAULT 1,
+					created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)`,
+				`INSERT INTO alert_rules_new (id, probe_name, condition, threshold_low, threshold_high, severity, cooldown_minutes, enabled, created_at)
+					SELECT id, probe_name, condition, threshold_low, threshold_high, severity, cooldown_minutes, enabled, created_at FROM alert_rules`,
+				`DROP TABLE alert_rules`,
+				`ALTER TABLE alert_rules_new RENAME TO alert_rules`,
+				`INSERT INTO alert_events (id, rule_id, fired_at, cleared_at, peak_value, notified)
+					SELECT id, rule_id, fired_at, cleared_at, peak_value, notified FROM alert_events_migrating`,
+				`DROP TABLE alert_events_migrating`,
+			}
+			for _, stmt := range stmts {
+				if _, err := tx.Exec(stmt); err != nil {
+					return fmt.Errorf("rebuilding alert_rules: %w", err)
+				}
+			}
+			return nil
+		},
+	},
 }
 
 // CreateSQLiteSchema is the entrypoint preserved for callers. It ensures the
