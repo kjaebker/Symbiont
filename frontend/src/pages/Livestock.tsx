@@ -11,8 +11,8 @@ import { LivestockCard } from '@/components/LivestockCard'
 import { LivestockForm, defaultForm, TYPE_OPTIONS, STATUS_OPTIONS } from '@/components/LivestockForm'
 import { PageHeader } from '@/components/PageHeader'
 import { FilterDropdown } from '@/components/FilterDropdown'
-import { cn } from '@/lib/utils'
 import { Button, Chip, PageBody, LoadingState, EmptyState } from '@/components/ui'
+import type { ChipTone } from '@/components/ui'
 import type { LivestockFormData } from '@/components/LivestockForm'
 
 export default function Livestock() {
@@ -75,35 +75,32 @@ export default function Livestock() {
     </>
   )
 
+  // The count pills double as filters: tap a type to show only that type.
+  const toggleType = (t: LivestockType) => setTypeFilter(typeFilter === t ? '' : t)
+  const typePills: { type: LivestockType; tone: ChipTone; label: string }[] = [
+    { type: 'fish', tone: 'primary', label: 'Fish' },
+    { type: 'coral', tone: 'critical', label: 'Corals' },
+    { type: 'invertebrate', tone: 'secondary', label: 'Invertebrates' },
+    { type: 'other', tone: 'neutral', label: 'Other' },
+  ]
+
   const statusPills = allItems.length > 0 ? (
     <>
-      {countType('fish') > 0 && (
-        <Chip tone="primary">{countType('fish')} Fish</Chip>
-      )}
-      {countType('coral') > 0 && (
-        <Chip tone="critical">{countType('coral')} Corals</Chip>
-      )}
-      {countType('invertebrate') > 0 && (
-        <Chip tone="secondary">{countType('invertebrate')} Invertebrates</Chip>
-      )}
-      {countType('other') > 0 && (
-        <Chip>{countType('other')} Other</Chip>
-      )}
+      {typePills.filter((p) => countType(p.type) > 0).map((p) => (
+        <Chip key={p.type} tone={p.tone} onClick={() => toggleType(p.type)} active={typeFilter === p.type}>
+          {countType(p.type)} {p.label}
+        </Chip>
+      ))}
       {needAttentionCount > 0 && (
         <Chip tone="warning">{needAttentionCount} Need attention</Chip>
       )}
       {deceasedCount > 0 && (
-        <button
+        <Chip
           onClick={() => setStatusFilter(statusFilter === 'deceased' ? '' : 'deceased')}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-fluid cursor-pointer',
-            statusFilter === 'deceased'
-              ? 'bg-surface-container-highest text-on-surface'
-              : 'bg-surface-container-high text-on-surface-faint hover:text-on-surface-dim',
-          )}
+          active={statusFilter === 'deceased'}
         >
           {deceasedCount} Deceased
-        </button>
+        </Chip>
       )}
     </>
   ) : null
@@ -149,7 +146,7 @@ export default function Livestock() {
           )}
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filtered.map((item) => (
             <LivestockCard key={item.id} item={item} />
           ))}
