@@ -1,9 +1,9 @@
-import { cn,relativeTime,formatBytes } from '@/lib/utils'
+import { cn, formatBytes } from '@/lib/utils'
 import { getBubblesEnabled,setBubblesEnabled } from '@/api/client'
 import { RefreshCw,Activity,Droplets } from 'lucide-react'
 import { useSystemStatus } from '@/hooks/useSystem'
 import { useEventBusStats } from '@/hooks/useEvents'
-import { LoadingState,EmptyState } from './_shared'
+import { Chip, IconButton, Toggle, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
 
 // =============================================================================
 // System Tab
@@ -17,30 +17,20 @@ function EventBusPanel() {
 
   return (
     <div>
-      <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Event Bus</p>
+      <p className={cn(labelClass, 'px-4 mb-1')}>Event Bus</p>
       <div className="bg-surface-container-high/40 rounded-xl overflow-hidden">
         {subs.length === 0 && (
           <p className="px-4 py-3 text-sm text-on-surface-faint">No subscribers registered.</p>
         )}
-        {subs.map((s, i) => (
-          <div
-            key={s.name}
-            className={cn(
-              'px-4 py-3',
-              i < subs.length - 1 ? 'border-b border-surface-container-highest/30' : '',
-            )}
-          >
+        {subs.map((s) => (
+          <div key={s.name} className="px-4 py-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-on-surface font-medium font-mono">{s.name}</span>
               {s.dropped > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-medium">
-                  {s.dropped} dropped
-                </span>
+                <Chip tone="critical">{s.dropped} dropped</Chip>
               )}
               {s.dropped === 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-secondary/10 text-secondary font-medium">
-                  healthy
-                </span>
+                <Chip tone="secondary">healthy</Chip>
               )}
             </div>
             <div className="flex gap-4">
@@ -83,7 +73,7 @@ export default function SystemTab() {
 
   const stat = (label: string, value: string) => (
     <div className="py-3 px-4 flex items-center justify-between">
-      <span className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">{label}</span>
+      <span className={labelClass}>{label}</span>
       <span className="text-sm text-on-surface font-mono">{value}</span>
     </div>
   )
@@ -108,22 +98,22 @@ export default function SystemTab() {
             {data.poller.poll_ok ? 'Poller running' : 'Poller degraded'}
           </p>
           <p className="text-xs text-on-surface-dim mt-0.5">
-            Last poll {relativeTime(data.poller.last_poll_ts)} · every {data.poller.poll_interval_seconds}s
+            Last poll <TimeAgo ts={data.poller.last_poll_ts} /> · every {data.poller.poll_interval_seconds}s
           </p>
         </div>
-        <button
+        <IconButton
+          icon={RefreshCw}
+          label="Refresh status"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-        </button>
+          className={isFetching ? '[&_svg]:animate-spin' : undefined}
+        />
       </div>
 
       {/* Controller */}
       <div>
-        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Controller</p>
-        <div className="bg-surface-container-high/40 rounded-xl divide-y divide-surface-container-highest/50">
+        <p className={cn(labelClass, 'px-4 mb-1')}>Controller</p>
+        <div className="bg-surface-container-high/40 rounded-xl py-1">
           {stat('Serial', data.controller.serial)}
           {stat('Firmware', data.controller.firmware)}
           {stat('Hardware', data.controller.hardware)}
@@ -132,8 +122,8 @@ export default function SystemTab() {
 
       {/* Databases */}
       <div>
-        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Databases</p>
-        <div className="bg-surface-container-high/40 rounded-xl divide-y divide-surface-container-highest/50">
+        <p className={cn(labelClass, 'px-4 mb-1')}>Databases</p>
+        <div className="bg-surface-container-high/40 rounded-xl py-1">
           {stat('Telemetry (DuckDB)', formatBytes(data.db.duckdb_size_bytes))}
           {stat('App state (SQLite)', formatBytes(data.db.sqlite_size_bytes))}
         </div>
@@ -144,7 +134,7 @@ export default function SystemTab() {
 
       {/* Interface */}
       <div>
-        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium px-4 mb-1">Interface</p>
+        <p className={cn(labelClass, 'px-4 mb-1')}>Interface</p>
         <div className="bg-surface-container-high/40 rounded-xl">
           <div className="py-3 px-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -154,17 +144,11 @@ export default function SystemTab() {
                 <p className="text-xs text-on-surface-faint">Decorative background animation</p>
               </div>
             </div>
-            <button
-              onClick={() => { setBubblesEnabled(!getBubblesEnabled()); window.location.reload() }}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-fluid cursor-pointer',
-                getBubblesEnabled()
-                  ? 'bg-primary/20 text-primary'
-                  : 'bg-surface-container-highest text-on-surface-faint',
-              )}
-            >
-              {getBubblesEnabled() ? 'On' : 'Off'}
-            </button>
+            <Toggle
+              checked={getBubblesEnabled()}
+              label="Floating bubbles"
+              onChange={(v) => { setBubblesEnabled(v); window.location.reload() }}
+            />
           </div>
         </div>
       </div>

@@ -5,7 +5,8 @@ import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
 import { useDevices,useCreateDevice,useUpdateDevice,useDeleteDevice,useSetDeviceProbes,useSetDeviceOutlets,useDeviceSuggestions } from '@/hooks/useDevices'
 import type { Device,DeviceSuggestion,DeviceOutlet } from '@/api/types'
-import { LoadingState,EmptyState } from './_shared'
+import { Button, Chip, Field, IconButton, Input, Select, SectionHeader, Textarea, LoadingState, EmptyState, labelClass } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 
 // =============================================================================
 // Devices Tab
@@ -128,45 +129,35 @@ function DeviceForm({
     })
   }
 
-  const inputClass = 'w-full bg-surface-container-high text-on-surface text-base rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid'
-  const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium'
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Name *</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} required />
-        </div>
-        <div>
-          <label className={labelClass}>Type</label>
-          <select value={deviceType} onChange={(e) => setDeviceType(e.target.value)} className={cn(inputClass, 'cursor-pointer appearance-none')}>
+        <Field label="Name *">
+          <Input value={name} onChange={(e) => setName(e.target.value)} required />
+        </Field>
+        <Field label="Type">
+          <Select value={deviceType} onChange={(e) => setDeviceType(e.target.value)}>
             {deviceTypeOptions.map((o) => (
               <option key={o.value} value={o.value} className="bg-surface-container text-on-surface">{o.label}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>Brand</label>
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Model</label>
-          <input value={model} onChange={(e) => setModel(e.target.value)} className={inputClass} />
-        </div>
-        <div className="md:col-span-2">
-          <label className={labelClass}>Description</label>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
-        </div>
-        <div className="md:col-span-2">
-          <label className={labelClass}>Notes</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={cn(inputClass, 'resize-none')} />
-        </div>
+          </Select>
+        </Field>
+        <Field label="Brand">
+          <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
+        </Field>
+        <Field label="Model">
+          <Input value={model} onChange={(e) => setModel(e.target.value)} />
+        </Field>
+        <Field label="Description" className="md:col-span-2">
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        <Field label="Notes" className="md:col-span-2">
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        </Field>
       </div>
 
-      <div>
-        <label className={labelClass}>Linked Outlet</label>
-        <select value={outletId} onChange={(e) => setOutletId(e.target.value)} className={cn(inputClass, 'cursor-pointer appearance-none')}>
+      <Field label="Linked Outlet">
+        <Select value={outletId} onChange={(e) => setOutletId(e.target.value)}>
           <option value="" className="bg-surface-container text-on-surface">None</option>
           {outlets
             .filter((o) => o.type === 'outlet' || o.type === 'virtual')
@@ -180,11 +171,11 @@ function DeviceForm({
                 {o.display_name} ({o.id}){linkedOutletIds.has(o.id) ? ' — linked' : ''}
               </option>
             ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
       <div>
-        <label className={labelClass}>Visualization Channels</label>
+        <span className={`${labelClass} block mb-1.5`}>Visualization Channels</span>
         <p className="text-xs text-on-surface-dim mb-2">
           Variable outlets (0-10V) to overlay as a day cycle chart on the device card. Ideal for lights with separate color/power channels.
         </p>
@@ -197,12 +188,12 @@ function DeviceForm({
                 <span className="text-sm text-on-surface truncate flex-1">
                   {outlet?.display_name ?? co.outlet_id}
                 </span>
-                <input
+                <Input
                   type="text"
                   placeholder="Label"
                   value={co.label ?? ''}
                   onChange={(e) => updateCycleOutletLabel(co.outlet_id, e.target.value)}
-                  className="w-24 bg-surface-container-highest text-on-surface text-base rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
+                  className="w-24 py-1 px-2"
                 />
                 <div className="flex gap-1">
                   {PRESET_COLORS.map((c) => (
@@ -219,21 +210,19 @@ function DeviceForm({
                     />
                   ))}
                 </div>
-                <button
-                  type="button"
+                <IconButton
+                  icon={Trash2}
+                  label="Remove channel"
+                  tone="danger"
                   onClick={() => removeCycleOutlet(co.outlet_id)}
-                  className="text-on-surface-faint hover:text-tertiary transition-fluid"
-                >
-                  <Trash2 size={14} />
-                </button>
+                />
               </div>
             )
           })}
         </div>
-        <select
+        <Select
           value=""
           onChange={(e) => { if (e.target.value) addCycleOutlet(e.target.value) }}
-          className={cn(inputClass, 'cursor-pointer appearance-none')}
         >
           <option value="" className="bg-surface-container text-on-surface">+ Add channel…</option>
           {outlets
@@ -243,11 +232,11 @@ function DeviceForm({
                 {o.display_name} ({o.id})
               </option>
             ))}
-        </select>
+        </Select>
       </div>
 
       <div>
-        <label className={labelClass}>Linked Probes</label>
+        <span className={`${labelClass} block mb-1.5`}>Linked Probes</span>
         <p className="text-xs text-on-surface-dim mb-2">
           Probes get unit suffix in display name, e.g. &quot;Heater (watts)&quot;
         </p>
@@ -282,19 +271,10 @@ function DeviceForm({
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-        >
+        <Button type="submit" variant="primary">
           {initial ? 'Save Changes' : 'Create Device'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-faint bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-        >
-          Cancel
-        </button>
+        </Button>
+        <Button onClick={onCancel}>Cancel</Button>
       </div>
     </form>
   )
@@ -313,7 +293,6 @@ export default function DevicesTab() {
 
   const [showForm, setShowForm] = useState(false)
   const [editingDevice, setEditingDevice] = useState<Device | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const devices = devicesData?.devices ?? []
@@ -346,9 +325,7 @@ export default function DevicesTab() {
   }
 
   function handleDelete(id: number) {
-    deleteMutation.mutate(id, {
-      onSuccess: () => setDeleteConfirm(null),
-    })
+    deleteMutation.mutate(id)
   }
 
   function handleAcceptSuggestion(s: DeviceSuggestion) {
@@ -398,27 +375,20 @@ export default function DevicesTab() {
 
   return (
     <div>
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-          Equipment ({devices.length})
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={handleFetchSuggestions}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-          >
-            <Sparkles size={14} />
-            Suggest
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-          >
-            <Plus size={14} />
-            Add Device
-          </button>
-        </div>
-      </div>
+      <SectionHeader
+        title={`Equipment (${devices.length})`}
+        className="px-4 pt-3 pb-2"
+        action={
+          <div className="flex gap-2">
+            <Button size="sm" icon={Sparkles} onClick={handleFetchSuggestions}>
+              Suggest
+            </Button>
+            <Button variant="tonal" size="sm" icon={Plus} onClick={() => setShowForm(true)}>
+              Add Device
+            </Button>
+          </div>
+        }
+      />
 
       {showSuggestions && suggestions.length > 0 && (
         <div className="mx-4 mb-3 p-3 bg-secondary/5 rounded-2xl space-y-2">
@@ -459,16 +429,14 @@ export default function DevicesTab() {
           message="No devices configured. Create one or use the Suggest button to auto-detect."
         />
       ) : (
-        <div className="divide-y divide-outline-variant/15">
+        <div className="space-y-1 p-1">
           {devices.map((d) => (
             <div key={d.id} className="flex items-center gap-4 px-4 py-3 transition-fluid hover:bg-surface-container-high/50">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-on-surface truncate">{d.name}</span>
                   {d.device_type && (
-                    <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider bg-primary/10 text-primary">
-                      {d.device_type}
-                    </span>
+                    <Chip tone="primary" className="shrink-0">{d.device_type}</Chip>
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">
@@ -488,35 +456,16 @@ export default function DevicesTab() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => setEditingDevice(d)}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid cursor-pointer"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setEditingDevice(d)}>
                   Edit
-                </button>
-                {deleteConfirm === d.id ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(null)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium text-on-surface-faint hover:text-on-surface transition-fluid cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(d.id)}
-                    className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                </Button>
+                <ConfirmButton
+                  onConfirm={() => handleDelete(d.id)}
+                  title="Delete device"
+                  className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                >
+                  <Trash2 size={14} />
+                </ConfirmButton>
               </div>
             </div>
           ))}

@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func openTestSQLite(t *testing.T) *SQLiteDB {
@@ -665,5 +667,117 @@ func TestAgentSettingsUpsertRoundTrip(t *testing.T) {
 	}
 	if !reflect.DeepEqual(out2.EnabledSkills, in2.EnabledSkills) {
 		t.Errorf("enabled skills after overwrite: got %v want %v", out2.EnabledSkills, in2.EnabledSkills)
+	}
+}
+
+func TestProbeRangeAlertRule(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	// Migration v4 allows the probe_range condition.
+	id, err := db.InsertAlertRule(ctx, AlertRule{
+		ProbeName: "Tmp",
+		Condition: AlertConditionProbeRange,
+		Severity:  "warning",
+		Enabled:   true,
+	})
+	if err != nil {
+		t.Fatalf("inserting probe_range rule: %v", err)
+	}
+
+	// A rule that has fired can still be deleted; its events go with it.
+	if _, err := db.InsertAlertEvent(ctx, id, 82.0); err != nil {
+		t.Fatalf("inserting alert event: %v", err)
+	}
+	if err := db.DeleteAlertRule(ctx, id); err != nil {
+		t.Fatalf("deleting rule with events: %v", err)
+	}
+	events, err := db.ListAlertEvents(ctx, nil, false, 10)
+	if err != nil {
+		t.Fatalf("listing events: %v", err)
+	}
+	if len(events) != 0 {
+		t.Errorf("expected events to be deleted with the rule, got %d", len(events))
+	}
+}
+
+func TestAlertRulesMigrationKeepsRowsAndEvents(t *testing.T) {
+	raw, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("opening sqlite: %v", err)
+	}
+	raw.SetMaxOpenConns(1)
+	t.Cleanup(func() { raw.Close() })
+
+	// Build a database as it was before v4: baseline plus migrations 2 and 3.
+	all := migrations
+	migrations = all[:2]
+	err = CreateSQLiteSchema(raw)
+	migrations = all
+	if err != nil {
+		t.Fatalf("creating pre-v4 schema: %v", err)
+	}
+	if _, err := raw.Exec(`INSERT INTO alert_rules (id, probe_name, condition, threshold_high, severity) VALUES (7, 'Tmp', 'above', 80, 'warning')`); err != nil {
+		t.Fatalf("seeding rule: %v", err)
+	}
+	if _, err := raw.Exec(`INSERT INTO alert_events (rule_id, peak_value) VALUES (7, 82)`); err != nil {
+		t.Fatalf("seeding event: %v", err)
+	}
+
+	if err := CreateSQLiteSchema(raw); err != nil {
+		t.Fatalf("applying v4: %v", err)
+	}
+
+	var condition string
+	var events int
+	if err := raw.QueryRow(`SELECT condition FROM alert_rules WHERE id = 7`).Scan(&condition); err != nil {
+		t.Fatalf("reading migrated rule: %v", err)
+	}
+	if err := raw.QueryRow(`SELECT COUNT(*) FROM alert_events WHERE rule_id = 7`).Scan(&events); err != nil {
+		t.Fatalf("reading migrated events: %v", err)
+	}
+	if condition != "above" || events != 1 {
+		t.Errorf("after migration: condition = %q, events = %d; want above, 1", condition, events)
+	}
+	if _, err := raw.Exec(`INSERT INTO alert_rules (probe_name, condition, severity) VALUES ('pH', 'probe_range', 'critical')`); err != nil {
+		t.Errorf("probe_range rejected after migration: %v", err)
+	}
+	// Foreign keys must still be enforced against the rebuilt table.
+	if _, err := raw.Exec(`INSERT INTO alert_events (rule_id, peak_value) VALUES (999, 1)`); err == nil {
+		t.Error("expected foreign key violation for an event with no rule")
+	}
+}
+
+func TestLivestockLastObservedAt(t *testing.T) {
+	db := openTestSQLite(t)
+	ctx := context.Background()
+
+	id, err := db.InsertLivestockItem(ctx, LivestockItem{Name: "Toadstool", Type: "coral", Quantity: 1, Status: "sick"})
+	if err != nil {
+		t.Fatalf("inserting livestock: %v", err)
+	}
+
+	item, err := db.GetLivestockItem(ctx, id)
+	if err != nil {
+		t.Fatalf("getting livestock: %v", err)
+	}
+	if item.LastObservedAt != nil {
+		t.Errorf("expected no observation time, got %v", item.LastObservedAt)
+	}
+
+	note := "polyps closed"
+	if _, err := db.InsertLivestockObservation(ctx, LivestockObservation{LivestockID: id, Note: &note}); err != nil {
+		t.Fatalf("inserting observation: %v", err)
+	}
+
+	items, err := db.ListLivestock(ctx, LivestockFilter{Status: "sick"})
+	if err != nil {
+		t.Fatalf("listing livestock: %v", err)
+	}
+	if len(items) != 1 || items[0].LastObservedAt == nil {
+		t.Fatalf("expected one item with an observation time, got %+v", items)
+	}
+	if age := time.Since(*items[0].LastObservedAt); age < 0 || age > time.Minute {
+		t.Errorf("observation time %v is not recent", items[0].LastObservedAt)
 	}
 }

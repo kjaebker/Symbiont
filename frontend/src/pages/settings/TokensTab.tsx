@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { cn,relativeTime } from '@/lib/utils'
+
 import { Settings as SettingsIcon,Plus,Trash2,Copy,Check } from 'lucide-react'
 import { useTokens,useCreateToken,useUpdateTokenScope,useRevokeToken } from '@/hooks/useSettings'
-import { LoadingState,EmptyState } from './_shared'
+import { APIRequestError } from '@/api/_fetch'
+import { Button, IconButton, Input, Select, SectionHeader, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 
 // =============================================================================
 // Tokens Tab
 // =============================================================================
 
 export default function TokensTab() {
-  const { data, isLoading } = useTokens()
+  const { data, isLoading, isError, error } = useTokens()
   const createMutation = useCreateToken()
   const updateScopeMutation = useUpdateTokenScope()
   const revokeMutation = useRevokeToken()
@@ -19,7 +21,6 @@ export default function TokensTab() {
   const [scope, setScope] = useState<'read' | 'write' | 'control' | 'admin'>('admin')
   const [newToken, setNewToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null)
 
   const tokens = data?.tokens ?? []
 
@@ -43,9 +44,7 @@ export default function TokensTab() {
   }
 
   function handleRevoke(id: number) {
-    revokeMutation.mutate(id, {
-      onSuccess: () => setRevokeConfirm(null),
-    })
+    revokeMutation.mutate(id)
   }
 
   return (
@@ -62,80 +61,75 @@ export default function TokensTab() {
             <code className="flex-1 bg-surface-container-high rounded-lg px-3 py-2 text-sm text-on-surface font-mono break-all">
               {newToken}
             </code>
-            <button
+            <IconButton
+              icon={copied ? Check : Copy}
+              size={16}
+              label="Copy token"
+              tone="primary"
               onClick={() => handleCopy(newToken)}
-              className="p-2 rounded-lg text-on-surface-faint hover:text-secondary hover:bg-secondary/10 transition-fluid cursor-pointer"
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-            </button>
+              className="p-2"
+            />
           </div>
-          <button
-            onClick={() => setNewToken(null)}
-            className="text-xs text-on-surface-faint hover:text-on-surface transition-fluid cursor-pointer"
-          >
+          <Button variant="ghost" size="sm" onClick={() => setNewToken(null)}>
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="flex items-center justify-between px-4 pt-2">
-        <span className="text-xs text-on-surface-faint uppercase tracking-widest">
-          API Tokens
-        </span>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer"
-          >
-            <Plus size={14} />
+      <SectionHeader
+        title="API Tokens"
+        className="px-4 pt-2"
+        action={!showForm && (
+          <Button variant="tonal" size="sm" icon={Plus} onClick={() => setShowForm(true)}>
             Create Token
-          </button>
+          </Button>
         )}
-      </div>
+      />
 
       {showForm && (
-        <form onSubmit={handleCreate} className="flex items-center gap-2 px-4">
-          <input
+        <form onSubmit={handleCreate} className="flex flex-wrap items-center gap-2 px-4">
+          <Input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Token label (e.g. CLI, MCP)"
-            className="flex-1 bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid"
+            className="flex-1 min-w-48 w-auto"
             autoFocus
           />
-          <select
+          <Select
             value={scope}
             onChange={(e) => setScope(e.target.value as 'read' | 'write' | 'control' | 'admin')}
-            className="bg-surface-container-high text-on-surface text-base rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer"
+            className="w-auto"
           >
             <option value="admin">admin</option>
             <option value="control">control</option>
             <option value="write">write</option>
             <option value="read">read</option>
-          </select>
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="px-3 py-2 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer disabled:opacity-50"
-          >
+          </Select>
+          <Button type="submit" variant="primary" loading={createMutation.isPending}>
             Create
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => {
               setShowForm(false)
               setLabel('')
               setScope('admin')
             }}
-            className="px-3 py-2 rounded-xl text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
           >
             Cancel
-          </button>
+          </Button>
         </form>
       )}
 
       {isLoading ? (
         <LoadingState label="Loading tokens..." />
+      ) : isError ? (
+        <EmptyState
+          icon={<SettingsIcon size={32} />}
+          message={error instanceof APIRequestError && error.status === 403
+            ? 'This token is not allowed to manage API tokens. Sign in with an admin token to see them.'
+            : `Couldn't load API tokens: ${error.message}`}
+        />
       ) : tokens.length === 0 ? (
         <EmptyState
           icon={<SettingsIcon size={32} />}
@@ -152,46 +146,31 @@ export default function TokensTab() {
                     <span className="text-sm font-semibold text-on-surface">{t.label}</span>
                     <div className="text-xs text-on-surface-faint font-mono mt-0.5">#{t.id}</div>
                   </div>
-                  <select
+                  <Select
                     value={t.scope}
                     onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
                     disabled={updateScopeMutation.isPending}
-                    className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50 shrink-0"
+                    className="bg-surface-container-highest w-auto py-1 px-2 shrink-0"
                   >
                     <option value="admin">admin</option>
                     <option value="control">control</option>
                     <option value="write">write</option>
                     <option value="read">read</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 text-xs text-on-surface-faint">
-                    <span>Created {relativeTime(t.created_at)}</span>
-                    <span>Used {t.last_used ? relativeTime(t.last_used) : 'never'}</span>
+                    <span>Created <TimeAgo ts={t.created_at} /></span>
+                    <span>Used {t.last_used ? <TimeAgo ts={t.last_used} /> : 'never'}</span>
                   </div>
-                  {revokeConfirm === t.id ? (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => handleRevoke(t.id)}
-                        className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                      >
-                        Revoke
-                      </button>
-                      <button
-                        onClick={() => setRevokeConfirm(null)}
-                        className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setRevokeConfirm(t.id)}
-                      className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer shrink-0"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                  <ConfirmButton
+                    onConfirm={() => handleRevoke(t.id)}
+                    confirmLabel="Revoke"
+                    title="Revoke token"
+                    className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid shrink-0"
+                  >
+                    <Trash2 size={14} />
+                  </ConfirmButton>
                 </div>
               </div>
             ))}
@@ -201,13 +180,10 @@ export default function TokensTab() {
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-container-high/50">
-                  {['ID', 'Label', 'Scope', 'Created', 'Last Used', ''].map((h) => (
+                  {['ID', 'Label', 'Scope', 'Created', 'Last Used', ''].map((h, i) => (
                     <th
-                      key={h}
-                      className={cn(
-                        'py-3 px-4 text-xs font-medium text-on-surface-faint uppercase tracking-widest',
-                        h === '' ? 'text-right' : 'text-left',
-                      )}
+                      key={i}
+                      className={`py-3 px-4 ${labelClass} ${h === '' ? 'text-right' : 'text-left'}`}
                     >
                       {h}
                     </th>
@@ -220,48 +196,33 @@ export default function TokensTab() {
                     <td className="py-3 px-4 text-sm text-on-surface-dim font-mono">{t.id}</td>
                     <td className="py-3 px-4 text-sm font-medium text-on-surface">{t.label}</td>
                     <td className="py-3 px-4">
-                      <select
+                      <Select
                         value={t.scope}
                         onChange={(e) => updateScopeMutation.mutate({ id: t.id, scope: e.target.value })}
                         disabled={updateScopeMutation.isPending}
-                        className="bg-surface-container-highest text-on-surface text-xs rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30 cursor-pointer transition-fluid disabled:opacity-50"
+                        className="bg-surface-container-highest w-auto py-1 px-2"
                       >
                         <option value="admin">admin</option>
                         <option value="control">control</option>
                         <option value="read">read</option>
-                      </select>
+                      </Select>
                     </td>
                     <td className="py-3 px-4 text-sm text-on-surface-dim">
-                      {relativeTime(t.created_at)}
+                      <TimeAgo ts={t.created_at} />
                     </td>
                     <td className="py-3 px-4 text-sm text-on-surface-dim">
-                      {t.last_used ? relativeTime(t.last_used) : 'Never'}
+                      {t.last_used ? <TimeAgo ts={t.last_used} /> : 'Never'}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end">
-                        {revokeConfirm === t.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleRevoke(t.id)}
-                              className="px-2 py-1 rounded-lg text-xs font-medium text-tertiary bg-tertiary/10 hover:bg-tertiary/20 transition-fluid cursor-pointer"
-                            >
-                              Revoke
-                            </button>
-                            <button
-                              onClick={() => setRevokeConfirm(null)}
-                              className="px-2 py-1 rounded-lg text-xs font-medium text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setRevokeConfirm(t.id)}
-                            className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <ConfirmButton
+                          onConfirm={() => handleRevoke(t.id)}
+                          confirmLabel="Revoke"
+                          title="Revoke token"
+                          className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
+                        >
+                          <Trash2 size={14} />
+                        </ConfirmButton>
                       </div>
                     </td>
                   </tr>
@@ -274,4 +235,3 @@ export default function TokensTab() {
     </div>
   )
 }
-

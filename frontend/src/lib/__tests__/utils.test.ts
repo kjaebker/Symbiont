@@ -1,5 +1,32 @@
 import { describe, it, expect } from 'vitest'
-import { relativeTime, formatBytes, cn, splitCamelCase } from '../utils'
+import { relativeTime, overdueBy, daysSince, formatBytes, cn, splitCamelCase } from '../utils'
+
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400_000 - 60_000).toISOString()
+
+describe('long ages', () => {
+  it.each([
+    [13, '13d ago'],
+    [21, '3w ago'],
+    [151, '5mo ago'],
+    [800, '2y ago'],
+  ])('relativeTime of %i days is %s', (days, want) => {
+    expect(relativeTime(daysAgo(days))).toBe(want)
+  })
+
+  it.each([
+    [0, ''],
+    [1, '1 day'],
+    [3, '3 days'],
+    [21, '3 weeks'],
+    [151, '5 months'],
+  ])('overdueBy %i days is "%s"', (days, want) => {
+    expect(overdueBy(daysAgo(days))).toBe(want)
+  })
+
+  it('daysSince is 0 for future timestamps', () => {
+    expect(daysSince(new Date(Date.now() + 86400_000).toISOString())).toBe(0)
+  })
+})
 
 describe('relativeTime', () => {
   it('returns "just now" for timestamps within 5 seconds', () => {

@@ -4,7 +4,10 @@ import { ScrollText, Plus, Pencil, Trash2, Bot, Cpu, Check, X, Activity } from '
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useJournalEntries, useJournalTemplates, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from '@/hooks/useJournal'
 import { useAuditEvents } from '@/hooks/useEvents'
-import { cn, relativeTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { Button, IconButton, Card, Chip, Field, Select, Input, Textarea, PageBody, LoadingState, EmptyState, labelClass, TimeAgo } from '@/components/ui'
+import type { ChipTone } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import type { JournalEntry, JournalCategory, JournalSentiment, JournalTemplate, AuditEvent } from '@/api/client'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -23,11 +26,11 @@ const SENTIMENT_LABELS: Record<JournalSentiment, string> = {
   critical: 'Critical',
 }
 
-const SENTIMENT_COLORS: Record<JournalSentiment, string> = {
-  good: 'text-secondary bg-secondary/10',
-  neutral: 'text-on-surface-dim bg-surface-container-high',
-  bad: 'text-tertiary bg-tertiary/10',
-  critical: 'text-red-400 bg-red-400/10',
+const SENTIMENT_TONE: Record<JournalSentiment, ChipTone> = {
+  good: 'secondary',
+  neutral: 'neutral',
+  bad: 'warning',
+  critical: 'critical',
 }
 
 const SENTIMENT_DOT: Record<JournalSentiment, string> = {
@@ -37,11 +40,11 @@ const SENTIMENT_DOT: Record<JournalSentiment, string> = {
   critical: 'bg-red-400',
 }
 
-const CATEGORY_COLORS: Record<JournalCategory, string> = {
-  observation: 'text-primary bg-primary/10',
-  maintenance: 'text-on-surface-dim bg-surface-container-high',
-  event: 'text-violet-400 bg-violet-400/10',
-  milestone: 'text-amber-400 bg-amber-400/10',
+const CATEGORY_TONE: Record<JournalCategory, ChipTone> = {
+  observation: 'primary',
+  maintenance: 'neutral',
+  event: 'secondary',
+  milestone: 'warning',
 }
 
 // ─── Entry Form ───────────────────────────────────────────────────────────────
@@ -87,24 +90,25 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
   const allTemplates = Object.values(templates).flat()
 
   return (
-    <form onSubmit={handleSubmit} className="bg-surface-container-low rounded-2xl p-4 space-y-3">
+    <Card className="p-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       {/* Template picker */}
       <div className="relative">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={ScrollText}
           onClick={() => setTemplateOpen(v => !v)}
-          className="text-xs text-primary/80 hover:text-primary flex items-center gap-1.5 transition-fluid"
         >
-          <ScrollText size={12} />
           {templateOpen ? 'Close templates' : 'Use a template'}
-        </button>
+        </Button>
 
         {templateOpen && (
-          <div className="absolute top-6 left-0 z-20 w-72 bg-surface-container-low rounded-2xl shadow-glow-primary/20 overflow-hidden border border-surface-container-highest/30">
-            <div className="max-h-72 overflow-y-auto divide-y divide-surface-container-highest/20">
+          <div className="absolute top-9 left-0 z-20 w-72 bg-surface-container-low rounded-2xl shadow-glow-primary/20 overflow-hidden">
+            <div className="max-h-72 overflow-y-auto">
               {(Object.entries(templates) as [JournalCategory, JournalTemplate[]][]).map(([cat, items]) => (
                 <div key={cat}>
-                  <p className="px-3 py-1.5 text-xs text-on-surface-faint uppercase tracking-widest font-medium bg-surface-container-highest/20">
+                  <p className={cn(labelClass, 'px-3 py-1.5 bg-surface-container-highest/20')}>
                     {CATEGORY_LABELS[cat]}
                   </p>
                   {items.map(t => (
@@ -112,7 +116,7 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
                       key={t.title}
                       type="button"
                       onClick={() => applyTemplate(t)}
-                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 hover:bg-surface-container-high/60 transition-fluid"
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 hover:bg-surface-container-high/60 transition-fluid cursor-pointer"
                     >
                       <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[t.sentiment])} />
                       <span className="text-sm text-on-surface">{t.title}</span>
@@ -130,76 +134,63 @@ function EntryForm({ initial, templates, onSave, onCancel, isSaving }: EntryForm
 
       {/* Category + Sentiment */}
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Category</label>
-          <select
+        <Field label="Category">
+          <Select
             value={category}
             onChange={e => setCategory(e.target.value as JournalCategory)}
-            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
           >
             {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
               <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Sentiment</label>
-          <select
+          </Select>
+        </Field>
+        <Field label="Sentiment">
+          <Select
             value={sentiment}
             onChange={e => setSentiment(e.target.value as JournalSentiment | '')}
-            className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
           >
             <option value="">None</option>
             {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
               <option key={s} value={s}>{SENTIMENT_LABELS[s]}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
 
-      {/* Title */}
-      <div>
-        <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Title *</label>
-        <input
+      <Field label="Title *">
+        <Input
           type="text"
           required
           value={title}
           onChange={e => setTitle(e.target.value)}
           placeholder="What happened?"
-          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid"
         />
-      </div>
+      </Field>
 
-      {/* Body */}
-      <div>
-        <label className="text-xs text-on-surface-faint uppercase tracking-widest font-medium block mb-1">Details (optional)</label>
-        <textarea
+      <Field label="Details (optional)">
+        <Textarea
           rows={3}
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder="Add more context..."
-          className="w-full bg-surface-container-highest/40 rounded-xl px-3 py-2 text-base text-on-surface placeholder:text-on-surface-faint outline-none focus:ring-1 focus:ring-primary/40 transition-fluid resize-none"
         />
-      </div>
+      </Field>
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3 py-1.5 rounded-xl text-sm text-on-surface-dim hover:text-on-surface hover:bg-surface-container-high transition-fluid"
-        >
-          Cancel
-        </button>
-        <button
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button
           type="submit"
-          disabled={isSaving || !title.trim()}
-          className="px-4 py-1.5 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-fluid disabled:opacity-50 flex items-center gap-2"
+          variant="primary"
+          icon={isSaving ? undefined : initial ? Check : Plus}
+          disabled={!title.trim()}
+          loading={isSaving}
         >
-          {isSaving ? 'Saving...' : initial ? <><Check size={14} /> Save</> : <><Plus size={14} /> Add Entry</>}
-        </button>
+          {isSaving ? 'Saving...' : initial ? 'Save' : 'Add Entry'}
+        </Button>
       </div>
     </form>
+    </Card>
   )
 }
 
@@ -217,7 +208,6 @@ function EntryCard({
   onDelete: (id: number) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
   const updateMutation = useUpdateJournalEntry()
   const [editing, setEditing] = useState(false)
 
@@ -240,7 +230,7 @@ function EntryCard({
   }
 
   return (
-    <div className="bg-surface-container-high/40 rounded-2xl px-4 py-3">
+    <Card className="px-4 py-3">
       {/* Header row */}
       <div className="flex items-start gap-3">
         {/* Sentiment dot */}
@@ -262,27 +252,27 @@ function EntryCard({
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', CATEGORY_COLORS[entry.category])}>
+            <Chip tone={CATEGORY_TONE[entry.category]}>
               {CATEGORY_LABELS[entry.category]}
-            </span>
+            </Chip>
             {entry.sentiment && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', SENTIMENT_COLORS[entry.sentiment])}>
+              <Chip tone={SENTIMENT_TONE[entry.sentiment]}>
                 {SENTIMENT_LABELS[entry.sentiment]}
-              </span>
+              </Chip>
             )}
             {entry.source === 'system' && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium text-on-surface-faint bg-surface-container-highest flex items-center gap-1">
+              <Chip className="inline-flex items-center gap-1">
                 <Cpu size={10} />
                 auto
-              </span>
+              </Chip>
             )}
             {entry.source === 'ai' && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium text-violet-400 bg-violet-400/10 flex items-center gap-1">
+              <Chip tone="secondary" className="inline-flex items-center gap-1">
                 <Bot size={10} />
                 AI
-              </span>
+              </Chip>
             )}
-            <span className="text-xs text-on-surface-faint ml-auto">{relativeTime(entry.ts)}</span>
+            <span className="text-xs text-on-surface-faint ml-auto"><TimeAgo ts={entry.ts} /></span>
           </div>
 
           {/* Body (expanded) */}
@@ -304,39 +294,18 @@ function EntryCard({
         {/* Actions */}
         {entry.source !== 'system' && (
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setEditing(true)}
-              className="p-1.5 rounded-lg text-on-surface-faint hover:text-on-surface hover:bg-surface-container-high transition-fluid"
+            <IconButton icon={Pencil} label="Edit entry" size={13} onClick={() => setEditing(true)} />
+            <ConfirmButton
+              title="Delete entry"
+              onConfirm={() => onDelete(entry.id)}
+              className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
             >
-              <Pencil size={13} />
-            </button>
-            {!deleteConfirm ? (
-              <button
-                onClick={() => setDeleteConfirm(true)}
-                className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
-              >
-                <Trash2 size={13} />
-              </button>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => onDelete(entry.id)}
-                  className="px-2 py-1 rounded-lg bg-tertiary/10 text-tertiary text-xs font-medium hover:bg-tertiary/20 transition-fluid"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(false)}
-                  className="p-1 rounded-lg text-on-surface-faint hover:text-on-surface transition-fluid"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            )}
+              <Trash2 size={13} />
+            </ConfirmButton>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -355,17 +324,17 @@ export const KIND_LABELS: Record<string, string> = {
   auth_event: 'Auth',
 }
 
-export const KIND_COLORS: Record<string, string> = {
-  feed_mode_activated: 'text-secondary bg-secondary/10',
-  outlet_changed: 'text-primary bg-primary/10',
-  alert_fired: 'text-red-400 bg-red-400/10',
-  alert_cleared: 'text-secondary bg-secondary/10',
-  observation_recorded: 'text-amber-400 bg-amber-400/10',
-  livestock_added: 'text-violet-400 bg-violet-400/10',
-  livestock_updated: 'text-violet-400 bg-violet-400/10',
-  journal_entry_created: 'text-on-surface-dim bg-surface-container-high',
-  config_changed: 'text-primary bg-primary/10',
-  auth_event: 'text-on-surface-dim bg-surface-container-high',
+export const KIND_TONE: Record<string, ChipTone> = {
+  feed_mode_activated: 'secondary',
+  outlet_changed: 'primary',
+  alert_fired: 'critical',
+  alert_cleared: 'secondary',
+  observation_recorded: 'warning',
+  livestock_added: 'secondary',
+  livestock_updated: 'secondary',
+  journal_entry_created: 'neutral',
+  config_changed: 'primary',
+  auth_event: 'neutral',
 }
 
 function AuditEventRow({ event }: { event: AuditEvent }) {
@@ -374,7 +343,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   try { parsed = JSON.parse(event.payload_json) } catch { /* ignore */ }
 
   const label = KIND_LABELS[event.kind] ?? event.kind
-  const color = KIND_COLORS[event.kind] ?? 'text-on-surface-dim bg-surface-container-high'
+  const tone = KIND_TONE[event.kind] ?? 'neutral'
 
   // Extract a human-readable summary from common payload fields.
   let summary = ''
@@ -391,14 +360,14 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   }
 
   return (
-    <div className="bg-surface-container-high/30 rounded-2xl px-4 py-3">
+    <Card className="px-4 py-3">
       <div className="flex items-start gap-3">
         <Activity size={12} className="shrink-0 mt-1.5 text-on-surface-faint/50" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', color)}>{label}</span>
+            <Chip tone={tone}>{label}</Chip>
             {summary && <span className="text-sm text-on-surface-dim truncate">{summary}</span>}
-            <span className="text-xs text-on-surface-faint ml-auto">{relativeTime(event.ts)}</span>
+            <span className="text-xs text-on-surface-faint ml-auto"><TimeAgo ts={event.ts} /></span>
           </div>
           {expanded && (
             <pre className="mt-2 text-xs text-on-surface-faint font-mono bg-surface-container-highest/30 rounded-xl px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">
@@ -413,7 +382,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
           </button>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -460,7 +429,7 @@ export function FullTimeline({ kindFilter: kindFilterProp, onKindFilterChange, a
               className={cn(
                 'px-3 py-1 rounded-full text-xs font-medium transition-fluid',
                 kindFilter === k
-                  ? (KIND_COLORS[k] ?? 'bg-primary/20 text-primary')
+                  ? 'bg-primary/20 text-primary'
                   : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface',
               )}
             >
@@ -470,17 +439,10 @@ export function FullTimeline({ kindFilter: kindFilterProp, onKindFilterChange, a
         </div>
       )}
 
-      {isLoading && (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-2xl bg-surface-container-high/30 animate-pulse" />)}
-        </div>
-      )}
-      {isError && <p className="text-sm text-tertiary">Failed to load event timeline.</p>}
+      {isLoading && <LoadingState label="Loading events" />}
+      {isError && <EmptyState message="Failed to load event timeline." />}
       {!isLoading && !isError && events.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <Activity size={36} className="text-on-surface-faint/40" />
-          <p className="text-sm text-on-surface-faint">No audit events recorded yet.</p>
-        </div>
+        <EmptyState icon={<Activity size={36} />} message="No audit events recorded yet." />
       )}
       {!isLoading && events.length > 0 && (
         <div className="space-y-2">
@@ -579,7 +541,7 @@ export default function Journal({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-8 py-6 space-y-6">
+    <PageBody>
       {/* Standalone header (not used when embedded in HistoryPage) */}
       {!hideHeader && (
         <>
@@ -589,18 +551,13 @@ export default function Journal({
               <h1 className="text-2xl font-bold text-on-surface mt-0.5">Journal</h1>
             </div>
             {view === 'journal' && (
-              <button
+              <Button
+                variant={showForm ? 'secondary' : 'tonal'}
+                icon={showForm ? X : Plus}
                 onClick={() => setShowForm(!showForm)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-fluid',
-                  showForm
-                    ? 'bg-surface-container-high text-on-surface'
-                    : 'bg-primary/10 text-primary hover:bg-primary/20',
-                )}
               >
-                {showForm ? <X size={14} /> : <Plus size={14} />}
                 {showForm ? 'Cancel' : 'New Entry'}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -633,13 +590,13 @@ export default function Journal({
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setCategoryFilter('')} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', categoryFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>All</button>
               {(Object.keys(CATEGORY_LABELS) as JournalCategory[]).map(c => (
-                <button key={c} onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', categoryFilter === c ? CATEGORY_COLORS[c] : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{CATEGORY_LABELS[c]}</button>
+                <button key={c} onClick={() => setCategoryFilter(categoryFilter === c ? '' : c)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', categoryFilter === c ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{CATEGORY_LABELS[c]}</button>
               ))}
             </div>
             <div className="flex flex-wrap gap-1.5">
               <button onClick={() => setSentimentFilter('')} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', sentimentFilter === '' ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>Any</button>
               {(Object.keys(SENTIMENT_LABELS) as JournalSentiment[]).map(s => (
-                <button key={s} onClick={() => setSentimentFilter(sentimentFilter === s ? '' : s)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', sentimentFilter === s ? SENTIMENT_COLORS[s] : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{SENTIMENT_LABELS[s]}</button>
+                <button key={s} onClick={() => setSentimentFilter(sentimentFilter === s ? '' : s)} className={cn('px-3 py-1 rounded-full text-xs font-medium transition-fluid', sentimentFilter === s ? 'bg-primary/20 text-primary' : 'bg-surface-container-high text-on-surface-dim hover:text-on-surface')}>{SENTIMENT_LABELS[s]}</button>
               ))}
             </div>
           </div>
@@ -661,31 +618,20 @@ export default function Journal({
       )}
 
       {/* Entry list */}
-      {isLoading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-2xl bg-surface-container-high/40 animate-pulse" />
-          ))}
-        </div>
-      )}
+      {isLoading && <LoadingState label="Loading entries" />}
 
-      {isError && (
-        <p className="text-sm text-tertiary px-1">Failed to load journal entries.</p>
-      )}
+      {isError && <EmptyState message="Failed to load journal entries." />}
 
       {!isLoading && !isError && entries.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <ScrollText size={36} className="text-on-surface-faint/40" />
-          <p className="text-sm text-on-surface-faint">No entries yet.</p>
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="text-sm text-primary hover:text-primary/80 transition-fluid"
-            >
+        <EmptyState
+          icon={<ScrollText size={36} />}
+          message="No entries yet."
+          action={!showForm && (
+            <Button variant="tonal" onClick={() => setShowForm(true)}>
               Add the first entry
-            </button>
+            </Button>
           )}
-        </div>
+        />
       )}
 
       {!isLoading && entries.length > 0 && (
@@ -702,6 +648,6 @@ export default function Journal({
         </div>
       )}
       </>}
-    </div>
+    </PageBody>
   )
 }

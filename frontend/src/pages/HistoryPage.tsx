@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { ProbeSelector, MeasurementSelector } from '@/components/ProbeSelector'
 import { TimeRangePicker } from '@/components/TimeRangePicker'
 import { FilterDropdown } from '@/components/FilterDropdown'
+import { PageBody } from '@/components/ui'
 import { useAuditEvents } from '@/hooks/useEvents'
 import type { JournalCategory, JournalSentiment } from '@/api/client'
 
@@ -29,7 +30,7 @@ const SENTIMENT_LABELS: Record<JournalSentiment, string> = {
 
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') ?? 'journal'
+  const tab = searchParams.get('tab') ?? 'telemetry'
   usePageTitle('Log')
 
   // Journal state
@@ -38,8 +39,14 @@ export default function HistoryPage() {
   const [sentimentFilter, setSentimentFilter] = useState<JournalSentiment | ''>('')
 
   // Telemetry state
-  const [selectedProbes, setSelectedProbes] = useState<string[]>([])
-  const [selectedMeas, setSelectedMeas] = useState<string[]>([])
+  // Seeded from the URL so links like /history?tab=telemetry&probe=Tmp
+  // (every Dashboard card value) open with that probe already charted.
+  const [selectedProbes, setSelectedProbes] = useState<string[]>(
+    () => (searchParams.get('probe') ?? '').split(',').filter(Boolean),
+  )
+  const [selectedMeas, setSelectedMeas] = useState<string[]>(
+    () => (searchParams.get('meas') ?? '').split(',').filter(Boolean),
+  )
   const [range, setRange] = useState<HistoryRange>(() => {
     const now = new Date()
     return { from: new Date(now.getTime() - 86400000), to: now }
@@ -49,7 +56,11 @@ export default function HistoryPage() {
   // Timeline state
   const [kindFilter, setKindFilter] = useState('')
   const { data: auditData } = useAuditEvents({ limit: 100 })
-  const allKinds = Array.from(new Set((auditData?.events ?? []).map(e => e.kind))).sort()
+  // Every known kind is always offered (so Outlet and Alert filters are there
+  // even when none are in the latest page), plus any unlabelled kind seen.
+  const allKinds = Array.from(
+    new Set([...Object.keys(KIND_LABELS), ...(auditData?.events ?? []).map(e => e.kind)]),
+  ).sort((a, b) => (KIND_LABELS[a] ?? a).localeCompare(KIND_LABELS[b] ?? b))
 
   function setTab(t: string) {
     setSearchParams({ tab: t }, { replace: true })
@@ -95,7 +106,7 @@ export default function HistoryPage() {
     </div>
   )
 
-  const timelineFilterBar = allKinds.length > 0 ? (
+  const timelineFilterBar = (
     <FilterDropdown
       label="All events"
       value={kindFilter}
@@ -105,7 +116,7 @@ export default function HistoryPage() {
       ]}
       onChange={setKindFilter}
     />
-  ) : undefined
+  )
 
   function getFilterBar() {
     if (tab === 'journal') return journalFilterBar
@@ -138,11 +149,11 @@ export default function HistoryPage() {
   return (
     <div>
       <PageHeader
-        subtitle="Telemetry Archive and Log"
-        title="Aquatic History"
+        subtitle="Telemetry, Journal and Timeline"
+        title="Log"
         tabs={[
-          { key: 'journal', label: 'Journal', icon: ScrollText },
           { key: 'telemetry', label: 'Telemetry', icon: Clock },
+          { key: 'journal', label: 'Journal', icon: ScrollText },
           { key: 'timeline', label: 'Full Timeline', icon: Activity },
         ]}
         activeTab={tab}
@@ -155,7 +166,6 @@ export default function HistoryPage() {
         filterCount={getFilterCount()}
         filterActive={getFilterActive()}
         onClearFilters={getClearFilters()}
-        maxWidth="max-w-7xl"
       />
 
       {tab === 'telemetry' && (
@@ -183,13 +193,13 @@ export default function HistoryPage() {
         />
       )}
       {tab === 'timeline' && (
-        <div className="px-6 md:px-8 pt-6 pb-8 max-w-7xl mx-auto">
+        <PageBody>
           <FullTimeline
             kindFilter={kindFilter}
             onKindFilterChange={setKindFilter}
             allKinds={allKinds}
           />
-        </div>
+        </PageBody>
       )}
     </div>
   )

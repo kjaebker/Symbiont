@@ -20,6 +20,8 @@ type AlertState struct {
 	PeakValue      float64
 	EventID        int64     // SQLite alert_events.id for the current open event
 	LastNotifiedAt time.Time // For cooldown enforcement
+	ProbeName      string    // Kept so the alert can be cleared after its rule is gone
+	DisplayName    string
 }
 
 // Engine evaluates alert rules against current probe readings.
@@ -31,6 +33,10 @@ type Engine struct {
 	logger   *slog.Logger
 	state    map[int64]*AlertState
 	mu       sync.Mutex
+
+	// reconciled is set once the open events left in SQLite by a previous
+	// process have been adopted or closed (see reconcile).
+	reconciled bool
 }
 
 // New creates a new alert evaluation engine. bus is used to publish
@@ -73,6 +79,7 @@ type pendingNotification struct {
 	value       float64
 	displayName string
 	eventID     int64
+	cfg         *db.ProbeConfig
 }
 
 // Evaluate loads current probe readings and evaluates all enabled rules.
@@ -84,6 +91,27 @@ func (e *Engine) Evaluate(ctx context.Context) {
 		e.mu.Unlock()
 		e.logger.Error("alert engine: failed to load rules", "err", err)
 		return
+	}
+
+	enabled := make(map[int64]bool, len(rules))
+	for _, r := range rules {
+		enabled[r.ID] = true
+	}
+
+	if !e.reconciled {
+		e.reconcile(ctx, enabled)
+	}
+
+	// An alert whose rule was disabled or deleted can never resolve through
+	// evaluation, so close it here instead of leaving it active forever.
+	for id, st := range e.state {
+		if enabled[id] {
+			continue
+		}
+		if st.Active {
+			e.clear(ctx, db.AlertRule{ID: id, ProbeName: st.ProbeName}, st.DisplayName)
+		}
+		delete(e.state, id)
 	}
 
 	if len(rules) == 0 {
@@ -98,8 +126,8 @@ func (e *Engine) Evaluate(ctx context.Context) {
 		return
 	}
 
-	// Build display name map from probe configs.
-	displayNames := e.loadProbeDisplayNames(ctx)
+	// Probe configs supply display names and the ranges probe_range rules follow.
+	configs := e.loadProbeConfigs(ctx)
 
 	// Build a map of probe name → latest value.
 	probeValues := make(map[string]float64, len(readings))
@@ -116,12 +144,16 @@ func (e *Engine) Evaluate(ctx context.Context) {
 			continue
 		}
 
-		dn := displayNames[rule.ProbeName]
+		cfg := configs[rule.ProbeName]
+		dn := ""
+		if cfg != nil && cfg.DisplayName != nil {
+			dn = *cfg.DisplayName
+		}
 		if dn == "" {
 			dn = splitCamelCase(rule.ProbeName)
 		}
 
-		breached := isBreached(rule, value)
+		breached := isBreached(rule, value, cfg)
 		state := e.state[rule.ID]
 
 		if breached {
@@ -129,11 +161,13 @@ func (e *Engine) Evaluate(ctx context.Context) {
 				// New breach — fire the alert.
 				p := e.fire(ctx, rule, value, dn)
 				if p != nil {
+					p.cfg = cfg
 					pending = append(pending, *p)
 				}
 			} else {
 				// Still breached — update peak and check cooldown for re-notify.
 				if p := e.updatePeak(ctx, rule, value, dn); p != nil {
+					p.cfg = cfg
 					pending = append(pending, *p)
 				}
 			}
@@ -147,7 +181,7 @@ func (e *Engine) Evaluate(ctx context.Context) {
 
 	// Send notifications outside the lock to avoid blocking evaluation on I/O.
 	for _, p := range pending {
-		e.sendNotification(ctx, p.rule, p.value, p.displayName)
+		e.sendNotification(ctx, p.rule, p.value, p.displayName, p.cfg)
 		e.mu.Lock()
 		if s := e.state[p.rule.ID]; s != nil {
 			s.LastNotifiedAt = time.Now()
@@ -159,9 +193,63 @@ func (e *Engine) Evaluate(ctx context.Context) {
 	}
 }
 
+// maxOpenEvents bounds how many open alert events reconcile reads.
+const maxOpenEvents = 1000
+
+// reconcile runs on the first evaluation after startup. The engine's state is
+// in memory only, so alert events that were open when the previous process
+// stopped would otherwise stay "active" forever, and a still-breached rule
+// would fire a duplicate event. For each open event:
+//   - its rule is enabled and has no adopted event yet: adopt it as the active
+//     alert, so normal evaluation updates or clears it;
+//   - otherwise (rule disabled, or an older duplicate): close it.
+//
+// Must be called with e.mu held. On a database error it leaves reconciled
+// unset so the next tick retries.
+func (e *Engine) reconcile(ctx context.Context, enabled map[int64]bool) {
+	open, err := e.sqlite.ListAlertEvents(ctx, nil, true, maxOpenEvents)
+	if err != nil {
+		e.logger.Error("alert engine: failed to load open alert events", "err", err)
+		return
+	}
+
+	now := time.Now()
+	// ListAlertEvents returns newest first, so the first event seen for a rule
+	// is the one to adopt.
+	for _, ev := range open {
+		if _, tracked := e.state[ev.RuleID]; enabled[ev.RuleID] && !tracked {
+			st := &AlertState{
+				Active:    true,
+				FiredAt:   ev.FiredAt,
+				PeakValue: ev.PeakValue,
+				EventID:   ev.ID,
+				// Don't re-notify just because the server restarted.
+				LastNotifiedAt: now,
+			}
+			if ev.ProbeName != nil {
+				st.ProbeName = *ev.ProbeName
+				st.DisplayName = splitCamelCase(*ev.ProbeName)
+			}
+			e.state[ev.RuleID] = st
+			continue
+		}
+		if err := e.sqlite.ClearAlertEvent(ctx, ev.ID); err != nil {
+			e.logger.Error("alert engine: failed to clear stale alert event", "err", err, "event_id", ev.ID)
+			continue
+		}
+		e.logger.Info("alert engine: cleared stale alert event", "event_id", ev.ID, "rule_id", ev.RuleID)
+	}
+	e.reconciled = true
+}
+
 // isBreached checks whether a probe value violates an alert rule's condition.
-func isBreached(rule db.AlertRule, value float64) bool {
+// cfg is the probe's config; only probe_range rules use it.
+func isBreached(rule db.AlertRule, value float64, cfg *db.ProbeConfig) bool {
 	switch rule.Condition {
+	case db.AlertConditionProbeRange:
+		// Fires when the probe's status is at least as bad as the rule's
+		// severity: a warning rule also fires on critical.
+		return db.ProbeStatusRank(db.ProbeStatus(value, cfg)) >= db.ProbeStatusRank(rule.Severity)
 	case "above":
 		return rule.ThresholdHigh != nil && value > *rule.ThresholdHigh
 	case "below":
@@ -186,10 +274,12 @@ func (e *Engine) fire(ctx context.Context, rule db.AlertRule, value float64, dis
 	}
 
 	e.state[rule.ID] = &AlertState{
-		Active:    true,
-		FiredAt:   now,
-		PeakValue: value,
-		EventID:   eventID,
+		Active:      true,
+		FiredAt:     now,
+		PeakValue:   value,
+		EventID:     eventID,
+		ProbeName:   rule.ProbeName,
+		DisplayName: displayName,
 	}
 
 	// Publish via event bus (SSE, audit, notifier all subscribe).
@@ -267,13 +357,13 @@ func (e *Engine) updatePeak(ctx context.Context, rule db.AlertRule, value float6
 	return nil
 }
 
-func (e *Engine) sendNotification(ctx context.Context, rule db.AlertRule, value float64, displayName string) {
+func (e *Engine) sendNotification(ctx context.Context, rule db.AlertRule, value float64, displayName string, cfg *db.ProbeConfig) {
 	if e.notifier == nil {
 		return
 	}
 
 	title := formatAlertTitle(rule, displayName)
-	body := formatAlertBody(rule, value, displayName)
+	body := formatAlertBody(rule, value, displayName, cfg)
 	priority := "high"
 	if rule.Severity == "critical" {
 		priority = "urgent"
@@ -303,8 +393,10 @@ func formatAlertTitle(rule db.AlertRule, displayName string) string {
 	return fmt.Sprintf("%s %s %s", icon, displayName, rule.Severity)
 }
 
-func formatAlertBody(rule db.AlertRule, value float64, displayName string) string {
+func formatAlertBody(rule db.AlertRule, value float64, displayName string, cfg *db.ProbeConfig) string {
 	switch rule.Condition {
+	case db.AlertConditionProbeRange:
+		return formatProbeRangeBody(value, displayName, cfg)
 	case "above":
 		return fmt.Sprintf("%s is %.2f (threshold: above %.2f). Check your tank.", displayName, value, *rule.ThresholdHigh)
 	case "below":
@@ -316,18 +408,49 @@ func formatAlertBody(rule db.AlertRule, value float64, displayName string) strin
 	}
 }
 
-// loadProbeDisplayNames loads probe configs and returns a map of probe name → display name.
-func (e *Engine) loadProbeDisplayNames(ctx context.Context) map[string]string {
+// formatProbeRangeBody describes a probe_range breach using the range the
+// probe actually left: the critical limits when its status is critical,
+// otherwise the normal range.
+func formatProbeRangeBody(value float64, displayName string, cfg *db.ProbeConfig) string {
+	if cfg != nil && cfg.IsBinary {
+		label := cfg.OnLabel
+		if value == 0 {
+			label = cfg.OffLabel
+		}
+		if label != nil && *label != "" {
+			return fmt.Sprintf("%s is %s. Check your tank.", displayName, *label)
+		}
+		return fmt.Sprintf("%s is not in its OK state. Check your tank.", displayName)
+	}
+
+	status := db.ProbeStatus(value, cfg)
+	low, high := cfg.RangeFor(status)
+	kind := "normal range"
+	if status == db.ProbeStatusCritical {
+		kind = "critical limits"
+	}
+	switch {
+	case low != nil && high != nil:
+		return fmt.Sprintf("%s is %.2f, outside its %s (%.2f–%.2f). Check your tank.", displayName, value, kind, *low, *high)
+	case low != nil:
+		return fmt.Sprintf("%s is %.2f, outside its %s (minimum %.2f). Check your tank.", displayName, value, kind, *low)
+	case high != nil:
+		return fmt.Sprintf("%s is %.2f, outside its %s (maximum %.2f). Check your tank.", displayName, value, kind, *high)
+	default:
+		return fmt.Sprintf("%s is %.2f. Check your tank.", displayName, value)
+	}
+}
+
+// loadProbeConfigs returns probe configs keyed by probe name.
+func (e *Engine) loadProbeConfigs(ctx context.Context) map[string]*db.ProbeConfig {
 	configs, err := e.sqlite.ListProbeConfigs(ctx)
 	if err != nil {
 		e.logger.Error("alert engine: failed to load probe configs", "err", err)
 		return nil
 	}
-	m := make(map[string]string, len(configs))
-	for _, c := range configs {
-		if c.DisplayName != nil {
-			m[c.ProbeName] = *c.DisplayName
-		}
+	m := make(map[string]*db.ProbeConfig, len(configs))
+	for i := range configs {
+		m[configs[i].ProbeName] = &configs[i]
 	}
 	return m
 }

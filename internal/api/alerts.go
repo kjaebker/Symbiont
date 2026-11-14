@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -15,19 +17,41 @@ func (s *Server) HandleAlertList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	displayNames := s.probeDisplayNames(ctx)
+	configs, err := s.sqlite.ListProbeConfigs(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to fetch probe configs", "db_error")
+		return
+	}
+	cfgMap := make(map[string]*db.ProbeConfig, len(configs))
+	for i := range configs {
+		cfgMap[configs[i].ProbeName] = &configs[i]
+	}
 
+	// For probe_range rules, range_low/range_high are the probe's configured
+	// bounds the rule currently follows, and range_configured says whether the
+	// probe's config can trigger the rule at all.
 	type ruleWithDisplay struct {
 		db.AlertRule
-		ProbeDisplayName string `json:"probe_display_name"`
+		ProbeDisplayName string   `json:"probe_display_name"`
+		RangeLow         *float64 `json:"range_low"`
+		RangeHigh        *float64 `json:"range_high"`
+		RangeConfigured  bool     `json:"range_configured"`
 	}
 	out := make([]ruleWithDisplay, len(rules))
 	for i, r := range rules {
-		dn := displayNames[r.ProbeName]
+		cfg := cfgMap[r.ProbeName]
+		dn := ""
+		if cfg != nil {
+			dn = derefStr(cfg.DisplayName, "")
+		}
 		if dn == "" {
 			dn = splitCamelCase(r.ProbeName)
 		}
 		out[i] = ruleWithDisplay{AlertRule: r, ProbeDisplayName: dn}
+		if r.Condition == db.AlertConditionProbeRange {
+			out[i].RangeLow, out[i].RangeHigh = cfg.RangeFor(r.Severity)
+			out[i].RangeConfigured = cfg.CanReach(r.Severity)
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"rules": out})
@@ -38,16 +62,58 @@ func (s *Server) HandleAlertList(w http.ResponseWriter, r *http.Request) {
 // by DisallowUnknownFields in readJSON. Read-only and computed fields are
 // accepted but ignored when writing.
 type alertRuleInput struct {
-	ID              int64    `json:"id"`
-	ProbeName       string   `json:"probe_name"`
-	Condition       string   `json:"condition"`
-	ThresholdLow    *float64 `json:"threshold_low"`
-	ThresholdHigh   *float64 `json:"threshold_high"`
-	Severity        string   `json:"severity"`
-	CooldownMinutes int      `json:"cooldown_minutes"`
-	Enabled         bool     `json:"enabled"`
-	CreatedAt       string   `json:"created_at"`
-	ProbeDisplayName string  `json:"probe_display_name"`
+	ID               int64    `json:"id"`
+	ProbeName        string   `json:"probe_name"`
+	Condition        string   `json:"condition"`
+	ThresholdLow     *float64 `json:"threshold_low"`
+	ThresholdHigh    *float64 `json:"threshold_high"`
+	Severity         string   `json:"severity"`
+	CooldownMinutes  int      `json:"cooldown_minutes"`
+	Enabled          bool     `json:"enabled"`
+	CreatedAt        string   `json:"created_at"`
+	ProbeDisplayName string   `json:"probe_display_name"`
+	RangeLow         *float64 `json:"range_low"`
+	RangeHigh        *float64 `json:"range_high"`
+	RangeConfigured  bool     `json:"range_configured"`
+}
+
+// toRule converts request input to a rule. probe_range rules carry no
+// thresholds of their own, so any sent with them are dropped.
+func (in alertRuleInput) toRule() db.AlertRule {
+	rule := db.AlertRule{
+		ProbeName:       in.ProbeName,
+		Condition:       in.Condition,
+		ThresholdLow:    in.ThresholdLow,
+		ThresholdHigh:   in.ThresholdHigh,
+		Severity:        in.Severity,
+		CooldownMinutes: in.CooldownMinutes,
+		Enabled:         in.Enabled,
+	}
+	if rule.Condition == db.AlertConditionProbeRange {
+		rule.ThresholdLow, rule.ThresholdHigh = nil, nil
+	}
+	return rule
+}
+
+// checkProbeRange rejects a probe_range rule on a probe whose configured
+// ranges could never trigger it, returning an error message or "".
+func (s *Server) checkProbeRange(r *http.Request, rule db.AlertRule) string {
+	if rule.Condition != db.AlertConditionProbeRange {
+		return ""
+	}
+	// A missing config row is the same as no ranges; any other error is real.
+	cfg, err := s.sqlite.GetProbeConfig(r.Context(), rule.ProbeName)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		s.logger.Error("failed to load probe config for alert rule", "err", err, "probe", rule.ProbeName)
+		return "could not check this probe's configured range"
+	}
+	if !cfg.CanReach(rule.Severity) {
+		if rule.Severity == db.ProbeStatusCritical {
+			return "this probe has no critical limits configured; set them in Settings > Probes or use a custom threshold"
+		}
+		return "this probe has no normal range configured; set one in Settings > Probes or use a custom threshold"
+	}
+	return ""
 }
 
 func (s *Server) HandleAlertCreate(w http.ResponseWriter, r *http.Request) {
@@ -57,17 +123,13 @@ func (s *Server) HandleAlertCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rule := db.AlertRule{
-		ProbeName:       input.ProbeName,
-		Condition:       input.Condition,
-		ThresholdLow:    input.ThresholdLow,
-		ThresholdHigh:   input.ThresholdHigh,
-		Severity:        input.Severity,
-		CooldownMinutes: input.CooldownMinutes,
-		Enabled:         input.Enabled,
-	}
+	rule := input.toRule()
 	if err := validateAlertRule(rule); err != "" {
 		writeError(w, http.StatusBadRequest, err, "validation_error")
+		return
+	}
+	if err := s.checkProbeRange(r, rule); err != "" {
+		writeError(w, http.StatusBadRequest, err, "range_not_configured")
 		return
 	}
 
@@ -95,17 +157,13 @@ func (s *Server) HandleAlertUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rule := db.AlertRule{
-		ProbeName:       input.ProbeName,
-		Condition:       input.Condition,
-		ThresholdLow:    input.ThresholdLow,
-		ThresholdHigh:   input.ThresholdHigh,
-		Severity:        input.Severity,
-		CooldownMinutes: input.CooldownMinutes,
-		Enabled:         input.Enabled,
-	}
+	rule := input.toRule()
 	if errMsg := validateAlertRule(rule); errMsg != "" {
 		writeError(w, http.StatusBadRequest, errMsg, "validation_error")
+		return
+	}
+	if errMsg := s.checkProbeRange(r, rule); errMsg != "" {
+		writeError(w, http.StatusBadRequest, errMsg, "range_not_configured")
 		return
 	}
 
@@ -185,10 +243,10 @@ func validateAlertRule(rule db.AlertRule) string {
 	}
 
 	switch rule.Condition {
-	case "above", "below", "outside_range":
+	case "above", "below", "outside_range", db.AlertConditionProbeRange:
 		// valid
 	default:
-		return "condition must be 'above', 'below', or 'outside_range'"
+		return "condition must be 'probe_range', 'above', 'below', or 'outside_range'"
 	}
 
 	switch rule.Severity {

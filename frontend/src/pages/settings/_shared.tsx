@@ -10,20 +10,51 @@ import { GripVertical, ToggleLeft, AlertTriangle, Activity, Droplets } from 'luc
 import { cn } from '@/lib/utils'
 import type { InputCategory } from '@/api/types'
 
-export type Tab = 'dashboard' | 'devices' | 'probes' | 'outlets' | 'tokens' | 'notifications' | 'backup' | 'log' | 'system' | 'tank' | 'agent'
+export type Tab =
+  | 'dashboard' | 'tank'
+  | 'probes' | 'outlets' | 'devices' | 'dosing'
+  | 'alerts' | 'notifications'
+  | 'system' | 'backup' | 'tokens' | 'agent' | 'log'
 
-export const tabs: { key: Tab; label: string }[] = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'devices', label: 'Devices' },
-  { key: 'tank', label: 'Tank' },
-  { key: 'probes', label: 'Probes' },
-  { key: 'outlets', label: 'Outlets' },
-  { key: 'agent', label: 'Agent' },
-  { key: 'tokens', label: 'Tokens' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'backup', label: 'Backup' },
-  { key: 'log', label: 'Log' },
-  { key: 'system', label: 'System' },
+export type TabGroup = 'dashboard' | 'tank' | 'equipment' | 'alerts' | 'system'
+
+/**
+ * Settings is two levels: five groups across the page header, and the tabs of
+ * the active group as a row of pills under it. The URL carries the tab
+ * (`?tab=probes`); the group is derived from it.
+ */
+export const tabGroups: { key: TabGroup; label: string; tabs: { key: Tab; label: string }[] }[] = [
+  { key: 'dashboard', label: 'Dashboard', tabs: [{ key: 'dashboard', label: 'Dashboard' }] },
+  { key: 'tank', label: 'Tank', tabs: [{ key: 'tank', label: 'Tank' }] },
+  {
+    key: 'equipment',
+    label: 'Equipment',
+    tabs: [
+      { key: 'probes', label: 'Probes' },
+      { key: 'outlets', label: 'Outlets' },
+      { key: 'devices', label: 'Devices' },
+      { key: 'dosing', label: 'Dosing' },
+    ],
+  },
+  {
+    key: 'alerts',
+    label: 'Alerts',
+    tabs: [
+      { key: 'alerts', label: 'Rules' },
+      { key: 'notifications', label: 'Notifications' },
+    ],
+  },
+  {
+    key: 'system',
+    label: 'System',
+    tabs: [
+      { key: 'system', label: 'System' },
+      { key: 'backup', label: 'Backup' },
+      { key: 'tokens', label: 'Tokens' },
+      { key: 'agent', label: 'Agent' },
+      { key: 'log', label: 'System Log' },
+    ],
+  },
 ]
 
 export const unitOptions = [
@@ -178,7 +209,7 @@ export const binaryCategoryOptions: { value: InputCategory; label: string }[] = 
 
 export function getCategoryIcon(category: InputCategory): { Icon: typeof ToggleLeft; color: string; bg: string } {
   switch (category) {
-    case 'fluid': return { Icon: Droplets, color: 'text-amber-400', bg: 'bg-amber-400/10' }
+    case 'fluid': return { Icon: Droplets, color: 'text-warning', bg: 'bg-warning/10' }
     case 'alarm': return { Icon: AlertTriangle, color: 'text-tertiary', bg: 'bg-tertiary/10' }
     case 'virtual': return { Icon: Activity, color: 'text-primary', bg: 'bg-primary/10' }
     default: return { Icon: ToggleLeft, color: 'text-on-surface-dim', bg: 'bg-surface-container-high' }
@@ -190,7 +221,7 @@ export function CategorySelect({ value, onSave }: { value: InputCategory; onSave
     <select
       value={value}
       onChange={(e) => onSave(e.target.value)}
-      className="w-full bg-transparent text-on-surface text-sm rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
+      className="w-full bg-transparent text-on-surface text-base rounded-lg px-2 py-1 outline-none hover:bg-surface-container-high focus:ring-1 focus:ring-primary/30 transition-fluid cursor-pointer appearance-none"
     >
       {binaryCategoryOptions.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-container text-on-surface">
@@ -198,27 +229,5 @@ export function CategorySelect({ value, onSave }: { value: InputCategory; onSave
         </option>
       ))}
     </select>
-  )
-}
-
-// --- Loading / Empty states ---
-
-export function LoadingState({ label }: { label: string }) {
-  return (
-    <div className="p-12 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-primary/20 animate-bio-pulse" />
-        <span className="text-xs text-on-surface-faint uppercase tracking-widest">{label}</span>
-      </div>
-    </div>
-  )
-}
-
-export function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
-  return (
-    <div className="p-12 flex flex-col items-center justify-center gap-3">
-      <div className="text-on-surface-faint">{icon}</div>
-      <span className="text-on-surface-dim text-sm text-center max-w-sm">{message}</span>
-    </div>
   )
 }

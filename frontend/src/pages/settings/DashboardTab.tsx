@@ -8,7 +8,9 @@ import { useProbes } from '@/hooks/useProbes'
 import { useOutlets } from '@/hooks/useOutlets'
 import { useMeasurementParameters } from '@/hooks/useMeasurements'
 import { useDevices } from '@/hooks/useDevices'
-import { useDragSensors,DragHandle,EditableCell,LoadingState,EmptyState } from './_shared'
+import { Button, Chip, IconButton, LoadingState, EmptyState, labelClass, type ChipTone } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
+import { useDragSensors,DragHandle,EditableCell } from './_shared'
 
 // =============================================================================
 // Dashboard Tab — unified drag-and-drop list driven by dashboard_items
@@ -44,18 +46,14 @@ function SortableDashboardRow({
     transition,
   }
 
-  const typeBadgeStyle =
-    item.item_type === 'outlet'
-      ? 'bg-primary/10 text-primary'
+  const typeTone: ChipTone =
+    item.item_type === 'outlet' || item.item_type === 'feed_mode'
+      ? 'primary'
       : item.item_type === 'device'
-        ? 'bg-tertiary/10 text-tertiary'
+        ? 'critical'
         : item.item_type === 'separator'
-          ? 'bg-amber-400/10 text-amber-400'
-          : item.item_type === 'feed_mode'
-            ? 'bg-primary/10 text-primary'
-            : item.item_type === 'measurement'
-              ? 'bg-secondary/10 text-secondary'
-              : 'bg-secondary/10 text-secondary'
+          ? 'warning'
+          : 'secondary'
 
   return (
     <div
@@ -67,12 +65,7 @@ function SortableDashboardRow({
       )}
     >
       <DragHandle listeners={listeners} attributes={attributes} />
-      <span className={cn(
-        'shrink-0 px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider',
-        typeBadgeStyle,
-      )}>
-        {item.item_type}
-      </span>
+      <Chip tone={typeTone} className="shrink-0">{item.item_type}</Chip>
       {item.item_type === 'separator' && onLabelChange ? (
         <EditableCell
           value={item.label ?? ''}
@@ -85,27 +78,23 @@ function SortableDashboardRow({
         </span>
       )}
       {item.item_type !== 'separator' && onDisplayModeChange && (
-        <button
+        <IconButton
+          icon={item.display_mode === 'compact' ? LayoutGrid : LayoutList}
+          size={16}
+          label={item.display_mode === 'compact' ? 'Switch to normal' : 'Switch to compact'}
           onClick={() =>
             onDisplayModeChange(item.id, item.display_mode === 'compact' ? 'normal' : 'compact')
           }
-          title={item.display_mode === 'compact' ? 'Switch to normal' : 'Switch to compact'}
-          className={cn(
-            'p-1.5 rounded-lg transition-fluid cursor-pointer',
-            item.display_mode === 'compact'
-              ? 'text-primary bg-primary/10 hover:bg-primary/20'
-              : 'text-on-surface-faint hover:text-on-surface-dim hover:bg-surface-container-high',
-          )}
-        >
-          {item.display_mode === 'compact' ? <LayoutGrid size={16} /> : <LayoutList size={16} />}
-        </button>
+          className={item.display_mode === 'compact' ? 'text-primary bg-primary/10 hover:bg-primary/20' : undefined}
+        />
       )}
-      <button
-        onClick={() => onRemove(item.id)}
-        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid cursor-pointer"
+      <ConfirmButton
+        onConfirm={() => onRemove(item.id)}
+        title="Remove from dashboard"
+        className="p-1.5 rounded-lg text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10 transition-fluid"
       >
         <Trash2 size={16} />
-      </button>
+      </ConfirmButton>
     </div>
   )
 }
@@ -233,19 +222,12 @@ export default function DashboardTab() {
           Drag to reorder. Remove items with the trash icon.
         </p>
         <div className="flex gap-2">
-          <button
-            onClick={handleAddSeparator}
-            className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-full bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 transition-fluid cursor-pointer"
-          >
+          <Button size="sm" onClick={handleAddSeparator} className="flex-1 sm:flex-none">
             + Separator
-          </button>
-          <button
-            onClick={() => setShowPicker(!showPicker)}
-            className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-fluid cursor-pointer"
-          >
-            <Plus size={14} className="inline -mt-0.5 mr-1" />
+          </Button>
+          <Button variant="tonal" size="sm" icon={Plus} onClick={() => setShowPicker(!showPicker)} className="flex-1 sm:flex-none">
             Add Item
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -254,7 +236,7 @@ export default function DashboardTab() {
         <div className="px-4 py-3 bg-surface-container-high/20 space-y-3">
           {availableProbes.length > 0 && (
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Probes</p>
+              <p className={`${labelClass} mb-1`}>Probes</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableProbes.map((p) => (
                   <button
@@ -270,7 +252,7 @@ export default function DashboardTab() {
           )}
           {availableOutlets.length > 0 && (
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Outlets</p>
+              <p className={`${labelClass} mb-1`}>Outlets</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableOutlets.map((o) => (
                   <button
@@ -286,7 +268,7 @@ export default function DashboardTab() {
           )}
           {availableDevices.length > 0 && (
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Devices</p>
+              <p className={`${labelClass} mb-1`}>Devices</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableDevices.map((d) => (
                   <button
@@ -302,7 +284,7 @@ export default function DashboardTab() {
           )}
           {availableMeasurements.length > 0 && (
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Chemistry</p>
+              <p className={`${labelClass} mb-1`}>Chemistry</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableMeasurements.map((p) => (
                   <button
@@ -318,7 +300,7 @@ export default function DashboardTab() {
           )}
           {!onDashboard.has('feed_mode:feed') && (
             <div>
-              <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1">Controller</p>
+              <p className={`${labelClass} mb-1`}>Controller</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => handleAdd('feed_mode', 'feed')}

@@ -173,6 +173,9 @@ type LivestockItem struct {
 	ImagePath *string   `json:"image_path"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	// LastObservedAt is the time of the most recent observation, nil if none.
+	// Read-only: set by the list and get queries.
+	LastObservedAt *time.Time `json:"last_observed_at"`
 }
 
 // LivestockObservation represents a row in the livestock_observations table.

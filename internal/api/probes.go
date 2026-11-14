@@ -210,56 +210,10 @@ func validInterval(interval string) bool {
 	return enums.HistoryIntervals.Has(interval)
 }
 
-// computeProbeStatus determines probe status from config thresholds.
-// For binary categories (fluid/alarm) with ok_value set, status is derived
-// from whether the current value matches the expected "OK" value.
-// For analog probes, standard min/max threshold logic applies.
+// computeProbeStatus determines probe status from config thresholds. The
+// logic lives in the db package so the alert engine evaluates the same ranges.
 func computeProbeStatus(value float64, cfg *db.ProbeConfig) string {
-	if cfg == nil {
-		return "unknown"
-	}
-
-	// Binary inputs: derive status from ok_value if set.
-	if cfg.IsBinary && cfg.OkValue != nil {
-		if value == *cfg.OkValue {
-			return "normal"
-		}
-		switch cfg.InputCategory {
-		case "alarm":
-			return "critical"
-		case "fluid":
-			return "warning"
-		}
-		return "unknown"
-	}
-
-	// Analog probes: threshold-based status.
-	hasNormal := cfg.MinNormal != nil || cfg.MaxNormal != nil
-	hasWarning := cfg.MinWarning != nil || cfg.MaxWarning != nil
-
-	if !hasNormal && !hasWarning {
-		return "unknown"
-	}
-
-	if hasWarning {
-		if cfg.MinWarning != nil && value < *cfg.MinWarning {
-			return "critical"
-		}
-		if cfg.MaxWarning != nil && value > *cfg.MaxWarning {
-			return "critical"
-		}
-	}
-
-	if hasNormal {
-		if cfg.MinNormal != nil && value < *cfg.MinNormal {
-			return "warning"
-		}
-		if cfg.MaxNormal != nil && value > *cfg.MaxNormal {
-			return "warning"
-		}
-	}
-
-	return "normal"
+	return db.ProbeStatus(value, cfg)
 }
 
 func probeTypeToUnit(probeType string) string {

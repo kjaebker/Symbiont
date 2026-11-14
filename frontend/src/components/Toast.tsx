@@ -51,7 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 const typeStyles: Record<ToastType, string> = {
   info: 'text-primary',
   success: 'text-secondary',
-  warning: 'text-amber-400',
+  warning: 'text-warning',
   error: 'text-tertiary',
   alert: 'text-tertiary',
 }

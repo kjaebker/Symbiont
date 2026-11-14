@@ -18,7 +18,7 @@ export function getLivestockItem(id: number) {
 }
 
 export function createLivestockItem(
-  data: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path'>,
+  data: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path' | 'last_observed_at'>,
 ) {
   return apiFetch<LivestockItem>('/api/livestock', {
     method: 'POST',

@@ -47,7 +47,7 @@ export function useLivestockSpecies() {
 export function useCreateLivestockItem() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (item: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path'>) =>
+    mutationFn: (item: Omit<LivestockItem, 'id' | 'created_at' | 'updated_at' | 'image_path' | 'last_observed_at'>) =>
       createLivestockItem(item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.livestock.all })

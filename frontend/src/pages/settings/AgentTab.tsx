@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
 import { Plus,Copy,Check,Sparkles,Bot,ChevronDown,ChevronUp } from 'lucide-react'
 import { useCreateToken } from '@/hooks/useSettings'
 import { useAgentSettings,useUpdateAgentSettings,useAgentContext,useAgentSkills } from '@/hooks/useAgent'
-import { LoadingState,EmptyState } from './_shared'
+import { Button, IconButton, Field, Input, Select, Textarea, Toggle, LoadingState, EmptyState, labelClass } from '@/components/ui'
 
 // =============================================================================
 // Agent Tab
@@ -106,9 +105,6 @@ export default function AgentTab() {
     })
   }
 
-  const selectClass = 'w-full bg-surface-container-highest text-on-surface text-base rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/40 transition-fluid'
-  const labelClass = 'text-xs text-on-surface-faint uppercase tracking-widest font-medium mb-1.5 block'
-
   return (
     <div className="space-y-6 p-4">
 
@@ -126,72 +122,54 @@ export default function AgentTab() {
       {/* Persona controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-        {/* Tone */}
-        <div>
-          <label className={labelClass}>Tone</label>
-          <select
-            value={settings.tone}
-            onChange={(e) => handleToneChange(e.target.value)}
-            className={selectClass}
-          >
+        <Field label="Tone">
+          <Select value={settings.tone} onChange={(e) => handleToneChange(e.target.value)}>
             <option value="analytical">Analytical — precise, data-driven</option>
             <option value="casual">Casual — conversational, friendly</option>
             <option value="terse">Terse — minimal, just the facts</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
 
-        {/* Dosing product line */}
-        <div>
-          <label className={labelClass}>Dosing Product Line</label>
-          <select
-            value={settings.dosing_product_line}
-            onChange={(e) => handleProductLineChange(e.target.value)}
-            className={selectClass}
-          >
+        <Field label="Dosing Product Line">
+          <Select value={settings.dosing_product_line} onChange={(e) => handleProductLineChange(e.target.value)}>
             <option value="generic">Generic (brand-neutral)</option>
             <option value="brs_pharma">BRS Pharma</option>
             <option value="red_sea">Red Sea</option>
             <option value="tropic_marin">Tropic Marin</option>
             <option value="none">None (no dosing advice)</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
 
-        {/* Net volume override */}
-        <div>
-          <label className={labelClass}>Net Volume Override (gallons)</label>
-          <input
+        <Field
+          label="Net Volume Override (gallons)"
+          hint="Leave blank to use the sum of display + sump volumes"
+        >
+          <Input
             type="number"
             min={1}
             step={0.5}
             placeholder="Derived from tank profile"
             defaultValue={settings.net_volume_gallons ?? ''}
             onBlur={(e) => handleVolumeChange(e.target.value)}
-            className={cn(selectClass, 'placeholder:text-on-surface-faint/50')}
           />
-          <p className="text-xs text-on-surface-faint mt-1">
-            Leave blank to use the sum of display + sump volumes
-          </p>
-        </div>
+        </Field>
       </div>
 
-      {/* Custom guardrails */}
-      <div>
-        <label className={labelClass}>Custom Guardrails</label>
-        <textarea
+      <Field
+        label="Custom Guardrails"
+        hint="Appended verbatim to every context block sent to Claude"
+      >
+        <Textarea
           rows={3}
           placeholder="e.g. Never recommend Alk above 10 dKH for this tank."
           defaultValue={settings.custom_guardrails ?? ''}
           onBlur={(e) => handleGuardrailsChange(e.target.value)}
-          className={cn(selectClass, 'resize-y placeholder:text-on-surface-faint/50')}
         />
-        <p className="text-xs text-on-surface-faint mt-1">
-          Appended verbatim to every context block sent to Claude
-        </p>
-      </div>
+      </Field>
 
       {/* Skills */}
       <div>
-        <p className={labelClass}>Skills</p>
+        <p className={`${labelClass} mb-1.5`}>Skills</p>
         <p className="text-xs text-on-surface-faint mb-3">
           Toggle skills to include or exclude them from installs. All skills are enabled by default.
         </p>
@@ -208,15 +186,10 @@ export default function AgentTab() {
                   key={skill.name}
                   className="flex items-start gap-3 px-3 py-3 rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high/70 transition-fluid"
                 >
-                  <button
-                    onClick={() => handleSkillToggle(skill.name, !on)}
-                    className={cn(
-                      'mt-0.5 h-4 w-4 rounded-full shrink-0 border-2 transition-fluid',
-                      on
-                        ? 'bg-primary border-primary'
-                        : 'bg-transparent border-on-surface-faint/40',
-                    )}
-                    aria-label={on ? `Disable ${skill.name}` : `Enable ${skill.name}`}
+                  <Toggle
+                    checked={on}
+                    onChange={(v) => handleSkillToggle(skill.name, v)}
+                    label={on ? `Disable ${skill.name}` : `Enable ${skill.name}`}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-on-surface leading-snug">{skill.name}</p>
@@ -231,7 +204,7 @@ export default function AgentTab() {
 
       {/* Install instructions */}
       <div className="rounded-2xl bg-surface-container-high/40 p-4 space-y-2">
-        <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">Install Skills</p>
+        <p className={labelClass}>Install Skills</p>
         <p className="text-sm text-on-surface-dim">
           Run this command to install enabled skills into your Claude Code skills directory:
         </p>
@@ -247,7 +220,7 @@ export default function AgentTab() {
       {/* claude.ai Connector */}
       <div className="rounded-2xl bg-surface-container-high/40 p-4 space-y-4">
         <div className="flex items-center gap-2">
-          <p className="text-xs text-on-surface-faint uppercase tracking-widest font-medium">claude.ai Connector</p>
+          <p className={labelClass}>claude.ai Connector</p>
         </div>
         <p className="text-sm text-on-surface-dim">
           Add Symbiont as a remote MCP connector in a claude.ai Project for mobile access.
@@ -258,13 +231,9 @@ export default function AgentTab() {
         <div className="space-y-1.5">
           <p className="text-xs text-on-surface-dim font-medium">1. Copy your agent persona</p>
           <p className="text-xs text-on-surface-faint">Paste into the Project&apos;s Custom Instructions so Claude knows your tank without calling tools every turn.</p>
-          <button
-            onClick={handleCopyPersona}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-highest hover:bg-surface-container-high transition-fluid cursor-pointer"
-          >
-            {personaCopied ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
+          <Button onClick={handleCopyPersona} icon={personaCopied ? Check : Copy}>
             {personaCopied ? 'Persona copied!' : 'Copy persona for claude.ai'}
-          </button>
+          </Button>
         </div>
 
         {/* Step 2: Connector token */}
@@ -275,30 +244,28 @@ export default function AgentTab() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 bg-surface-container-highest rounded-xl px-3 py-2">
                 <code className="flex-1 text-xs text-secondary font-mono break-all">{connectorToken}</code>
-                <button
+                <IconButton
+                  icon={connectorCopied ? Check : Copy}
+                  label="Copy token"
+                  tone="primary"
                   onClick={() => handleCopyConnectorToken(connectorToken)}
-                  className="p-1 rounded-lg text-on-surface-faint hover:text-secondary hover:bg-secondary/10 transition-fluid cursor-pointer shrink-0"
-                >
-                  {connectorCopied ? <Check size={13} /> : <Copy size={13} />}
-                </button>
+                  className="shrink-0"
+                />
               </div>
               <p className="text-xs text-tertiary">Save this token — it won&apos;t be shown again.</p>
-              <button
-                onClick={() => setConnectorToken(null)}
-                className="text-xs text-on-surface-faint hover:text-on-surface transition-fluid cursor-pointer"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setConnectorToken(null)}>
                 Dismiss
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
+              variant="tonal"
+              icon={Plus}
+              loading={createToken.isPending}
               onClick={handleCreateConnectorToken}
-              disabled={createToken.isPending}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-primary bg-gradient-to-r from-primary to-primary-container hover:shadow-glow-primary transition-fluid cursor-pointer disabled:opacity-50"
             >
-              <Plus size={13} />
               Create connector token
-            </button>
+            </Button>
           )}
         </div>
 
@@ -331,13 +298,9 @@ export default function AgentTab() {
         {showContext && (
           <div className="mt-3 space-y-2">
             <div className="flex justify-end">
-              <button
-                onClick={handleCopyContext}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-dim bg-surface-container-high hover:bg-surface-container-highest transition-fluid"
-              >
-                {copied ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
+              <Button size="sm" onClick={handleCopyContext} icon={copied ? Check : Copy}>
                 {copied ? 'Copied!' : 'Copy'}
-              </button>
+              </Button>
             </div>
             {contextLoading ? (
               <LoadingState label="Building context..." />

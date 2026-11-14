@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Thermometer, FlaskConical, Zap, ToggleLeft, Power, Utensils, Droplets, AlertTriangle } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, relativeTime } from '@/lib/utils'
+import { isStale } from '@/lib/staleness'
 import { useMeasurements } from '@/hooks/useMeasurements'
 import { useFeedStatus } from '@/hooks/useFeed'
 import type { Probe, Outlet, Device } from '@/api/types'
@@ -73,7 +74,7 @@ export function ProbeCompactCard({ probe }: ProbeCompactCardProps) {
   const isAlarmActive = probe.input_category === 'alarm' && probe.status === 'critical'
   const isFluidWarn = probe.input_category === 'fluid' && probe.status === 'warning'
 
-  const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-amber-400' : config.color
+  const iconColor = isAlarmActive ? 'text-tertiary' : isFluidWarn ? 'text-warning' : config.color
 
   const binaryLabel = probe.value !== 0 ? (probe.on_label ?? 'On') : (probe.off_label ?? 'Off')
 
@@ -203,10 +204,11 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
       ? latest.value.toFixed(0)
       : latest.value.toFixed(2)
     : '—'
+  const stale = isStale(latest?.measured_at, 'measurement')
 
   return (
     <button
-      onClick={() => navigate('/measurements')}
+      onClick={() => navigate('/chemistry')}
       className="rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-fluid cursor-pointer w-full text-left relative overflow-hidden"
       style={{
         background: 'radial-gradient(ellipse 50% 50% at 100% 0%, rgba(109,254,156,0.18) 0%, transparent 100%), linear-gradient(135deg, var(--color-surface-container) 55%, rgba(109,254,156,0.18))',
@@ -225,7 +227,10 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
           <div className="h-4 w-12 bg-surface-container-high rounded animate-pulse mb-0.5" />
         ) : (
           <div className="flex items-baseline gap-1 mb-0.5">
-            <span className="text-base font-bold leading-none text-secondary text-glow-secondary">
+            <span className={cn(
+              'text-base font-bold leading-none',
+              stale ? 'text-on-surface-dim' : 'text-secondary text-glow-secondary',
+            )}>
               {displayValue}
             </span>
             {latest?.canonical_unit && (
@@ -237,6 +242,9 @@ export function MeasurementCompactCard({ parameter }: MeasurementCompactCardProp
         )}
         <p className="text-[10px] text-on-surface-faint uppercase tracking-widest font-medium truncate">
           {parameter}
+          {stale && latest && (
+            <span className="text-warning normal-case tracking-normal"> · {relativeTime(latest.measured_at)}</span>
+          )}
         </p>
       </div>
     </button>

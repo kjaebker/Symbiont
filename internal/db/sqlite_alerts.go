@@ -64,15 +64,29 @@ func (s *SQLiteDB) UpdateAlertRule(ctx context.Context, id int64, rule AlertRule
 	return nil
 }
 
-// DeleteAlertRule removes an alert rule by ID.
+// DeleteAlertRule removes an alert rule and its event history. The events
+// are deleted with it because alert_events.rule_id references the rule; a rule
+// that had ever fired could otherwise not be deleted.
 func (s *SQLiteDB) DeleteAlertRule(ctx context.Context, id int64) error {
-	res, err := s.db.ExecContext(ctx, "DELETE FROM alert_rules WHERE id = ?", id)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("deleting alert rule %d: %w", id, err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM alert_events WHERE rule_id = ?", id); err != nil {
+		return fmt.Errorf("deleting events for alert rule %d: %w", id, err)
+	}
+	res, err := tx.ExecContext(ctx, "DELETE FROM alert_rules WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("deleting alert rule %d: %w", id, err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return fmt.Errorf("alert rule %d not found", id)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("deleting alert rule %d: %w", id, err)
 	}
 	return nil
 }

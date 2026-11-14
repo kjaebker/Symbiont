@@ -8,8 +8,11 @@ import {
   useKitCatalog,
 } from '@/hooks/useMeasurements'
 import { getKitPref, setKitPref } from '@/api/client'
+import { LatestMeasurements } from '@/components/LatestMeasurements'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
+import { Button, Card, EmptyState, Field, Input, LoadingState, PageBody, SectionHeader, Select, labelClass } from '@/components/ui'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import type { MeasurementParameter, KitDef } from '@/api/types'
 
 // Convert a local datetime-local input value to an ISO 8601 UTC string.
@@ -126,89 +129,77 @@ function AddForm({ parameters, onClose }: AddFormProps) {
     }
   }
 
-  const inputCls = 'w-full bg-surface-container-high text-on-surface rounded-xl px-3 py-2.5 text-base outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-on-surface-faint'
-  const labelCls = 'text-xs text-on-surface-dim uppercase tracking-wider'
-
   return (
-    <div className="bg-surface-container rounded-2xl p-6 space-y-5">
-      <h2 className="text-sm font-semibold text-on-surface uppercase tracking-widest">
-        New Measurement
-      </h2>
+    <Card className="space-y-5">
+      <SectionHeader title="New Measurement" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Parameter */}
-        <div className="space-y-1.5">
-          <label className={labelCls}>Parameter</label>
-          <select
+        <Field label="Parameter">
+          <Select
             value={paramName}
             onChange={(e) => handleParamChange(e.target.value)}
-            className={inputCls}
           >
             {parameters.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name}{p.canonical_unit ? ` (${p.canonical_unit})` : ''}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
 
         {/* Kit selector — only when kits exist for this parameter */}
         {availableKits.length > 0 && (
-          <div className="space-y-1.5">
-            <label className={labelCls}>Test Kit</label>
-            <select
+          <Field label="Test Kit">
+            <Select
               value={kitRef}
               onChange={(e) => handleKitChange(e.target.value)}
-              className={inputCls}
             >
               <option value="">None — enter value directly</option>
               {availableKits.map((k) => (
                 <option key={k.ref} value={k.ref}>{k.name}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         )}
 
         {/* Raw value input — only when a kit is selected */}
         {selectedKit && (
-          <div className="space-y-1.5">
-            <label className={labelCls}>
-              {selectedKit.input_label || 'Reading'}{selectedKit.input_unit ? ` (${selectedKit.input_unit})` : ''}
-            </label>
-            <input
+          <Field label={`${selectedKit.input_label || 'Reading'}${selectedKit.input_unit ? ` (${selectedKit.input_unit})` : ''}`}>
+            <Input
               type="number"
               step="any"
               value={rawValue}
               onChange={(e) => { setRawValue(e.target.value); setValueOverridden(false) }}
               placeholder="Kit reading"
-              className={inputCls}
             />
-          </div>
+          </Field>
         )}
 
         {/* Canonical value */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className={labelCls}>
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className={labelClass}>
               {selectedKit
                 ? `Converted value (${selectedParam?.canonical_unit ?? ''})`
                 : `Value${selectedParam?.canonical_unit ? ` (${selectedParam.canonical_unit})` : ''}`}
-            </label>
+            </span>
             {selectedKit && valueOverridden && (
-              <span className="text-xs text-amber-400">overridden</span>
+              <span className="text-xs text-warning">overridden</span>
             )}
           </div>
-          <input
+          <Input
             type="number"
             step="any"
             value={value}
             onChange={(e) => { setValue(e.target.value); setValueOverridden(true) }}
             placeholder={`e.g. ${PARAM_PLACEHOLDERS[paramName] ?? '0'}`}
             required
-            className={cn(inputCls, selectedKit && !valueOverridden && value ? 'text-primary' : '')}
+            aria-label="Value"
+            className={selectedKit && !valueOverridden && value ? 'text-primary' : ''}
           />
           {selectedKit && value && !valueOverridden && (
-            <p className="text-xs text-on-surface-faint">
+            <p className="text-xs text-on-surface-faint mt-1">
               Auto-converted from {rawValue} {selectedKit.input_unit} → {value} {selectedParam?.canonical_unit}
             </p>
           )}
@@ -216,51 +207,37 @@ function AddForm({ parameters, onClose }: AddFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Measured At */}
-          <div className="space-y-1.5">
-            <label className={labelCls}>Tested At</label>
-            <input
+          <Field label="Tested At">
+            <Input
               type="datetime-local"
               value={measuredAt}
               onChange={(e) => setMeasuredAt(e.target.value)}
-              className={inputCls}
             />
-          </div>
+          </Field>
 
           {/* Notes */}
-          <div className="space-y-1.5">
-            <label className={labelCls}>Notes (optional)</label>
-            <input
+          <Field label="Notes (optional)">
+            <Input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. after 10% water change"
-              className={inputCls}
             />
-          </div>
+          </Field>
         </div>
 
         {error && (
           <p className="text-xs text-tertiary">{error}</p>
         )}
 
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="px-5 py-2 rounded-xl bg-primary/20 text-primary text-sm font-medium hover:bg-primary/30 transition-fluid disabled:opacity-50"
-          >
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={create.isPending}>
             {create.isPending ? 'Saving…' : 'Save Measurement'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl text-on-surface-dim text-sm hover:text-on-surface transition-fluid"
-          >
-            Cancel
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Card>
   )
 }
 
@@ -287,7 +264,6 @@ export default function Measurements({
 
   const [selectedParamInternal, setSelectedParamInternal] = useState<string | null>(null)
   const [showFormInternal, setShowFormInternal] = useState(false)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const controlled = hideHeader && onSelectedParamChange !== undefined
   const selectedParam = controlled ? (selectedParamProp ?? null) : selectedParamInternal
@@ -302,17 +278,8 @@ export default function Measurements({
   )
   const measurements = data?.measurements ?? []
 
-  async function handleDelete(id: number) {
-    if (deletingId === id) {
-      await deleteMutation.mutateAsync(id)
-      setDeletingId(null)
-    } else {
-      setDeletingId(id)
-    }
-  }
-
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+    <PageBody>
       {/* Standalone header (not used when embedded in Chemistry) */}
       {!hideHeader && (
         <>
@@ -325,18 +292,13 @@ export default function Measurements({
                 Measurements
               </h1>
             </div>
-            <button
+            <Button
+              variant={showForm ? 'secondary' : 'tonal'}
+              icon={Plus}
               onClick={() => setShowForm(!showForm)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-fluid',
-                showForm
-                  ? 'bg-surface-container-high text-on-surface-dim'
-                  : 'bg-primary/20 text-primary hover:bg-primary/30',
-              )}
             >
-              <Plus size={16} />
               Add Measurement
-            </button>
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -368,6 +330,9 @@ export default function Measurements({
         </>
       )}
 
+      {/* Latest result per parameter; a tile filters the table below */}
+      <LatestMeasurements parameters={parameters} selected={selectedParam} onSelect={setSelectedParam} />
+
       {/* Add form */}
       {showForm && parameters.length > 0 && (
         <AddForm parameters={parameters} onClose={() => setShowForm(false)} />
@@ -375,30 +340,29 @@ export default function Measurements({
 
       {/* Table */}
       {isLoading ? (
-        <div className="bg-surface-container rounded-2xl p-12 flex items-center justify-center">
-          <span className="text-on-surface-faint text-sm">Loading…</span>
-        </div>
+        <Card flush>
+          <LoadingState label="Loading measurements..." />
+        </Card>
       ) : measurements.length === 0 ? (
-        <div className="bg-surface-container rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
-          <FlaskConical size={28} className="text-on-surface-faint" />
-          <span className="text-on-surface-faint text-sm">
-            {selectedParam
+        <Card flush>
+          <EmptyState
+            icon={<FlaskConical size={28} />}
+            message={selectedParam
               ? `No ${selectedParam} measurements yet.`
               : 'No measurements recorded yet.'}
-          </span>
-          <button
-            onClick={() => setShowForm(true)}
-            className="text-xs text-primary hover:underline"
-          >
-            Add your first measurement
-          </button>
-        </div>
+            action={
+              <Button variant="tonal" size="sm" onClick={() => setShowForm(true)}>
+                Add your first measurement
+              </Button>
+            }
+          />
+        </Card>
       ) : (
         <>
           {/* Mobile: individual cards */}
           <div className="sm:hidden space-y-3">
             {measurements.map((m) => (
-              <div key={m.id} className="bg-surface-container rounded-2xl px-4 py-3 flex items-start gap-3">
+              <Card key={m.id} className="px-4 py-3 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-base font-bold font-mono text-on-surface tabular-nums">
@@ -414,51 +378,42 @@ export default function Measurements({
                   <div className="text-xs text-on-surface-dim mt-0.5">{formatMeasuredAt(m.measured_at)}</div>
                   {m.notes && <div className="text-xs text-on-surface-faint mt-0.5">{m.notes}</div>}
                 </div>
-                <button
-                  onClick={() => handleDelete(m.id)}
-                  disabled={deleteMutation.isPending && deletingId === m.id}
-                  className={cn(
-                    'p-1.5 rounded-lg transition-fluid text-xs shrink-0',
-                    deletingId === m.id
-                      ? 'bg-tertiary/20 text-tertiary'
-                      : 'text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10',
-                  )}
-                  title={deletingId === m.id ? 'Click again to confirm' : 'Delete'}
+                <ConfirmButton
+                  onConfirm={() => deleteMutation.mutate(m.id)}
+                  disabled={deleteMutation.isPending}
+                  title="Delete"
+                  className="p-1.5 rounded-lg transition-fluid shrink-0 text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10"
                 >
                   <Trash2 size={14} />
-                </button>
-              </div>
+                </ConfirmButton>
+              </Card>
             ))}
           </div>
           {/* Desktop table */}
-          <div className="hidden sm:block bg-surface-container rounded-2xl overflow-hidden">
+          <Card flush className="hidden sm:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-outline-variant/20">
-                <th className="text-left px-5 py-3.5 text-xs text-on-surface-dim uppercase tracking-widest font-medium">
+              <tr className="bg-surface-container-high/50">
+                <th className={cn(labelClass, 'text-left px-5 py-3.5')}>
                   Date
                 </th>
-                <th className="text-left px-5 py-3.5 text-xs text-on-surface-dim uppercase tracking-widest font-medium">
+                <th className={cn(labelClass, 'text-left px-5 py-3.5')}>
                   Parameter
                 </th>
-                <th className="text-right px-5 py-3.5 text-xs text-on-surface-dim uppercase tracking-widest font-medium">
+                <th className={cn(labelClass, 'text-right px-5 py-3.5')}>
                   Value
                 </th>
-                <th className="text-left px-5 py-3.5 text-xs text-on-surface-dim uppercase tracking-widest font-medium hidden md:table-cell">
+                <th className={cn(labelClass, 'text-left px-5 py-3.5 hidden md:table-cell')}>
                   Notes
                 </th>
                 <th className="px-5 py-3.5" />
               </tr>
             </thead>
             <tbody>
-              {measurements.map((m, i) => (
+              {measurements.map((m) => (
                 <tr
                   key={m.id}
-                  className={cn(
-                    'transition-fluid',
-                    i < measurements.length - 1 && 'border-b border-outline-variant/10',
-                    'hover:bg-surface-container-high/50',
-                  )}
+                  className="transition-fluid hover:bg-surface-container-high/50"
                 >
                   <td className="px-5 py-3.5 text-on-surface-dim">
                     {formatMeasuredAt(m.measured_at)}
@@ -480,27 +435,22 @@ export default function Measurements({
                     {m.notes ?? <span className="text-on-surface-faint">—</span>}
                   </td>
                   <td className="px-3 py-3.5 text-right">
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      disabled={deleteMutation.isPending && deletingId === m.id}
-                      className={cn(
-                        'p-1.5 rounded-lg transition-fluid text-xs',
-                        deletingId === m.id
-                          ? 'bg-tertiary/20 text-tertiary'
-                          : 'text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10',
-                      )}
-                      title={deletingId === m.id ? 'Click again to confirm' : 'Delete'}
+                    <ConfirmButton
+                      onConfirm={() => deleteMutation.mutate(m.id)}
+                      disabled={deleteMutation.isPending}
+                      title="Delete"
+                      className="p-1.5 rounded-lg transition-fluid text-on-surface-faint hover:text-tertiary hover:bg-tertiary/10"
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </ConfirmButton>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          </div>
+          </Card>
         </>
       )}
-    </div>
+    </PageBody>
   )
 }
