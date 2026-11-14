@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Bell, Activity } from 'lucide-react'
-import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert, useAlertEvents } from '@/hooks/useAlerts'
-import { usePageTitle } from '@/hooks/usePageTitle'
+import { Plus, Pencil, Trash2, Bell } from 'lucide-react'
+import { useAlerts, useCreateAlert, useUpdateAlert, useDeleteAlert } from '@/hooks/useAlerts'
 import { AlertRuleForm } from '@/components/AlertRuleForm'
-import { PageHeader } from '@/components/PageHeader'
 import type { AlertRule } from '@/api/types'
 import { cn } from '@/lib/utils'
-import { Card, Chip, EmptyState, IconButton, LoadingState, PageBody, SectionHeader, Toggle, labelClass } from '@/components/ui'
+import { Button, Card, Chip, EmptyState, IconButton, LoadingState, SectionHeader, Toggle, labelClass } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 
 const conditionLabels: Record<string, string> = {
@@ -43,8 +41,7 @@ function isUnconfigured(rule: AlertRule): boolean {
   return rule.condition === 'probe_range' && !rule.range_configured
 }
 
-export default function Alerts() {
-  usePageTitle('Alerts')
+export default function AlertsTab() {
   const { data, isLoading } = useAlerts()
   const createMutation = useCreateAlert()
   const updateMutation = useUpdateAlert()
@@ -77,15 +74,17 @@ export default function Alerts() {
   }
 
   return (
-    <div>
-      <PageHeader
-        subtitle="Monitoring"
+    <div className="space-y-6">
+      <SectionHeader
         title="Alert Rules"
-        action={{ label: 'New Rule', icon: Plus, onClick: () => setFormOpen(true) }}
-        maxWidth="max-w-7xl"
+        icon={Bell}
+        action={
+          <Button variant="tonal" size="sm" icon={Plus} onClick={() => setFormOpen(true)}>
+            New Rule
+          </Button>
+        }
       />
 
-      <PageBody>
       {/* Rules Table */}
       {isLoading ? (
         <Card flush><LoadingState label="Loading alert rules..." /></Card>
@@ -213,9 +212,6 @@ export default function Alerts() {
         </div>
       )}
 
-      {/* Alert Event Log */}
-      <AlertEventLog />
-
       {/* Dialogs */}
       {formOpen && (
         <AlertRuleForm
@@ -230,119 +226,6 @@ export default function Alerts() {
           onClose={() => setEditingRule(undefined)}
         />
       )}
-      </PageBody>
     </div>
-  )
-}
-
-function AlertEventLog() {
-  const { data, isLoading } = useAlertEvents({ limit: 25 })
-  const events = data?.events ?? []
-
-  function formatTime(ts: string) {
-    return new Date(ts).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  return (
-    <div className="space-y-3">
-      <SectionHeader title="Recent Events" icon={Activity} />
-
-      {isLoading ? (
-        <Card flush><LoadingState label="Loading events..." /></Card>
-      ) : events.length === 0 ? (
-        <Card flush><EmptyState icon={<Activity size={24} />} message="No alert events yet." /></Card>
-      ) : (
-        <>
-          {/* Mobile: individual cards */}
-          <div className="sm:hidden space-y-3">
-            {events.map((event) => (
-              <div key={event.id} className="bg-surface-container rounded-2xl px-4 py-3 space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-on-surface">
-                    {event.probe_display_name ?? event.probe_name ?? '--'}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Chip tone={event.severity === 'critical' ? 'critical' : 'warning'}>{event.severity ?? '--'}</Chip>
-                    {event.cleared_at ? (
-                      <Chip tone="secondary">Cleared</Chip>
-                    ) : (
-                      <Chip tone="critical" pulse>Active</Chip>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-on-surface-dim flex-wrap">
-                  <span>Peak: <span className="font-mono text-on-surface">{event.peak_value.toFixed(2)}</span></span>
-                  <span>Fired: {formatTime(event.fired_at)}</span>
-                  {event.cleared_at && <span>Cleared: {formatTime(event.cleared_at)}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Desktop table */}
-          <Card flush className="hidden sm:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-surface-container-high/50">
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Probe
-                    </th>
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Severity
-                    </th>
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Peak
-                    </th>
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Fired
-                    </th>
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Cleared
-                    </th>
-                    <th className={cn('py-3 px-4 text-left', labelClass)}>
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((event) => (
-                    <tr
-                      key={event.id}
-                      className="transition-fluid hover:bg-surface-container-high/50"
-                    >
-                      <td className="py-3 px-4 text-sm font-medium text-on-surface">
-                        {event.probe_display_name ?? event.probe_name ?? '--'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Chip tone={event.severity === 'critical' ? 'critical' : 'warning'}>{event.severity ?? '--'}</Chip>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-on-surface font-mono">
-                        {event.peak_value.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-on-surface-dim">
-                        {formatTime(event.fired_at)}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-on-surface-dim">
-                        {event.cleared_at ? formatTime(event.cleared_at) : '--'}
-                      </td>
-                      <td className="py-3 px-4">
-                        {event.cleared_at ? (
-                          <Chip tone="secondary">Cleared</Chip>
-                        ) : (
-                          <Chip tone="critical" pulse>Active</Chip>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          </>
-        )}
-      </div>
   )
 }

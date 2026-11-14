@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom'
 import { getToken } from '@/api/client'
 import Layout from '@/components/Layout'
 import Login from '@/pages/Login'
@@ -7,11 +7,10 @@ import Dashboard from '@/pages/Dashboard'
 
 // Off the critical path — each becomes a separate JS chunk.
 const Chemistry = lazy(() => import('@/pages/Chemistry'))
-const MaintenancePage = lazy(() => import('@/pages/MaintenancePage'))
+const Tasks = lazy(() => import('@/pages/Tasks'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const Livestock = lazy(() => import('@/pages/Livestock'))
 const LivestockDetail = lazy(() => import('@/pages/LivestockDetail'))
-const Alerts = lazy(() => import('@/pages/Alerts'))
 const Settings = lazy(() => import('@/pages/Settings'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -37,6 +36,13 @@ function PageFallback() {
   )
 }
 
+/** /maintenance held Tasks and Control; Control is now the Settings Outlets tab. */
+function MaintenanceRedirect() {
+  const [searchParams] = useSearchParams()
+  const to = searchParams.get('tab') === 'control' ? '/settings?tab=outlets' : '/tasks'
+  return <Navigate to={to} replace />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -54,18 +60,19 @@ export default function App() {
         {/* Lazy — a single Suspense boundary covers all split routes */}
         <Route element={<Suspense fallback={<PageFallback />}><Outlet /></Suspense>}>
           <Route path="chemistry" element={<Chemistry />} />
-          <Route path="maintenance" element={<MaintenancePage />} />
+          <Route path="tasks" element={<Tasks />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="livestock" element={<Livestock />} />
           <Route path="livestock/:id" element={<LivestockDetail />} />
-          <Route path="alerts" element={<Alerts />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Legacy redirects — no component, no Suspense needed */}
         <Route path="measurements" element={<Navigate to="/chemistry" replace />} />
         <Route path="journal" element={<Navigate to="/history?tab=journal" replace />} />
-        <Route path="control" element={<Navigate to="/maintenance?tab=control" replace />} />
+        <Route path="control" element={<Navigate to="/settings?tab=outlets" replace />} />
+        <Route path="maintenance" element={<MaintenanceRedirect />} />
+        <Route path="alerts" element={<Navigate to="/settings?tab=alerts" replace />} />
       </Route>
     </Routes>
   )

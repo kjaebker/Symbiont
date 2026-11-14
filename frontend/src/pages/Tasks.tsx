@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { useSearchParams } from 'react-router-dom'
-import { Wrench, Power, Plus, Trash2, CheckCircle2, Pencil } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Trash2, CheckCircle2, Pencil, Settings2 } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn, overdueBy } from '@/lib/utils'
-import Control from '@/pages/Control'
+import { DOSING_FREQUENCY_LABELS, formatDoseDue } from '@/lib/dosing'
 import { PageHeader } from '@/components/PageHeader'
-import { Button, Card, EmptyState, Field, Input, PageBody, Select, SectionHeader, TimeAgo } from '@/components/ui'
+import { Button, Card, EmptyState, Field, IconButton, Input, PageBody, Select, SectionHeader, TimeAgo } from '@/components/ui'
 import {
   useMaintenanceTasks,
   useCreateMaintenanceTask,
@@ -14,6 +14,9 @@ import {
   useDeleteMaintenanceTask,
   useCompleteMaintenanceTask,
   useDueItems,
+  useDosingSchedules,
+  useDosingLogs,
+  useLogDose,
 } from '@/hooks/useDosing'
 import type { MaintenanceTask, MaintenanceFrequency } from '@/api/client'
 
@@ -130,14 +133,14 @@ function TaskForm({ initial, onSubmit, onCancel, loading }: TaskFormProps) {
   )
 }
 
-// ─── Tasks Tab ────────────────────────────────────────────────────────────────
+// ─── Tasks ────────────────────────────────────────────────────────────────────
 
-interface TasksTabProps {
+interface TasksSectionProps {
   showForm: boolean
   setShowForm: (v: boolean) => void
 }
 
-function TasksTab({ showForm, setShowForm }: TasksTabProps) {
+function TasksSection({ showForm, setShowForm }: TasksSectionProps) {
   const { data } = useMaintenanceTasks()
   const tasks = data?.tasks ?? []
 
@@ -172,13 +175,46 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
     }
   }
 
+  // Doses are due by the same rule the Dosing schedules list uses.
+  const { data: schedulesData } = useDosingSchedules()
+  const logDose = useLogDose()
+  const now = new Date()
+  const dueDoses = (schedulesData?.schedules ?? []).filter(s =>
+    s.enabled && s.frequency !== 'as_needed' && !!s.next_due_at && new Date(s.next_due_at) <= now,
+  )
+
   return (
-    <div className="space-y-6">
-      {/* Due now */}
-      {dueTasks.length > 0 && (
+    <>
+      {/* Due now: tasks and doses together */}
+      {(dueTasks.length > 0 || dueDoses.length > 0) && (
         <Card className="space-y-4">
           <SectionHeader title="Due Now" />
           <div className="space-y-2">
+            {dueDoses.map(s => (
+              <div key={`dose-${s.id}`} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-tertiary/10">
+                <div>
+                  <div className="text-sm font-medium text-tertiary">
+                    {s.product_brand} {s.product_name}
+                    <span className="ml-2 text-xs uppercase tracking-wider font-semibold">
+                      {formatDoseDue(s.next_due_at)}
+                    </span>
+                  </div>
+                  <div className="text-xs text-on-surface-dim mt-0.5">
+                    Dose {s.amount} {s.product_unit}
+                  </div>
+                </div>
+                <Button
+                  variant="tonal"
+                  size="sm"
+                  icon={CheckCircle2}
+                  className="shrink-0"
+                  onClick={() => logDose.mutate({ scheduleId: s.id, data: {} })}
+                  disabled={logDose.isPending && logDose.variables?.scheduleId === s.id}
+                >
+                  {logDose.isPending && logDose.variables?.scheduleId === s.id ? 'Logging…' : 'Log Dose'}
+                </Button>
+              </div>
+            ))}
             {dueTasks.map(t => {
               const overdue = dueById.get(t.id)?.is_overdue ?? false
               const late = overdue && t.next_due_at ? overdueBy(t.next_due_at) : ''
@@ -308,48 +344,117 @@ function TasksTab({ showForm, setShowForm }: TasksTabProps) {
           </div>
         )}
       </Card>
-    </div>
+    </>
   )
 }
 
-// ─── Maintenance Page ─────────────────────────────────────────────────────────
+// ─── Doses ────────────────────────────────────────────────────────────────────
+// Logging only. Schedules and the product catalog are set up in Settings.
 
-export default function MaintenancePage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') ?? 'tasks'
-  usePageTitle('Maintenance')
+function DosesSection() {
+  const { data: schedulesData } = useDosingSchedules()
+  const { data: logsData } = useDosingLogs({ limit: 30 })
+  const logDose = useLogDose()
+  const schedules = (schedulesData?.schedules ?? []).filter(s => s.enabled)
+  const logs = logsData?.logs ?? []
 
+  return (
+    <>
+      <Card className="space-y-4">
+        <SectionHeader
+          title="Doses"
+          action={
+            <Link
+              to="/settings?tab=dosing"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-dim hover:text-primary transition-fluid"
+            >
+              <Settings2 size={13} />
+              Manage schedules
+            </Link>
+          }
+        />
+        {schedules.length === 0 ? (
+          <EmptyState message="No dosing schedules. Set them up in Settings." />
+        ) : (
+          <div className="space-y-2">
+            {schedules.map(s => {
+              const due = !!s.next_due_at && new Date(s.next_due_at) <= new Date()
+              const logging = logDose.isPending && logDose.variables?.scheduleId === s.id
+              return (
+                <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high/50 hover:bg-surface-container-high transition-fluid">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-on-surface">
+                      {s.product_brand} {s.product_name}
+                    </div>
+                    <div className="text-xs text-on-surface-dim mt-0.5">
+                      {s.amount} {s.product_unit} · {DOSING_FREQUENCY_LABELS[s.frequency]}
+                      {s.interval_days && s.frequency === 'every_n_days' && ` (${s.interval_days}d)`}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={cn('text-xs font-medium', due ? 'text-tertiary' : 'text-on-surface-dim')}>
+                      {formatDoseDue(s.next_due_at)}
+                    </div>
+                    {s.last_completed_at && (
+                      <div className="text-xs text-on-surface-faint">
+                        Last: <TimeAgo ts={s.last_completed_at} />
+                      </div>
+                    )}
+                  </div>
+                  <IconButton
+                    icon={CheckCircle2}
+                    label="Log dose now"
+                    tone="primary"
+                    size={15}
+                    className="text-primary shrink-0"
+                    onClick={() => logDose.mutate({ scheduleId: s.id, data: {} })}
+                    disabled={logging}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      {logs.length > 0 && (
+        <Card className="space-y-4">
+          <SectionHeader title="Recent Doses" />
+          <div className="space-y-1.5">
+            {logs.slice(0, 20).map(l => (
+              <div key={l.id} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-surface-container-high/50 transition-fluid">
+                <div>
+                  <span className="text-sm text-on-surface">{l.product_brand} {l.product_name}</span>
+                  <span className="text-xs text-on-surface-dim ml-2">{l.amount} {l.product_unit}</span>
+                </div>
+                <span className="text-xs text-on-surface-dim"><TimeAgo ts={l.dosed_at} /></span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </>
+  )
+}
+
+// ─── Tasks Page ───────────────────────────────────────────────────────────────
+
+export default function Tasks() {
+  usePageTitle('Tasks')
   const [showTaskForm, setShowTaskForm] = useState(false)
-
-  function setTab(t: string) {
-    setSearchParams({ tab: t }, { replace: true })
-    setShowTaskForm(false)
-  }
 
   return (
     <div>
       <PageHeader
-        subtitle="Tank Command"
-        title="Maintenance"
-        tabs={[
-          { key: 'tasks', label: 'Tasks', icon: Wrench },
-          { key: 'control', label: 'Control', icon: Power },
-        ]}
-        activeTab={tab}
-        onTabChange={setTab}
-        action={tab === 'tasks'
-          ? { label: 'Add Task', icon: Plus, onClick: () => setShowTaskForm((v) => !v), active: showTaskForm }
-          : null
-        }
+        subtitle="Upkeep"
+        title="Tasks"
+        action={{ label: 'Add Task', icon: Plus, onClick: () => setShowTaskForm((v) => !v), active: showTaskForm }}
       />
 
-      {tab === 'tasks' ? (
-        <PageBody>
-          <TasksTab showForm={showTaskForm} setShowForm={setShowTaskForm} />
-        </PageBody>
-      ) : (
-        <Control hideHeader />
-      )}
+      <PageBody>
+        <TasksSection showForm={showTaskForm} setShowForm={setShowTaskForm} />
+        <DosesSection />
+      </PageBody>
     </div>
   )
 }

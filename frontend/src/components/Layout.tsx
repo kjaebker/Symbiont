@@ -4,9 +4,8 @@ import {
   BookOpen,
   FlaskConical,
   Fish,
-  Bell,
   Settings,
-  Wrench,
+  ListChecks,
   Menu,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -15,8 +14,6 @@ import { useSystemStatus } from '@/hooks/useSystem'
 import { cn, relativeTime } from '@/lib/utils'
 import { getBubblesEnabled } from '@/api/client'
 import { Bubbles } from '@/components/Bubbles'
-import { Caustic } from '@/components/Caustic'
-import { SidebarSilhouette } from '@/components/SidebarSilhouette'
 import { routeThemes, defaultRouteTheme, PageThemeContext } from '@/lib/pageTheme'
 import type { PageTheme } from '@/lib/pageTheme'
 
@@ -31,9 +28,8 @@ const allNavItems = [
   { to: '/',            icon: LayoutDashboard, label: 'Dashboard'   },
   { to: '/livestock',   icon: Fish,            label: 'Livestock'   },
   { to: '/chemistry',   icon: FlaskConical,    label: 'Chemistry'   },
-  { to: '/maintenance', icon: Wrench,          label: 'Maintenance' },
+  { to: '/tasks',       icon: ListChecks,      label: 'Tasks'       },
   { to: '/history',     icon: BookOpen,        label: 'Log'         },
-  { to: '/alerts',      icon: Bell,            label: 'Alerts'      },
   { to: '/settings',    icon: Settings,        label: 'Settings'    },
 ]
 
@@ -93,22 +89,6 @@ function MobileDrawer({ open, onClose, activeItem }: MobileDrawerProps) {
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Ambient glow — shifts color with active page */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: '25%',
-          left: '-30%',
-          width: 280,
-          height: 280,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${activeItem.color}14 0%, transparent 70%)`,
-          pointerEvents: 'none',
-          transition: 'background 500ms ease',
-        }}
-      />
-
       {/* Header — matches desktop sidebar */}
       <div style={{ padding: 'calc(env(safe-area-inset-top) + 58px) 22px 18px', position: 'relative' }}>
         <div className="flex items-center gap-3 px-0 py-0">
@@ -355,7 +335,6 @@ export default function Layout() {
 
   const ctx: PageTheme = {
     ...theme,
-    page: routeDefault.page,
     setTheme: (t) => setThemeState((prev) => ({ ...prev, ...t })),
   }
 
@@ -412,7 +391,6 @@ export default function Layout() {
             <StatusBadge />
           </div>
 
-          <SidebarSilhouette page={routeDefault.page} />
         </nav>
 
         {/* Right side: stacking context for mobile push-reveal */}
@@ -430,8 +408,7 @@ export default function Layout() {
             className="absolute inset-0 md:relative md:inset-auto md:flex-1 flex flex-col bg-surface overflow-hidden"
             style={contentPanelStyle}
           >
-            {/* Caustic and Bubbles live inside the panel so the transform context keeps them aligned */}
-            <Caustic />
+            {/* Bubbles live inside the panel so the transform context keeps them aligned */}
             {bubblesEnabled && <Bubbles />}
 
             <main className="flex-1 overflow-y-auto relative pb-[var(--mobile-bar-height)] md:pb-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>

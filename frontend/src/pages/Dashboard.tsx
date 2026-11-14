@@ -166,7 +166,7 @@ function TankStatusHeader({
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {dueTaskCount > 0 && (
                   <Link
-                    to="/maintenance"
+                    to="/tasks"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/15 text-warning hover:bg-warning/25 transition-fluid"
                   >
                     <ClipboardList size={11} />
@@ -175,7 +175,7 @@ function TankStatusHeader({
                 )}
                 {dueDoseCount > 0 && (
                   <Link
-                    to="/chemistry?tab=dosing"
+                    to="/tasks"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/15 text-warning hover:bg-warning/25 transition-fluid"
                   >
                     <Droplets size={11} />

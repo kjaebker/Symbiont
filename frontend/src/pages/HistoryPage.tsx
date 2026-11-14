@@ -30,7 +30,7 @@ const SENTIMENT_LABELS: Record<JournalSentiment, string> = {
 
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') ?? 'journal'
+  const tab = searchParams.get('tab') ?? 'telemetry'
   usePageTitle('Log')
 
   // Journal state
@@ -56,7 +56,11 @@ export default function HistoryPage() {
   // Timeline state
   const [kindFilter, setKindFilter] = useState('')
   const { data: auditData } = useAuditEvents({ limit: 100 })
-  const allKinds = Array.from(new Set((auditData?.events ?? []).map(e => e.kind))).sort()
+  // Every known kind is always offered (so Outlet and Alert filters are there
+  // even when none are in the latest page), plus any unlabelled kind seen.
+  const allKinds = Array.from(
+    new Set([...Object.keys(KIND_LABELS), ...(auditData?.events ?? []).map(e => e.kind)]),
+  ).sort((a, b) => (KIND_LABELS[a] ?? a).localeCompare(KIND_LABELS[b] ?? b))
 
   function setTab(t: string) {
     setSearchParams({ tab: t }, { replace: true })
@@ -102,7 +106,7 @@ export default function HistoryPage() {
     </div>
   )
 
-  const timelineFilterBar = allKinds.length > 0 ? (
+  const timelineFilterBar = (
     <FilterDropdown
       label="All events"
       value={kindFilter}
@@ -112,7 +116,7 @@ export default function HistoryPage() {
       ]}
       onChange={setKindFilter}
     />
-  ) : undefined
+  )
 
   function getFilterBar() {
     if (tab === 'journal') return journalFilterBar
@@ -145,11 +149,11 @@ export default function HistoryPage() {
   return (
     <div>
       <PageHeader
-        subtitle="Journal, Telemetry and Timeline"
+        subtitle="Telemetry, Journal and Timeline"
         title="Log"
         tabs={[
-          { key: 'journal', label: 'Journal', icon: ScrollText },
           { key: 'telemetry', label: 'Telemetry', icon: Clock },
+          { key: 'journal', label: 'Journal', icon: ScrollText },
           { key: 'timeline', label: 'Full Timeline', icon: Activity },
         ]}
         activeTab={tab}

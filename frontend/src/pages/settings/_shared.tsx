@@ -10,20 +10,51 @@ import { GripVertical, ToggleLeft, AlertTriangle, Activity, Droplets } from 'luc
 import { cn } from '@/lib/utils'
 import type { InputCategory } from '@/api/types'
 
-export type Tab = 'dashboard' | 'devices' | 'probes' | 'outlets' | 'tokens' | 'notifications' | 'backup' | 'log' | 'system' | 'tank' | 'agent'
+export type Tab =
+  | 'dashboard' | 'tank'
+  | 'probes' | 'outlets' | 'devices' | 'dosing'
+  | 'alerts' | 'notifications'
+  | 'system' | 'backup' | 'tokens' | 'agent' | 'log'
 
-export const tabs: { key: Tab; label: string }[] = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'devices', label: 'Devices' },
-  { key: 'tank', label: 'Tank' },
-  { key: 'probes', label: 'Probes' },
-  { key: 'outlets', label: 'Outlets' },
-  { key: 'agent', label: 'Agent' },
-  { key: 'tokens', label: 'Tokens' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'backup', label: 'Backup' },
-  { key: 'log', label: 'System Log' },
-  { key: 'system', label: 'System' },
+export type TabGroup = 'dashboard' | 'tank' | 'equipment' | 'alerts' | 'system'
+
+/**
+ * Settings is two levels: five groups across the page header, and the tabs of
+ * the active group as a row of pills under it. The URL carries the tab
+ * (`?tab=probes`); the group is derived from it.
+ */
+export const tabGroups: { key: TabGroup; label: string; tabs: { key: Tab; label: string }[] }[] = [
+  { key: 'dashboard', label: 'Dashboard', tabs: [{ key: 'dashboard', label: 'Dashboard' }] },
+  { key: 'tank', label: 'Tank', tabs: [{ key: 'tank', label: 'Tank' }] },
+  {
+    key: 'equipment',
+    label: 'Equipment',
+    tabs: [
+      { key: 'probes', label: 'Probes' },
+      { key: 'outlets', label: 'Outlets' },
+      { key: 'devices', label: 'Devices' },
+      { key: 'dosing', label: 'Dosing' },
+    ],
+  },
+  {
+    key: 'alerts',
+    label: 'Alerts',
+    tabs: [
+      { key: 'alerts', label: 'Rules' },
+      { key: 'notifications', label: 'Notifications' },
+    ],
+  },
+  {
+    key: 'system',
+    label: 'System',
+    tabs: [
+      { key: 'system', label: 'System' },
+      { key: 'backup', label: 'Backup' },
+      { key: 'tokens', label: 'Tokens' },
+      { key: 'agent', label: 'Agent' },
+      { key: 'log', label: 'System Log' },
+    ],
+  },
 ]
 
 export const unitOptions = [
