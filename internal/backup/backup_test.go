@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/kjaebker/symbiont/internal/db"
@@ -161,5 +162,59 @@ func TestBackupRecordsJob(t *testing.T) {
 	}
 	if jobs[0].Status != "success" {
 		t.Errorf("expected status 'success', got %q", jobs[0].Status)
+	}
+}
+
+func TestBackupIncludesUncheckpointedWrites(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	duck, err := db.Open(filepath.Join(tmpDir, "test.duckdb"))
+	if err != nil {
+		t.Fatalf("opening duckdb: %v", err)
+	}
+	defer duck.Close()
+
+	sqlite, err := db.OpenSQLite(filepath.Join(tmpDir, "test.sqlite"))
+	if err != nil {
+		t.Fatalf("opening sqlite: %v", err)
+	}
+	defer sqlite.Close()
+
+	ctx := context.Background()
+	if _, err := sqlite.DB().ExecContext(ctx,
+		`INSERT INTO alert_rules (probe_name, condition, threshold_high, severity, cooldown_minutes, enabled)
+		 VALUES ('BackupProbe', 'above', 1.0, 'warning', 5, 1)`); err != nil {
+		t.Fatalf("inserting rule: %v", err)
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	result, err := Run(ctx, duck, sqlite, Config{BackupDir: filepath.Join(tmpDir, "backups")}, logger)
+	if err != nil {
+		t.Fatalf("backup failed: %v", err)
+	}
+
+	var sqlitePath string
+	for _, p := range result.Paths {
+		if strings.HasPrefix(filepath.Base(p), "app-") {
+			sqlitePath = p
+		}
+	}
+	if sqlitePath == "" {
+		t.Fatal("no sqlite backup in result")
+	}
+
+	restored, err := db.OpenSQLite(sqlitePath)
+	if err != nil {
+		t.Fatalf("opening backup: %v", err)
+	}
+	defer restored.Close()
+
+	var n int
+	if err := restored.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM alert_rules WHERE probe_name = 'BackupProbe'`).Scan(&n); err != nil {
+		t.Fatalf("querying backup: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("backup is missing the rule written before it ran (found %d)", n)
 	}
 }

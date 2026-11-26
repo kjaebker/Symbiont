@@ -22,10 +22,10 @@ type Config struct {
 
 // Result describes the outcome of a backup run.
 type Result struct {
-	Status    string `json:"status"`
+	Status    string   `json:"status"`
 	Paths     []string `json:"paths"`
-	SizeBytes int64  `json:"size_bytes"`
-	Error     string `json:"error,omitempty"`
+	SizeBytes int64    `json:"size_bytes"`
+	Error     string   `json:"error,omitempty"`
 }
 
 // Run performs a backup of DuckDB and SQLite databases.
@@ -39,11 +39,6 @@ func Run(ctx context.Context, duck *db.DuckDB, sqlite *db.SQLiteDB, cfg Config, 
 	// Checkpoint DuckDB before copy.
 	if _, err := duck.DB().ExecContext(ctx, "CHECKPOINT"); err != nil {
 		logger.Warn("duckdb checkpoint failed, proceeding with copy", "err", err)
-	}
-
-	// Checkpoint SQLite WAL before copy to ensure the backup is consistent.
-	if _, err := sqlite.DB().ExecContext(ctx, "PRAGMA wal_checkpoint(FULL)"); err != nil {
-		return nil, fmt.Errorf("sqlite wal checkpoint failed: %w", err)
 	}
 
 	var paths []string
@@ -62,11 +57,14 @@ func Run(ctx context.Context, duck *db.DuckDB, sqlite *db.SQLiteDB, cfg Config, 
 		logger.Info("backed up duckdb", "path", duckDst, "size_bytes", size)
 	}
 
-	// Copy SQLite.
+	// Snapshot SQLite through the live connection. VACUUM INTO produces a
+	// consistent copy that includes everything still in the WAL, and never
+	// opens or closes app.db behind SQLite's back: closing an extra file
+	// descriptor on a SQLite file drops the process's POSIX locks on it.
 	sqliteSrc := sqlite.Path()
 	if sqliteSrc != "" && sqliteSrc != ":memory:" {
 		sqliteDst := filepath.Join(cfg.BackupDir, fmt.Sprintf("app-%s.db", stamp))
-		size, err := copyFile(sqliteSrc, sqliteDst)
+		size, err := snapshotSQLite(ctx, sqlite, sqliteDst)
 		if err != nil {
 			return &Result{Status: "failed", Error: fmt.Sprintf("copying sqlite: %v", err)}, err
 		}
@@ -146,6 +144,19 @@ func PruneOldBackups(dir string, retain int) error {
 	}
 
 	return nil
+}
+
+// snapshotSQLite writes a consistent copy of the database to dst using VACUUM
+// INTO and returns its size. dst must not already exist.
+func snapshotSQLite(ctx context.Context, sqlite *db.SQLiteDB, dst string) (int64, error) {
+	if _, err := sqlite.DB().ExecContext(ctx, "VACUUM INTO ?", dst); err != nil {
+		return 0, fmt.Errorf("vacuum into %s: %w", dst, err)
+	}
+	info, err := os.Stat(dst)
+	if err != nil {
+		return 0, fmt.Errorf("stat %s: %w", dst, err)
+	}
+	return info.Size(), nil
 }
 
 func copyFile(src, dst string) (int64, error) {
